@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Omok #{{ game.id }}</title>
+  <style>
+    #board { display:grid; grid-template-columns: repeat({{ BOARD_SIZE }}, 32px); gap:2px; width:max-content; }
+    .cell { width:32px; height:32px; background:#f4d29a; border:1px solid #c49b54; display:flex; align-items:center; justify-content:center; font-weight:700; cursor:pointer; }
+    .stoneB::after { content:"●"; }
+    .stoneW::after { content:"○"; }
+    .status { margin: 8px 0; }
+  </style>
+</head>
+<body>
+<h3>Omok #{{ game.id }}</h3>
+  <div class="status" style="display: flex; align-items: center; gap: 10px;">
+    <span id="turn"></span>
+    <span id="winner"></span>
+      <a href="{% url 'games:new' %}">
+        <button>새게임시작</button>
+      </a>
+  </div>
+  <div id="board"></div>
+    <script>
+      const SIZE = {{ BOARD_SIZE }};
+      const gameId = {{ game.id }};
+      const scheme = (location.protocol === "https:") ? "wss" : "ws";
+      const wsPath = `${scheme}://${location.host}/ws/games/${gameId}/`;
+      console.log("[WS] connecting to", wsPath);
+
+      const statusEl = document.createElement("div");
+      statusEl.style.margin = "6px 0";
+      statusEl.id = "ws-status";
+      statusEl.textContent = "연결 중...";
+      document.body.insertBefore(statusEl, document.getElementById("board"));
+
+      const socket = new WebSocket(wsPath);
+      socket.addEventListener("open", () => {
+        statusEl.textContent = "웹소켓 연결 OK";
+      });
+      socket.addEventListener("close", (e) => {
+        statusEl.textContent = `연결 종료(${e.code})`;
+        console.warn("[WS] closed", e);
+      });
+      socket.addEventListener("error", (e) => {
+        statusEl.textContent = "웹소켓 오류";
+        console.error("[WS] error", e);
+      });
+
+      const boardEl = document.getElementById("board");
+      const turnEl = document.getElementById("turn");
+      const winnerEl = document.getElementById("winner");
+      const cells = [];
+
+      for (let y=0; y<SIZE; y++){
+        for (let x=0; x<SIZE; x++){
+          const b = document.createElement("button");
+          b.className = "cell";
+          b.type = "button"; // ✅ 폼 submit 방지
+          b.addEventListener("click", ()=>{
+            if (socket.readyState !== WebSocket.OPEN){
+              alert("서버와 연결되지 않았습니다.");
+              return;
+            }
+            socket.send(JSON.stringify({type:"play", x, y}));
+          });
+          boardEl.appendChild(b);
+          cells.push(b);
+        }
+      }
+
+      function render(state){
+        const {board, turn, winner} = state;
+        for (let i=0;i<board.length;i++){
+          cells[i].classList.remove("stoneB","stoneW");
+          if (board[i]==="B") cells[i].classList.add("stoneB");
+          if (board[i]==="W") cells[i].classList.add("stoneW");
+        }
+        turnEl.textContent = winner ? "" : `턴: ${turn==="black"?"흑(●)":"백(○)"}`;
+        winnerEl.textContent = winner ? `승자: ${winner==="black"?"흑(●)":"백(○)"}` : "";
+      }
+
+      socket.onmessage = (e)=>{
+        const m = JSON.parse(e.data);
+        if (m.type === "state") render(m);
+        if (m.type === "error") alert(m.message);
+      };
+    </script>
+</body>
+</html>

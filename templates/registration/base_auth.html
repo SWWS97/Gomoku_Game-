@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Omok – Auth{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{
+      --board:#f4d29a;      /* 바둑판 */
+      --line:#c49b54;       /* 선 */
+      --ink:#2b2b2b;        /* 글자 */
+      --card:#fff9ee;       /* 카드 배경 */
+      --accent:#222;        /* 버튼/포커스 */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink); font-family:ui-sans-serif,system-ui,AppleSDGothicNeo,Segoe UI,Roboto,Apple Color Emoji,Segoe UI Emoji;
+      display:grid; place-items:center;
+      background:
+        linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 36px 36px,
+        linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 36px 36px,
+        var(--board);
+    }
+    .stone{font-weight:900; letter-spacing:.02em}
+    .stone.black::before{content:"●"; margin-right:.35rem}
+    .stone.white::before{content:"○"; margin-right:.35rem}
+
+    .card{
+      background:var(--card); border:2px solid var(--line); border-radius:20px;
+      box-shadow:0 10px 30px rgba(0,0,0,.08);
+      width:min(92vw, 440px); padding:28px;
+      backdrop-filter: blur(2px);
+    }
+    h1{margin:0 0 4px; font-size:28px}
+    p.sub{margin:0 0 18px; color:#6b6b6b}
+
+    form .row{display:flex; flex-direction:column; gap:6px; margin:12px 0}
+    label{font-size:14px}
+    input{
+      width:100%; padding:12px 14px; border:2px solid var(--line); border-radius:12px;
+      background:#fffdf7; outline:none; font-size:16px;
+    }
+    input:focus{border-color:#a67a2e; box-shadow:0 0 0 4px rgba(166,122,46,.12)}
+    .btn{
+      width:100%; padding:12px 16px; border-radius:14px; border:2px solid var(--accent);
+      background:var(--accent); color:#fff; font-weight:700; cursor:pointer;
+      transition:transform .03s ease;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .muted{font-size:14px; color:#666}
+    .links{display:flex; justify-content:space-between; margin-top:12px}
+    .errorlist{margin:8px 0 0; padding:0; list-style:none; color:#b00020; font-size:14px}
+    .messages{margin-bottom:10px}
+    .msg{background:#fff3f3; border:1px solid #ffb3b3; padding:8px 10px; border-radius:10px; margin:6px 0; font-size:14px}
+    .brand{display:flex; align-items:center; gap:10px; margin-bottom:8px}
+    .brand .logo{font-size:22px}
+    a{color:#000; text-underline-offset:3px}
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <main class="card">
+    <div class="brand">
+      <div class="logo stone black"></div>
+      <div class="logo stone white"></div>
+      <div><strong>OMOK</strong> 계정</div>
+    </div>
+    <div class="messages">
+      {% if messages %}
+        {% for m in messages %}<div class="msg">{{ m }}</div>{% endfor %}
+      {% endif %}
+      {% if form.non_field_errors %}<div class="msg">{{ form.non_field_errors }}</div>{% endif %}
+    </div>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

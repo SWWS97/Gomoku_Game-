@@ -1,0 +1,48 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: envs/.env.prod
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - db
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      python manage.py collectstatic --noinput || true &&
+      daphne -b 0.0.0.0 -p 8000 config.asgi:application
+      "
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+
+  db:
+    image: postgres:16
+    env_file: envs/.env.prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+# (선택) Nginx 리버스 프록시를 compose에 포함하려면 아래 주석 해제
+#  nginx:
+#    image: nginx:1.27
+#    depends_on: [web]
+#    ports:
+#      - "80:80"
+#      - "443:443"
+#    volumes:
+#      - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
+#      - ./deploy/certs:/etc/ssl/certs:ro
+#    restart: unless-stopped
+
+volumes:
+  pgdata:

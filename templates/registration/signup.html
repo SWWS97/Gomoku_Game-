@@ -1,0 +1,35 @@
+{% extends "registration/base_auth.html" %}
+{% block title %}회원가입 – Omok{% endblock %}
+{% block content %}
+<h1><span class="stone white"></span> 회원가입</h1>
+<p class="sub">흑과 백, 당신의 선택은?</p>
+
+<form method="post" action="{% url 'accounts:signup' %}">
+  {% csrf_token %}
+  <div class="row">
+    <label for="id_username">아이디</label>
+    {{ form.username }}
+    {{ form.username.errors }}
+  </div>
+  <div class="row">
+    <label for="id_email">이메일 <span class="muted">(선택)</span></label>
+    {{ form.email }}
+    {{ form.email.errors }}
+  </div>
+  <div class="row">
+    <label for="id_password1">비밀번호</label>
+    {{ form.password1 }}
+    {{ form.password1.errors }}
+  </div>
+  <div class="row">
+    <label for="id_password2">비밀번호 확인</label>
+    {{ form.password2 }}
+    {{ form.password2.errors }}
+  </div>
+  <button class="btn" type="submit">가입하고 입장하기 (○)</button>
+  <div class="links">
+    <span class="muted">이미 계정이 있나요?</span>
+    <a href="{% url 'login' %}">로그인</a>
+  </div>
+</form>
+{% endblock %}
