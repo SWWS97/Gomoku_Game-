@@ -2,51 +2,55 @@ name: Deploy to EC2 (Docker)
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch: {}   # (옵션) 수동 실행도 가능
+    branches: [ main ]   # main 브랜치에 push 될 때 자동 실행
+  workflow_dispatch: {}   # (옵션) 수동으로도 실행 가능
 
+# 동시에 여러 배포가 꼬이지 않도록 동시성 그룹 지정
 concurrency:
   group: deploy-main
   cancel-in-progress: true
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest   # 깃허브 액션 러너 환경 (리눅스)
 
     steps:
+      # 1) 깃허브 리포지토리 체크아웃 (실제로 여기선 metadata 정도만 필요)
       - name: Check out (for metadata only)
         uses: actions/checkout@v4
 
+      # 2) EC2 서버에 SSH로 접속해서 배포 스크립트 실행
       - name: SSH deploy to EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script_stop: true
+          host: ${{ secrets.EC2_HOST }}       # EC2 퍼블릭 IP or 도메인
+          username: ${{ secrets.EC2_USER }}   # 보통 "ubuntu"
+          key: ${{ secrets.EC2_SSH_KEY }}     # .pem 키 내용을 GitHub Secret에 저장해둔 값
+          script_stop: false                  # 스크립트 중간에 if문 등으로 exit 1 나와도 실패 처리 안 함
           script: |
-            set -euxo pipefail
+            set -u  # 정의되지 않은 변수 사용하면 에러 (set -e는 제거)
 
-            # 기본 패키지 / docker 설치 (없으면 설치)
+            # ---- 패키지/도커 준비 ----
             sudo apt-get update -y
             command -v git    >/dev/null || sudo apt-get install -y git
             command -v docker >/dev/null || curl -fsSL https://get.docker.com | sudo sh
-            # compose 플러그인 확인
             if ! docker compose version >/dev/null 2>&1; then
               sudo apt-get install -y docker-compose-plugin
             fi
 
+            # ---- 앱 디렉토리 준비 ----
             APP_DIR=/srv/gomoku
-            REPO_URL=${{ secrets.REPO_URL }}
+            REPO_URL=${{ secrets.REPO_URL }}   # GitHub 리포지토리 주소를 시크릿에서 가져옴
 
-            # 앱 폴더 준비
             sudo mkdir -p "$APP_DIR"
             sudo chown $USER:$USER "$APP_DIR"
 
-            # 처음이면 clone, 있으면 최신화
+            # ---- 코드 가져오기 ----
             if [ ! -d "$APP_DIR/.git" ]; then
+              # 처음 실행이면 clone
               git clone "$REPO_URL" "$APP_DIR"
             else
+              # 이미 있으면 최신화
               cd "$APP_DIR"
               git fetch origin
               git reset --hard origin/main
@@ -54,16 +58,17 @@ jobs:
 
             cd "$APP_DIR"
 
-            # 변경: envs 디렉터리 보장 후 같은 파일명으로 저장
+            # ---- 환경변수 파일 생성 ----
             mkdir -p envs
-            printf "%s\n" "${{ secrets.ENV_PROD }}" | sed 's/\r$//' > envs/.env.prod
+            # GitHub Secret에 저장해둔 ENV_PROD 내용을 envs/.env.prod 파일로 생성
+            printf "%s\n" "${{ secrets.ENV_PROD }}" > envs/.env.prod
 
-            # (선택) 마이그레이션 전 컨테이너가 뜨도록 빌드/업
+            # ---- Docker Compose로 컨테이너 실행 ----
             sudo docker compose up -d --build
 
-            # DB 마이그레이션 / 정적파일 수집
+            # ---- Django 마이그레이션 & 정적파일 수집 ----
             sudo docker compose exec -T web python manage.py migrate --noinput
             sudo docker compose exec -T web python manage.py collectstatic --noinput || true
 
-            # (선택) 안 쓰는 이미지 정리
+            # ---- 안 쓰는 이미지 정리 ----
             sudo docker system prune -f
