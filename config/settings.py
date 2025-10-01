@@ -96,6 +96,7 @@ INSTALLED_APPS = DJANGO_APPS + OWN_APP + THIRD_PARTY_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # ← Nginx 설정 없이 collectstatic 된 파일을 서빙 하려면 추가
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",

@@ -1,20 +1,29 @@
 [project]
 name = "gomoku-game"
 version = "0.1.0"
-description = "Add your description here"
+description = "Gomoku (Omok) with Django Channels + Daphne"
 readme = "README.md"
 requires-python = ">=3.12"
+
+# ▶️ 런타임(프로덕션/컨테이너)에서 꼭 필요한 것만!
 dependencies = [
-    "black>=25.9.0",
-    "channels>=4",
-    "channels-redis>=4",
-    "daphne>=4",
-    "django>=5.2.6",
-    "django-environ>=0.12.0",
-    "isort>=6.0.1",
-    "mypy>=1.18.2",
-    "psycopg[binary]>=3.2.10",
-    "pytest>=8.4.2",
-    "python-dotenv>=1.1.1",
-    "tree>=0.2.4",
+  "Django>=5.0,<6",
+  "daphne>=4,<5",
+  "channels>=4,<5",
+  "channels-redis>=4,<5",
+  "redis>=5",                 # redis-py 클라이언트 (channels-redis가 의존, 명시 추천)
+  "psycopg[binary]>=3.2",     # PostgreSQL 드라이버
+  "django-environ>=0.12",     # 환경변수 관리 (dotenv와 중복되니 이거 하나로 충분)
+  "whitenoise>=6.7",          # (Nginx 없이) 정적파일 서빙
 ]
+
+# ▶️ 개발 전용 패키지들은 별도 그룹으로!
+[project.optional-dependencies]
+dev = [
+  "black>=24",
+  "isort>=5",
+  "mypy>=1",
+  "pytest>=8",
+]
+
+# (선택) uv/PEP 621 메타데이터 등은 그대로 두면 됩니다
