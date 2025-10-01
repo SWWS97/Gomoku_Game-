@@ -21,7 +21,7 @@ services:
 
   db:
     image: postgres:16
-    env_file: envs/.env.prod
+    env_file: /srv/gomoku/envs/.env.prod
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
