@@ -1,9 +1,12 @@
+version: "3.9"
+
 services:
   web:
     build:
       context: .
       dockerfile: Dockerfile
-    env_file: envs/.env.prod
+    env_file:
+      - ./envs/.env.prod
     ports:
       - "8000:8000"
     depends_on:
@@ -21,14 +24,11 @@ services:
 
   db:
     image: postgres:16
-    env_file: /srv/gomoku/envs/.env.prod
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    env_file:
+      - ./envs/.env.prod                # ✅ 절대경로 대신 repo 기준 상대경로
     volumes:
       - pgdata:/var/lib/postgresql/data
-    healthcheck:                          # ✅ 헬스체크 추가
+    healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 3s
