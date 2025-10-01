@@ -37,7 +37,7 @@ jobs:
             fi
 
             APP_DIR=/srv/gomoku
-            REPO_URL=${{ secrets.REPO_URL || github.server_url }}/{{ github.repository }}.git
+            REPO_URL: ${{ secrets.REPO_URL }}
 
             # 앱 폴더 준비
             sudo mkdir -p "$APP_DIR"
