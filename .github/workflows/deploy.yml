@@ -1,0 +1,69 @@
+name: Deploy to EC2 (Docker)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}   # (옵션) 수동 실행도 가능
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out (for metadata only)
+        uses: actions/checkout@v4
+
+      - name: SSH deploy to EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -euxo pipefail
+
+            # 기본 패키지 / docker 설치 (없으면 설치)
+            sudo apt-get update -y
+            command -v git    >/dev/null || sudo apt-get install -y git
+            command -v docker >/dev/null || curl -fsSL https://get.docker.com | sudo sh
+            # compose 플러그인 확인
+            if ! docker compose version >/dev/null 2>&1; then
+              sudo apt-get install -y docker-compose-plugin
+            fi
+
+            APP_DIR=/srv/gomoku
+            REPO_URL=${{ secrets.REPO_URL || github.server_url }}/{{ github.repository }}.git
+
+            # 앱 폴더 준비
+            sudo mkdir -p "$APP_DIR"
+            sudo chown $USER:$USER "$APP_DIR"
+
+            # 처음이면 clone, 있으면 최신화
+            if [ ! -d "$APP_DIR/.git" ]; then
+              git clone "$REPO_URL" "$APP_DIR"
+            else
+              cd "$APP_DIR"
+              git fetch origin
+              git reset --hard origin/main
+            fi
+
+            cd "$APP_DIR"
+
+            # 변경: envs 디렉터리 보장 후 같은 파일명으로 저장
+            mkdir -p envs
+            printf "%s\n" "${{ secrets.ENV_PROD }}" | sed 's/\r$//' > envs/.env.prod
+
+            # (선택) 마이그레이션 전 컨테이너가 뜨도록 빌드/업
+            sudo docker compose up -d --build
+
+            # DB 마이그레이션 / 정적파일 수집
+            sudo docker compose exec -T web python manage.py migrate --noinput
+            sudo docker compose exec -T web python manage.py collectstatic --noinput || true
+
+            # (선택) 안 쓰는 이미지 정리
+            sudo docker system prune -f

@@ -1,16 +1,14 @@
 # app/games/utils/consumers.py
 import json
-from channels.generic.websocket import AsyncJsonWebsocketConsumer
+
 from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.db import transaction
 
-from ..models import Game, Move, BOARD_SIZE
-from .omok import (
-    BLACK, WHITE, EMPTY,
-    check_five, has_exact_five, is_overline,
-    is_forbidden_double_three, is_forbidden_double_four,
-    debug_double_three,
-)
+from ..models import BOARD_SIZE, Game, Move
+from .omok import (BLACK, EMPTY, WHITE, check_five, debug_double_three,
+                   has_exact_five, is_forbidden_double_four,
+                   is_forbidden_double_three, is_overline)
 
 
 class GameConsumer(AsyncJsonWebsocketConsumer):
@@ -49,7 +47,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     await self.send_json({"type": "error", "message": msg})
                     return
 
-                await self.channel_layer.group_send(self.group, {"type": "broadcast_state"})
+                await self.channel_layer.group_send(
+                    self.group, {"type": "broadcast_state"}
+                )
         except Exception as e:
             print("[WS][receive_json] ERROR:", repr(e))
             await self.close(code=4001)
@@ -93,7 +93,11 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
             # 턴 검증(선택)
             expected_user = game.black if game.turn == "black" else game.white
-            if expected_user and getattr(user, "is_authenticated", False) and user != expected_user:
+            if (
+                expected_user
+                and getattr(user, "is_authenticated", False)
+                and user != expected_user
+            ):
                 return False, "not your turn"
 
             # 이번 수의 돌 문자 통일 ("B"/"W")
@@ -102,7 +106,10 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 stone = BLACK if stone == "black" else WHITE
 
             # 2D 스냅샷 생성 (판정기는 2D 기대)
-            board2d = [[game.get_cell(i, j) for j in range(BOARD_SIZE)] for i in range(BOARD_SIZE)]
+            board2d = [
+                [game.get_cell(i, j) for j in range(BOARD_SIZE)]
+                for i in range(BOARD_SIZE)
+            ]
 
             # --- 렌주 정석 금수: 흑만 ---
             if stone == BLACK:
@@ -116,7 +123,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 if is_forbidden_double_three(board2d, x, y, BLACK):
                     # 로그용 디버그(결정은 본판정으로 이미 함)
                     dbg = debug_double_three(board2d, x, y, BLACK)
-                    print(f"[33-DEBUG] try=({x},{y}) dirs={dbg['dirs']} spots={dbg['spots']} is33={dbg['is33']}")
+                    print(
+                        f"[33-DEBUG] try=({x},{y}) dirs={dbg['dirs']} spots={dbg['spots']} is33={dbg['is33']}"
+                    )
                     return False, "33 금수입니다. (33)"
 
             # 실제 착수
@@ -127,7 +136,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             Move.objects.create(
                 game=game,
                 player=user if getattr(user, "is_authenticated", False) else None,
-                x=x, y=y, order=move_order,
+                x=x,
+                y=y,
+                order=move_order,
             )
 
             # 승리 판정

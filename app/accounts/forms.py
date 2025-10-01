@@ -1,8 +1,9 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import UserCreationForm
 
 User = get_user_model()
+
 
 class SignUpForm(UserCreationForm):
     email = forms.EmailField(required=False, help_text="선택 (비밀번호 찾기 등에 사용)")

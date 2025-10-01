@@ -139,13 +139,13 @@ def _has_open_four_on_dir_str(s, coords, color):
         if idx == -1:
             return False
 
-        left_edge = idx          # 왼쪽 '.'
-        right_edge = idx + 5     # 오른쪽 '.'
+        left_edge = idx  # 왼쪽 '.'
+        right_edge = idx + 5  # 오른쪽 '.'
 
-        left_out_idx  = left_edge  - 1
+        left_out_idx = left_edge - 1
         right_out_idx = right_edge + 1
 
-        left_ok  = not (0 <= left_out_idx  < n and s[left_out_idx]  == color)
+        left_ok = not (0 <= left_out_idx < n and s[left_out_idx] == color)
         right_ok = not (0 <= right_out_idx < n and s[right_out_idx] == color)
 
         if left_ok and right_ok:
@@ -190,10 +190,10 @@ def _has_open_three_on_dir(board, x, y, dx, dy, color):
 
     # (2) 보조 패턴: .BBB. / .BB.B. / .B.BB. / .B.B.
     patterns = [
-        f".{c}{c}{c}.",   # .BBB.
+        f".{c}{c}{c}.",  # .BBB.
         f".{c}{c}.{c}.",  # .BB.B.
         f".{c}.{c}{c}.",  # .B.BB.
-        f".{c}.{c}.",     # .B.B. (점프 활삼)
+        f".{c}.{c}.",  # .B.B. (점프 활삼)
     ]
     return any(p in s for p in patterns)
 
@@ -260,6 +260,7 @@ def is_forbidden_double_four(board, x, y, stone):
 # ------------------------------
 DIR_NAMES = {(1, 0): "H(가로)", (0, 1): "V(세로)", (1, 1): "D↘", (1, -1): "D↗"}
 
+
 def debug_double_three(board, x, y, stone):
     if stone != BLACK:
         return {"is33": False, "dirs": [], "spots": {}}
@@ -267,7 +268,7 @@ def debug_double_three(board, x, y, stone):
     if not _in_bounds(n, x, y):
         return {"is33": False, "dirs": [], "spots": {}}
 
-    placed = (board[x][y] == stone)
+    placed = board[x][y] == stone
     if not placed:
         if board[x][y] != EMPTY:
             return {"is33": True, "dirs": [], "spots": {}}
