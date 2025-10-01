@@ -1,90 +1,242 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>Omok #{{ game.id }}</title>
   <style>
-    #board { display:grid; grid-template-columns: repeat({{ BOARD_SIZE }}, 32px); gap:2px; width:max-content; }
-    .cell { width:32px; height:32px; background:#f4d29a; border:1px solid #c49b54; display:flex; align-items:center; justify-content:center; font-weight:700; cursor:pointer; }
-    .stoneB::after { content:"●"; }
-    .stoneW::after { content:"○"; }
-    .status { margin: 8px 0; }
+    :root{
+      --cell: 40px;
+      --margin: 28px;
+      --wood: #d4b781;
+      --line: #7b5c3a;
+      --border: #3e2a1f;
+    }
+
+    html, body { height:100%; margin:0; background:#faf7f2;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Noto Sans KR, sans-serif; }
+
+    /* ===== Top bar ===== */
+    .topbar{
+      display:flex; align-items:center; gap:14px;
+      padding:12px 16px 6px; font-weight:700;
+    }
+    .topbar .right{ margin-left:auto; display:flex; gap:14px; align-items:center; }
+    .pill{ padding:.35rem .6rem; border:1px solid #b08f66; border-radius:.5rem; background:#fff; cursor:pointer; }
+
+    /* 승자 배지(상단 표시) */
+    .winner-badge{
+      display:none;  /* 기본 숨김, 승자 나오면 보여줌 */
+      padding:.25rem .55rem;
+      border-radius:.6rem;
+      border:1px solid #d5b2a8;
+      background:#fff4ef;
+      color:#7a2e2e;
+      font-weight:800;
+      font-size:1.12rem;  /* 요청: 살짝 크게 */
+      box-shadow: 0 1px 0 rgba(255,255,255,.6) inset;
+    }
+
+    /* ===== Board ===== */
+    .board-wrap{
+      position:relative;
+      width: calc(({{ BOARD_SIZE }} - 1) * var(--cell) + 2 * var(--margin));
+      height: calc(({{ BOARD_SIZE }} - 1) * var(--cell) + 2 * var(--margin));
+      margin: 10px auto 36px;
+      border: 6px solid var(--border);
+      background: var(--wood);
+      border-radius: 6px;
+      box-shadow: 0 18px 26px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.25);
+      overflow: visible;
+    }
+    .grid{ position:absolute; inset:0; display:block; }
+    .layer{ position:absolute; inset:0; pointer-events:none; }
+
+    .pt{
+      position:absolute; width:var(--cell); height:var(--cell);
+      transform: translate(-50%, -50%);
+      pointer-events:auto; background:transparent; border:none; padding:0; cursor:pointer;
+    }
+    .pt:hover::after{
+      content:""; position:absolute; left:50%; top:50%;
+      width:18px; height:18px; transform:translate(-50%,-50%);
+      border-radius:50%;
+      background: radial-gradient(circle at 35% 35%, rgba(0,0,0,.18), rgba(0,0,0,0) 60%);
+    }
+
+    .stone{
+      position:absolute; width:30px; height:30px; transform:translate(-50%,-50%); border-radius:50%;
+      pointer-events:none; filter: drop-shadow(0 3px 3px rgba(0,0,0,.35));
+    }
+    .stone.black{
+      background:
+        radial-gradient(circle at 30% 28%, #4a4a4a 0%, #262626 45%, #0f0f0f 70%),
+        radial-gradient(circle at 68% 74%, rgba(255,255,255,.20), rgba(255,255,255,0) 55%);
+      box-shadow: inset 1px 1px 3px rgba(255,255,255,.08), inset -7px -7px 12px rgba(0,0,0,.55);
+    }
+    .stone.white{
+      background:
+        radial-gradient(circle at 30% 28%, #ffffff 0%, #f1f1f1 45%, #e7e7e7 70%),
+        radial-gradient(circle at 68% 78%, rgba(0,0,0,.12), rgba(0,0,0,0) 55%);
+      box-shadow: inset 1px 1px 2px rgba(255,255,255,.75), inset -7px -7px 12px rgba(0,0,0,.12);
+    }
+
+    /* 하단 상태(이제 사용 안 함, 혹시 몰라 남겨둠) */
+    .status{ margin:8px 0 0 16px; font-weight:600; }
+    .status .winner{ color:#7a2e2e; margin-left:10px; display:none; }
   </style>
 </head>
 <body>
-<h3>Omok #{{ game.id }}</h3>
-  <div class="status" style="display: flex; align-items: center; gap: 10px;">
-    <span id="turn"></span>
-    <span id="winner"></span>
-      <a href="{% url 'games:new' %}">
-        <button>새게임시작</button>
-      </a>
+  <div class="topbar">
+    <div>Omok #{{ game.id }}</div>
+    <div id="ws-state">웹소켓 연결 중…</div>
+
+    <!-- 여기! 상단 우측에 승자 배지 -->
+    <div id="winnerTop" class="winner-badge"></div>
+
+    <div class="right">
+      <div id="turn"></div>
+      <a href="{% url 'games:new' %}" class="pill">새 게임</a>
+    </div>
   </div>
-  <div id="board"></div>
-    <script>
-      const SIZE = {{ BOARD_SIZE }};
-      const gameId = {{ game.id }};
-      const scheme = (location.protocol === "https:") ? "wss" : "ws";
-      const wsPath = `${scheme}://${location.host}/ws/games/${gameId}/`;
-      console.log("[WS] connecting to", wsPath);
 
-      const statusEl = document.createElement("div");
-      statusEl.style.margin = "6px 0";
-      statusEl.id = "ws-status";
-      statusEl.textContent = "연결 중...";
-      document.body.insertBefore(statusEl, document.getElementById("board"));
+  <div class="board-wrap" id="boardWrap">
+    <svg id="grid" class="grid" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <div class="layer" id="stones"></div>
+    <div class="layer" id="points"></div>
+  </div>
 
-      const socket = new WebSocket(wsPath);
-      socket.addEventListener("open", () => {
-        statusEl.textContent = "웹소켓 연결 OK";
-      });
-      socket.addEventListener("close", (e) => {
-        statusEl.textContent = `연결 종료(${e.code})`;
-        console.warn("[WS] closed", e);
-      });
-      socket.addEventListener("error", (e) => {
-        statusEl.textContent = "웹소켓 오류";
-        console.error("[WS] error", e);
-      });
+  <div class="status">
+    <span id="winner" class="winner"></span>
+  </div>
 
-      const boardEl = document.getElementById("board");
-      const turnEl = document.getElementById("turn");
-      const winnerEl = document.getElementById("winner");
-      const cells = [];
+<script>
+(function(){
+  const SIZE   = {{ BOARD_SIZE }};
+  const gameId = {{ game.id }};
+  const scheme = (location.protocol === "https:") ? "wss" : "ws";
+  const wsURL  = `${scheme}://${location.host}/ws/games/${gameId}/`;
 
-      for (let y=0; y<SIZE; y++){
-        for (let x=0; x<SIZE; x++){
-          const b = document.createElement("button");
-          b.className = "cell";
-          b.type = "button"; // ✅ 폼 submit 방지
-          b.addEventListener("click", ()=>{
-            if (socket.readyState !== WebSocket.OPEN){
-              alert("서버와 연결되지 않았습니다.");
-              return;
-            }
-            socket.send(JSON.stringify({type:"play", x, y}));
-          });
-          boardEl.appendChild(b);
-          cells.push(b);
-        }
-      }
+  const gridEl    = document.getElementById("grid");
+  const stonesEl  = document.getElementById("stones");
+  const pointsEl  = document.getElementById("points");
+  const wsState   = document.getElementById("ws-state");
+  const turnEl    = document.getElementById("turn");
+  const winnerEl  = document.getElementById("winner");     // 하단(보조)
+  const winnerTop = document.getElementById("winnerTop");  // 상단 배지
 
-      function render(state){
-        const {board, turn, winner} = state;
-        for (let i=0;i<board.length;i++){
-          cells[i].classList.remove("stoneB","stoneW");
-          if (board[i]==="B") cells[i].classList.add("stoneB");
-          if (board[i]==="W") cells[i].classList.add("stoneW");
-        }
-        turnEl.textContent = winner ? "" : `턴: ${turn==="black"?"흑(●)":"백(○)"}`;
-        winnerEl.textContent = winner ? `승자: ${winner==="black"?"흑(●)":"백(○)"}` : "";
-      }
+  /* ===== 좌표/격자 ===== */
+  const MARGIN_PCT = 8;
+  const innerMin   = MARGIN_PCT;
+  const innerMax   = 100 - MARGIN_PCT;
+  const step       = (innerMax - innerMin) / (SIZE - 1);
 
-      socket.onmessage = (e)=>{
-        const m = JSON.parse(e.data);
-        if (m.type === "state") render(m);
-        if (m.type === "error") alert(m.message);
-      };
-    </script>
+  function starPoints(size){
+    if (size === 15) return [[4,4],[4,12],[8,8],[12,4],[12,12]];
+    if (size === 19) return [[4,4],[4,10],[4,16],[10,4],[10,10],[10,16],[16,4],[16,10],[16,16]];
+    if (size === 13) return [[4,4],[4,10],[7,7],[10,4],[10,10]];
+    if (size % 2 === 1) { const mid = (size + 1) / 2; return [[mid, mid]]; }
+    return [];
+  }
+
+  function drawGrid(){
+    let g = "";
+    g += `<rect x="0" y="0" width="100" height="100" fill="var(--wood)"/>`;
+    g += `<rect x="1.2" y="1.2" width="97.6" height="97.6" fill="none"
+               stroke="var(--border)" stroke-width="2.4" rx="2" ry="2"/>`;
+    for (let i=0;i<SIZE;i++){
+      const p = innerMin + i*step;
+      g += `<line x1="${innerMin}" y1="${p}" x2="${innerMax}" y2="${p}"
+                  stroke="var(--line)" stroke-width="0.6" />`;
+      g += `<line x1="${p}" y1="${innerMin}" x2="${p}" y2="${innerMax}"
+                  stroke="var(--line)" stroke-width="0.6" />`;
+    }
+    for (const [gx,gy] of starPoints(SIZE)){
+      const cx = innerMin + (gx-1)*step;
+      const cy = innerMin + (gy-1)*step;
+      g += `<circle cx="${cx}" cy="${cy}" r="1.3" fill="#6e5239" opacity="0.9"/>`;
+    }
+    gridEl.innerHTML = g;
+  }
+  drawGrid();
+
+  /* ===== 클릭 포인트 ===== */
+  const pts = [];
+  for (let y=0;y<SIZE;y++){
+    for (let x=0;x<SIZE;x++){
+      const px = innerMin + x*step;
+      const py = innerMin + y*step;
+      const btn = document.createElement("button");
+      btn.className = "pt";
+      btn.style.left = px + "%";
+      btn.style.top  = py + "%";
+      btn.dataset.x = x;
+      btn.dataset.y = y;
+      btn.addEventListener("click", onPlay);
+      pointsEl.appendChild(btn);
+      pts.push(btn);
+    }
+  }
+
+  /* ===== WebSocket ===== */
+  const ws = new WebSocket(wsURL);
+  ws.addEventListener("open",  ()=> wsState.textContent = "웹소켓 연결 OK");
+  ws.addEventListener("close", e => wsState.textContent = `연결 종료(${e.code})`);
+  ws.addEventListener("error", ()=> wsState.textContent = "웹소켓 오류");
+  ws.addEventListener("message", (e)=>{
+    const m = JSON.parse(e.data);
+    if (m.type === "state") render(m);
+    else if (m.type === "error") alert(m.message);
+  });
+
+  function onPlay(e){
+    if (ws.readyState !== WebSocket.OPEN){
+      alert("서버와 연결되지 않았습니다."); return;
+    }
+    const x = +e.currentTarget.dataset.x;
+    const y = +e.currentTarget.dataset.y;
+    ws.send(JSON.stringify({type:"play", x, y}));
+  }
+
+  /* ===== 렌더 ===== */
+  function render(state){
+    const { board, turn, winner } = state;
+
+    // 돌 렌더
+    stonesEl.innerHTML = "";
+    for (let i=0;i<board.length;i++){
+      const cell = board[i];
+      if (cell === ".") continue;
+      const x = i % SIZE;
+      const y = Math.floor(i / SIZE);
+      const px = innerMin + x*step;
+      const py = innerMin + y*step;
+      const d = document.createElement("div");
+      d.className = "stone " + (cell==="B" ? "black" : "white");
+      d.style.left = px + "%";
+      d.style.top  = py + "%";
+      stonesEl.appendChild(d);
+    }
+
+    // 상단 승자 배지 & 턴
+    if (winner){
+      const text = `승자: ${winner==="black" ? "흑(●)" : "백(○)"}`;
+      winnerTop.textContent = text;
+      winnerTop.style.display = "inline-block";
+      turnEl.textContent = "";
+      // 하단 표시는 숨김
+      winnerEl.textContent = "";
+      winnerEl.style.display = "none";
+    }else{
+      winnerTop.style.display = "none";
+      turnEl.textContent = `턴: ${turn==="black" ? "흑(●)" : "백(○)"}`;
+    }
+
+    // 빈 칸만 클릭 가능
+    for (let i=0;i<pts.length;i++){
+      pts[i].disabled = (board[i] !== ".");
+    }
+  }
+})();
+</script>
 </body>
 </html>

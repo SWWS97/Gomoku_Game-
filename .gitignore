@@ -21,7 +21,7 @@ ENV/
 
 # ---- Env files (비밀값)
 .env
-.env.*
+envs/.env.dev
 envs/
 # ↑ envs/.env.dev, envs/.env.prod 같은 모든 환경파일 제외
 
