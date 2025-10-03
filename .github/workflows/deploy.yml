@@ -5,31 +5,26 @@ on:
     branches: [ main ]   # main 브랜치에 push 될 때 자동 실행
   workflow_dispatch: {}   # (옵션) 수동으로도 실행 가능
 
-# 동시에 여러 배포가 꼬이지 않도록 동시성 그룹 지정
 concurrency:
   group: deploy-main
   cancel-in-progress: true
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest   # 깃허브 액션 러너 환경 (리눅스)
+    runs-on: ubuntu-latest
 
     steps:
-      # 1) 깃허브 리포지토리 체크아웃 (실제로 여기선 metadata 정도만 필요)
       - name: Check out (for metadata only)
         uses: actions/checkout@v4
 
-      # 2) EC2 서버에 SSH로 접속해서 배포 스크립트 실행
       - name: SSH deploy to EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ secrets.EC2_HOST }}       # EC2 퍼블릭 IP or 도메인
-          username: ${{ secrets.EC2_USER }}   # 보통 "ubuntu"
-          key: ${{ secrets.EC2_SSH_KEY }}     # .pem 키 내용을 GitHub Secret에 저장해둔 값
-          script_stop: false                  # 스크립트 중간에 if문 등으로 exit 1 나와도 실패 처리 안 함
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: false
           script: |
-            set -u  # 정의되지 않은 변수 사용하면 에러 (set -e는 제거)
-
             # ---- 패키지/도커 준비 ----
             sudo apt-get update -y
             command -v git    >/dev/null || sudo apt-get install -y git
@@ -40,17 +35,15 @@ jobs:
 
             # ---- 앱 디렉토리 준비 ----
             APP_DIR=/srv/gomoku
-            REPO_URL=${{ secrets.REPO_URL }}   # GitHub 리포지토리 주소를 시크릿에서 가져옴
+            REPO_URL=${{ secrets.REPO_URL }}
 
             sudo mkdir -p "$APP_DIR"
-            sudo chown $USER:$USER "$APP_DIR"
+            sudo chown ubuntu:ubuntu "$APP_DIR"
 
             # ---- 코드 가져오기 ----
             if [ ! -d "$APP_DIR/.git" ]; then
-              # 처음 실행이면 clone
               git clone "$REPO_URL" "$APP_DIR"
             else
-              # 이미 있으면 최신화
               cd "$APP_DIR"
               git fetch origin
               git reset --hard origin/main
@@ -60,8 +53,10 @@ jobs:
 
             # ---- 환경변수 파일 생성 ----
             mkdir -p envs
-            # GitHub Secret에 저장해둔 ENV_PROD 내용을 envs/.env.prod 파일로 생성
-            printf "%s\n" "${{ secrets.ENV_PROD }}" > envs/.env.prod
+            # 시크릿 안에 $ 같은 문자가 있어도 안전하게 쓰기 위해 heredoc 사용
+            cat > envs/.env.prod <<'EOF'
+            ${{ secrets.ENV_PROD }}
+            EOF
 
             # ---- Docker Compose로 컨테이너 실행 ----
             sudo docker compose up -d --build

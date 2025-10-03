@@ -1,7 +1,8 @@
 # config/settings.py
-from pathlib import Path
-import environ
 import os
+from pathlib import Path
+
+import environ
 
 # ──────────────────────────────────────────────────────────────────────
 # 기본 경로 / env 로딩
@@ -138,7 +139,9 @@ else:
 # 인증/국제화
 # ──────────────────────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
