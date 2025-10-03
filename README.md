@@ -2,7 +2,8 @@
 
 ## 📂 Local 실행 명령어
 #### muv run daphne -b 0.0.0.0 -p 8000 config.asgi:application
-## Local DB(postgreSQL)
+
+## 📂 Local DB(postgreSQL) 생성 명령어
 #### psql -U postgres
 #### CREATE USER myuser WITH PASSWORD 'mypassword';
 #### CREATE DATABASE mydb OWNER myuser;
@@ -15,8 +16,13 @@
 #### make compose-up       # 도커(스테이징/운영) 기동
 #### make compose-migrate  # 운영 DB 마이그레이션
 
-## EC2 콘솔에서 DB 내용 확인하는 명렁어
+## 📁 EC2 콘솔에서 DB 내용 확인하는 명렁어
+#### 서비스 위치 : /srv/gomoku
 #### docker compose exec db psql -U omokuser -d omokdb
 #### \l      -- DB 리스트 확인
 #### \dt     -- 테이블 목록 확인
 #### 예) SELECT * FROM auth_user LIMIT 5;   -- 장고 기본 user 테이블 확인
+
+## 📁 로컬 터미널에서 접속 명렁어
+#### chmod 600 ~/.ssh/만든 키페어.pem
+#### ssh -i ~/.ssh/만든 키페어.pem ubuntu@EC2 퍼블릭 IP
