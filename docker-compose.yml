@@ -1,17 +1,15 @@
-version: "3.9"
+version: "3.9"  # ← v2에선 불필요하니 제거 해도 됨
 
 services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile
-    env_file:
-      - ./envs/.env.prod
+      dockerfile: Dockerfile        # ← 실제 파일명이 'Dockerfile'인지 확인 (소문자면 dockerfile로)
     ports:
       - "8000:8000"
     depends_on:
       db:
-        condition: service_healthy      # ✅ DB 준비될 때까지 대기
+        condition: service_healthy
       redis:
         condition: service_started
     command: >
@@ -24,8 +22,6 @@ services:
 
   db:
     image: postgres:16
-    env_file:
-      - ./envs/.env.prod                # ✅ 절대경로 대신 repo 기준 상대경로
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

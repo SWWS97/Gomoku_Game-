@@ -1,0 +1,31 @@
+# VCS, 편집기
+.git
+.gitignore
+.vscode
+.idea
+
+# 파이썬/노드 산출물
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.dist-info/
+build/
+dist/
+.site-packages/
+
+# 가상환경
+.venv/
+venv/
+
+# 프론트
+node_modules/
+*.log
+
+# 런타임/데이터
+.env
+.env.*
+media/
+staticfiles/   # collectstatic 산출물 (운영 이미지에만 포함하고 싶으면 제외 X)
+.cache/
