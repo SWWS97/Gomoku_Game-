@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 
 # .env 경로 우선순위: envs/.env.prod → envs/.env → 프로젝트 루트 .env
-for candidate in ("envs/.env.prod", "envs/.env", ".env"):
+for candidate in ("envs/.env", "envs/.env.dev", "envs/.env.prod"):
     fp = BASE_DIR / candidate
     if fp.exists():
         environ.Env.read_env(fp)
