@@ -1,4 +1,4 @@
-# 🎲 파이썬 오목 게임 🎲
+# 🎲파이썬 오목 게임🎲
 
 ## 📂 Local 실행 명령어
 #### muv run daphne -b 0.0.0.0 -p 8000 config.asgi:application
