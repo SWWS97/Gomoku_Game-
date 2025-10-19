@@ -59,11 +59,11 @@ jobs:
             EOF
 
             # ---- Docker Compose로 컨테이너 실행 ----
-            sudo docker compose up -d --build
+            sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
             # ---- Django 마이그레이션 & 정적파일 수집 ----
-            sudo docker compose exec -T web python manage.py migrate --noinput
-            sudo docker compose exec -T web python manage.py collectstatic --noinput || true
-
+            sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T web python manage.py migrate --noinput
+            sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput || true
+            
             # ---- 안 쓰는 이미지 정리 ----
             sudo docker system prune -f
