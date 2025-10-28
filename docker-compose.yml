@@ -1,4 +1,4 @@
-version: "3.9"  # ← v2에선 불필요하니 제거 해도 됨
+# version: "3.9"  # ← v2에선 불필요하니 제거 해도 됨
 
 services:
   web:

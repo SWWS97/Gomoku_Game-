@@ -1,5 +1,13 @@
 services:
   web:
+    image: swws97/gomoku_game-web:latest   # ← 서버에서 build 안 함, Hub에서 pull
     env_file: ./envs/.env.prod
+    # prod에서는 코드 볼륨 마운트 금지(베이스에 volumes가 없어야 안전)
+
   db:
+    image: postgres:16
     env_file: ./envs/.env.prod
+    # 베이스의 pgdata(운영 데이터) 볼륨 사용
+
+  redis:
+    image: redis:7

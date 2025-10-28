@@ -2,8 +2,8 @@ name: Deploy to EC2 (Docker)
 
 on:
   push:
-    branches: [ main ]   # main 브랜치에 push 될 때 자동 실행
-  workflow_dispatch: {}   # (옵션) 수동으로도 실행 가능
+    branches: [ main ]
+  workflow_dispatch: {}
 
 concurrency:
   group: deploy-main
@@ -23,24 +23,22 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          script_stop: false
           script: |
-            # ---- 패키지/도커 준비 ----
-            sudo apt-get update -y
-            command -v git    >/dev/null || sudo apt-get install -y git
-            command -v docker >/dev/null || curl -fsSL https://get.docker.com | sudo sh
+            set -euo pipefail
+
+            # ---- Docker/Compose 준비 ----
+            command -v docker >/dev/null 2>&1 || curl -fsSL https://get.docker.com | sudo sh
             if ! docker compose version >/dev/null 2>&1; then
-              sudo apt-get install -y docker-compose-plugin
+              sudo apt-get update -y && sudo apt-get install -y docker-compose-plugin
             fi
+            command -v git >/dev/null 2>&1 || sudo apt-get install -y git
 
-            # ---- 앱 디렉토리 준비 ----
+            # ---- 앱 디렉토리 & 코드 ----
             APP_DIR=/srv/gomoku
-            REPO_URL=${{ secrets.REPO_URL }}
-
+            REPO_URL="${{ secrets.REPO_URL }}"
             sudo mkdir -p "$APP_DIR"
             sudo chown ubuntu:ubuntu "$APP_DIR"
 
-            # ---- 코드 가져오기 ----
             if [ ! -d "$APP_DIR/.git" ]; then
               git clone "$REPO_URL" "$APP_DIR"
             else
@@ -51,19 +49,21 @@ jobs:
 
             cd "$APP_DIR"
 
-            # ---- 환경변수 파일 생성 ----
+            # ---- 환경변수 파일 ----
             mkdir -p envs
-            # 시크릿 안에 $ 같은 문자가 있어도 안전하게 쓰기 위해 heredoc 사용
-            cat > envs/.env.prod <<'EOF'
-            ${{ secrets.ENV_PROD }}
-            EOF
+            printf "%s\n" "${{ secrets.ENV_PROD }}" > envs/.env.prod
 
-            # ---- Docker Compose로 컨테이너 실행 ----
-            sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+            # ---- 빌드 + 실행 (prod만 사용) ----
+            # 베이스 이미지 최신화 위해 --pull 권장
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --pull=always
 
-            # ---- Django 마이그레이션 & 정적파일 수집 ----
-            sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T web python manage.py migrate --noinput
-            sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput || true
-            
-            # ---- 안 쓰는 이미지 정리 ----
-            sudo docker system prune -f
+            # (선택) 베이스 command(Dockerfile)에서 migrate/collectstatic을 이미 수행한다면 아래 2줄은 생략 가능
+            # docker compose exec -T web python manage.py migrate --noinput
+            # docker compose exec -T web python manage.py collectstatic --noinput || true
+
+            # ---- 상태/로그 체크 ----
+            docker compose ps
+            docker compose logs -n 80 web
+
+            # ---- 사용 안 하는 이미지/레이어 정리 ----
+            docker system prune -f
