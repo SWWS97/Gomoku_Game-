@@ -51,7 +51,9 @@ jobs:
 
             # ---- 환경변수 파일 ----
             mkdir -p envs
-            printf "%s\n" "${{ secrets.ENV_PROD }}" > envs/.env.prod
+            cat > envs/.env.prod << 'EOF'
+            ${{ secrets.ENV_PROD }}
+            EOF
 
             # ---- 빌드 + 실행 (prod만 사용) ----
             # 베이스 이미지 최신화 위해 --pull 권장
