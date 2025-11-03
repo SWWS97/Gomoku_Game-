@@ -12,9 +12,11 @@
 
 ## 📂 Makefile 단축 명령어 모음
 #### make dev              # 로컬 개발(Daphne) 시작
-#### make migrate          # 로컬 DB 마이그레이션
-#### make compose-up       # 도커(스테이징/운영) 기동
-#### make compose-migrate  # 운영 DB 마이그레이션
+#### make migrate         # 로컬 DB 마이그레이션
+#### make compose-up-dev       # 도커(개발) 기동
+#### make compose-migrate-dev  # 개발 DB 마이그레이션
+#### make compose-up-prod       # 도커(스테이징/운영) 기동
+#### make compose-migrate-prod  # 운영 DB 마이그레이션
 
 ## 📁 EC2 콘솔에서 DB 내용 확인하는 명렁어
 #### 서비스 위치 : /srv/gomoku
