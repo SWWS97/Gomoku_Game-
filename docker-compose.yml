@@ -20,6 +20,7 @@ services:
       "
     restart: unless-stopped
 
+  # RDS 사용시 주석 처리
   db:
     image: postgres:16
     volumes:
