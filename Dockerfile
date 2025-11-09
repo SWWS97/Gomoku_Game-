@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # uv 설치
 RUN pip install --upgrade pip && pip install uv
 
+# 디렉토리(default)설정
 WORKDIR /app
 
 # 의존성 명세만 먼저 복사 → 레이어 캐시 최적화
@@ -26,7 +27,7 @@ RUN uv lock --python 3.12 --upgrade
 RUN uv export --frozen --no-dev --format requirements-txt > /tmp/req.txt \
  && pip install -r /tmp/req.txt
 
-# 앱 소스 복사
+# 앱 소스 복사(현재경로에 존재하는 모든 소스파일을 이미지에 복사)
 COPY . .
 
 # (선택) STATIC_ROOT 경로와 일치하도록 폴더 보장
