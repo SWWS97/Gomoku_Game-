@@ -22,9 +22,7 @@ def sign_up(request):
         request.POST or None
     )  # 입력된 값이 없으면 빈 양식을 폼에 저장
 
-    if (
-        form.is_valid()
-    ):  # form이 valid 하지 않으면 error(dict 형태: add_error 메서드 동작) 메시지를 폼에 저장
+    if form.is_valid():  # form이 valid 하지 않으면 error(dict 형태: add_error 메서드 동작) 메시지를 폼에 저장
         form.save()
         return redirect(settings.LOGIN_URL)
 

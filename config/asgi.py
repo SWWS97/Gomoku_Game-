@@ -19,6 +19,7 @@ from django.core.asgi import get_asgi_application
 django_asgi_app = get_asgi_application()
 
 from channels.auth import AuthMiddlewareStack
+
 # 2) 그 다음에 Channels 관련 것들을 import (여기서 consumers/routing이 모델 import해도 OK)
 from channels.routing import ProtocolTypeRouter, URLRouter
 
