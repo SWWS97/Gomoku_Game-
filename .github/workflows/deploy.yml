@@ -1,9 +1,10 @@
-name: Deploy to EC2 (Docker)
+name: CD - Deploy to EC2
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI - Build and Push Docker Image"] # 1. build.yml 파일 이름
+    types: [ completed ]
     branches: [ main ]
-  workflow_dispatch: {}
 
 concurrency:
   group: deploy-main
@@ -12,10 +13,13 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # 2. 'build' 워크플로우가 성공(success)했을 때만 실행
+    if: github.event.workflow_run.conclusion == 'success'
 
     steps:
-      - name: Check out (for metadata only)
-        uses: actions/checkout@v4
+#       rsync나 scp**를 사용해 GitHub Actions 가상 머신에 있는 파일들을 EC2 서버로 직접 복사하는 방식일 때 사용
+#      - name: Check out (for metadata only)
+#        uses: actions/checkout@v4
 
       - name: SSH deploy to EC2
         uses: appleboy/ssh-action@v0.1.10
@@ -56,7 +60,7 @@ jobs:
             EOF
 
             # ---- 빌드 + 실행 (prod만 사용) ----
-            # 베이스 이미지 최신화 위해 --pull 권장
+            # --pull=always가 방금 빌드된 최신화 된 새 이미지를 도커 허브에서 받아옴
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --pull=always
 
             # (선택) 베이스 command(Dockerfile)에서 migrate/collectstatic을 이미 수행한다면 아래 2줄은 생략 가능

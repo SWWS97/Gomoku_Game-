@@ -1,0 +1,40 @@
+name: CI - Check Code
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12' # .python-version 파일 기준
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies (with dev)
+        # pyproject.toml의 [project.optional-dependencies].dev 포함 설치
+        run: uv sync --all-extras
+
+      - name: Run Ruff (Lint & Format Check)
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+# TODO: 추후에 추가
+#      - name: Run Mypy (Type Check)
+#        run: uv run mypy .
+
+      - name: Run Pytest
+        # settings.py가 POSTGRES_DB 없으면 SQLite로 자동 전환
+        run: uv run pytest
