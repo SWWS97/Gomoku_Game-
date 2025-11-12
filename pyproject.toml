@@ -24,4 +24,5 @@ dev = [
   "ruff>=0.14.4",
 ]
 
-# (선택) uv/PEP 621 메타데이터 등은 그대로 두면 됩니다
+[tool.ruff.lint]
+per-file-ignores = { "config/asgi.py" = ["E402"] }
