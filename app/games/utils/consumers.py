@@ -1,14 +1,20 @@
 # app/games/utils/consumers.py
-import json
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.db import transaction
 
 from ..models import BOARD_SIZE, Game, Move
-from .omok import (BLACK, EMPTY, WHITE, check_five, debug_double_three,
-                   has_exact_five, is_forbidden_double_four,
-                   is_forbidden_double_three, is_overline)
+from .omok import (
+    BLACK,
+    WHITE,
+    check_five,
+    debug_double_three,
+    has_exact_five,
+    is_forbidden_double_four,
+    is_forbidden_double_three,
+    is_overline,
+)
 
 
 class GameConsumer(AsyncJsonWebsocketConsumer):

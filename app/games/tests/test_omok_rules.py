@@ -2,9 +2,16 @@
 import unittest
 
 # 추천: 상대 임포트
-from ..utils.omok import (BLACK, EMPTY, WHITE, check_five, has_exact_five,
-                          is_forbidden_double_four, is_forbidden_double_three,
-                          is_overline)
+from ..utils.omok import (
+    BLACK,
+    EMPTY,
+    WHITE,
+    check_five,
+    has_exact_five,
+    is_forbidden_double_four,
+    is_forbidden_double_three,
+    is_overline,
+)
 
 
 # --- 테스트 유틸 ---
@@ -21,7 +28,6 @@ def put(bd, coords, stone):
 
 
 class OmokRuleTests(unittest.TestCase):
-
     # ---------- 장목/정확5/백5이상 ----------
     def test_black_exact_five_true_overline_false(self):
         # 흑: 정확히 5목은 승리, 장목은 금수로 분리 (여기선 엔진 함수만 검증)

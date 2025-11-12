@@ -5,7 +5,7 @@ description = "Gomoku (Omok) with Django Channels + Daphne"
 readme = "README.md"
 requires-python = ">=3.12"
 
-# ▶️ 런타임(프로덕션/컨테이너)에서 꼭 필요한 것만!
+# 런타임(프로덕션/컨테이너)에서 꼭 필요한 것만
 dependencies = [
   "Django>=5.0,<6",
   "daphne>=4,<5",
@@ -15,17 +15,14 @@ dependencies = [
   "psycopg[binary]>=3.2", # PostgreSQL 드라이버
   "django-environ>=0.12", # 환경변수 관리 (dotenv와 중복되니 이거 하나로 충분)
   "whitenoise>=6.7", # (Nginx 없이) 정적파일 서빙
-  "black>=25.9.0",
-  "isort>=6.0.1",
 ]
 
-# ▶️ 개발 전용 패키지들은 별도 그룹으로!
+# 개발 전용 패키지들은 별도 그룹으로
 [project.optional-dependencies]
 dev = [
-  "black>=24",
-  "isort>=5",
-  "mypy>=1",
   "pytest>=8",
+  "ruff>=0.14.4",
 ]
 
-# (선택) uv/PEP 621 메타데이터 등은 그대로 두면 됩니다
+[tool.ruff.lint]
+per-file-ignores = { "config/asgi.py" = ["E402"] }
