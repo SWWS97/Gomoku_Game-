@@ -1,6 +1,6 @@
 # config/asgi.py
 import os
-from pathlib import Path
+# from pathlib import Path
 
 # (필수) settings 지정이 가장 먼저
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
