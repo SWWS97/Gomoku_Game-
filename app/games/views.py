@@ -10,7 +10,9 @@ from .models import BOARD_SIZE, Game
 def lobby(request):
     """게임 로비 - 대기 중인 방 목록 표시"""
     # white가 null인 게임 = 대기 중인 방
-    waiting_games = Game.objects.filter(white__isnull=True, winner__isnull=True).order_by('-created_at')
+    waiting_games = Game.objects.filter(
+        white__isnull=True, winner__isnull=True
+    ).order_by("-created_at")
     return render(request, "games/lobby.html", {"waiting_games": waiting_games})
 
 
