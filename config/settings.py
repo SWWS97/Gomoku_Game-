@@ -47,6 +47,14 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "channels",
     "whitenoise.runserver_nostatic",  # runserver 때도 whitenoise로 일관
+    # django-allauth
+    "django.contrib.sites",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    # 소셜 프로바이더
+    "allauth.socialaccount.providers.naver",
+    "allauth.socialaccount.providers.kakao",
 ]
 
 OWN_APPS = [
@@ -68,6 +76,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",  # django-allauth 필수 미들웨어
 ]
 
 # ──────────────────────────────────────────────────────────────────────
@@ -167,5 +176,47 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # 로그인/리다이렉트
 LOGIN_URL = "/accounts/login/"
-LOGIN_REDIRECT_URL = "/games/new/"
+LOGIN_REDIRECT_URL = "/games/"  # 로비로 리다이렉트
 LOGOUT_REDIRECT_URL = "/accounts/login/"
+
+# ──────────────────────────────────────────────────────────────────────
+# django-allauth 설정
+# ──────────────────────────────────────────────────────────────────────
+SITE_ID = 2  # localhost:8000 사이트 사용
+
+AUTHENTICATION_BACKENDS = [
+    # Django 기본 인증 (username/password)
+    "django.contrib.auth.backends.ModelBackend",
+    # allauth 소셜 로그인
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# allauth 설정
+ACCOUNT_EMAIL_VERIFICATION = "optional"  # 이메일 인증 선택사항
+ACCOUNT_EMAIL_REQUIRED = False  # 이메일 필수 아님
+ACCOUNT_USERNAME_REQUIRED = False  # Username 필수 아님 (소셜 로그인 시 자동 생성)
+ACCOUNT_LOGIN_METHODS = ["username", "email"]  # username 또는 email로 로그인 가능
+ACCOUNT_SIGNUP_FIELDS = [
+    "email*",
+    "username*",
+    "password1*",
+    "password2*",
+]  # 일반 회원가입 필수 필드
+SOCIALACCOUNT_AUTO_SIGNUP = True  # 소셜 로그인 시 자동 회원가입
+SOCIALACCOUNT_LOGIN_ON_GET = True  # GET 요청으로 바로 로그인 (콜백 처리)
+
+# 소셜 로그인 프로바이더 설정 (환경 변수 방식)
+SOCIALACCOUNT_PROVIDERS = {
+    "naver": {
+        "APP": {
+            "client_id": env("NAVER_CLIENT_ID", default=""),
+            "secret": env("NAVER_SECRET", default=""),
+        }
+    },
+    "kakao": {
+        "APP": {
+            "client_id": env("KAKAO_CLIENT_ID", default=""),
+            "secret": env("KAKAO_SECRET", default=""),
+        }
+    },
+}

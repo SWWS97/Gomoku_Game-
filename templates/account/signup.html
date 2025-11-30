@@ -1,4 +1,4 @@
-{% extends "registration/base_auth.html" %}
+{% extends "account/base_auth.html" %}
 {% block title %}회원가입 – Omok{% endblock %}
 {% block content %}
 <h1><span class="stone white"></span> 회원가입</h1>
@@ -29,7 +29,7 @@
   <button class="btn" type="submit">가입하고 입장하기 (○)</button>
   <div class="links">
     <span class="muted">이미 계정이 있나요?</span>
-    <a href="{% url 'login' %}">로그인</a>
+    <a href="{% url 'account_login' %}">로그인</a>
   </div>
 </form>
 {% endblock %}
