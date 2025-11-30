@@ -193,7 +193,8 @@ AUTHENTICATION_BACKENDS = [
 
 # allauth 설정
 ACCOUNT_EMAIL_VERIFICATION = "optional"  # 이메일 인증 선택사항
-ACCOUNT_EMAIL_REQUIRED = False  # 이메일 필수 아님
+ACCOUNT_EMAIL_REQUIRED = True  # 이메일 필수
+ACCOUNT_UNIQUE_EMAIL = True  # 이메일 중복 불가 (같은 이메일로 여러 계정 방지)
 ACCOUNT_USERNAME_REQUIRED = False  # Username 필수 아님 (소셜 로그인 시 자동 생성)
 ACCOUNT_LOGIN_METHODS = ["username", "email"]  # username 또는 email로 로그인 가능
 ACCOUNT_SIGNUP_FIELDS = [
@@ -204,6 +205,9 @@ ACCOUNT_SIGNUP_FIELDS = [
 ]  # 일반 회원가입 필수 필드
 SOCIALACCOUNT_AUTO_SIGNUP = True  # 소셜 로그인 시 자동 회원가입
 SOCIALACCOUNT_LOGIN_ON_GET = True  # GET 요청으로 바로 로그인 (콜백 처리)
+SOCIALACCOUNT_QUERY_EMAIL = True  # 소셜 로그인 시 이메일 정보 요청
+SOCIALACCOUNT_EMAIL_REQUIRED = True  # 소셜 로그인 시 이메일 필수
+SOCIALACCOUNT_AUTO_CONNECT = True  # 같은 이메일이면 기존 계정에 자동 연동
 
 # 소셜 로그인 프로바이더 설정 (환경 변수 방식)
 SOCIALACCOUNT_PROVIDERS = {
