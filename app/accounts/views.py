@@ -5,6 +5,6 @@ from .forms import SignUpForm
 
 
 class SignUpView(CreateView):
-    template_name = "registration/signup.html"
+    template_name = "account/signup.html"
     form_class = SignUpForm
-    success_url = reverse_lazy("login")  # 가입 후 로그인 페이지로
+    success_url = reverse_lazy("account_login")  # 가입 후 로그인 페이지로 (allauth)
