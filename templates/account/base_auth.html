@@ -4,6 +4,14 @@
   <meta charset="utf-8">
   <title>{% block title %}Omok – Auth{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: {
+        preflight: false, // Tailwind 기본 리셋 비활성화
+      }
+    }
+  </script>
   <style>
     :root{
       --board:#f4d29a;      /* 바둑판 */

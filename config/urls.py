@@ -22,9 +22,10 @@ from django.views.generic import RedirectView
 urlpatterns = [
     path("admin/", admin.site.urls),
     path(
-        "", RedirectView.as_view(pattern_name="login", permanent=False)
-    ),  # 접속시 바로 로그인 페이지로 가게
+        "", RedirectView.as_view(pattern_name="account_login", permanent=False)
+    ),  # 접속시 바로 로그인 페이지로 가게 (allauth 사용)
     path("games/", include("app.games.urls"), name="games"),
+    path("accounts/", include("allauth.urls")),  # allauth 소셜 로그인
     path("accounts/", include("app.accounts.urls")),  # 내가 만든 회원가입 url
-    path("accounts/", include("django.contrib.auth.urls")),
+    # path("accounts/", include("django.contrib.auth.urls")),  # allauth 사용하므로 주석 처리
 ]
