@@ -177,7 +177,7 @@
     <div class="header">
       <h1>오목 로비</h1>
       <div class="top-actions">
-        <span class="user-info">{{ user.username }}</span>
+        <span class="user-info">{{ user.first_name|default:user.username }}</span>
         <a href="{% url 'account_logout' %}" class="btn logout-btn">로그아웃</a>
       </div>
     </div>
@@ -194,7 +194,7 @@
             <a href="{% url 'games:join' pk=game.pk %}" class="room-card">
               <div class="room-title">Gomoku Room #{{ game.id }}</div>
               <div class="room-info">
-                <span>생성자: {{ game.black.username }}</span>
+                <span>생성자: {{ game.black.first_name|default:game.black.username }}</span>
                 <span>|</span>
                 <span>생성 시간: {{ game.created_at|date:"Y-m-d H:i" }}</span>
               </div>
