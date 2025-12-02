@@ -37,7 +37,6 @@ class SocialSignupForm(forms.Form):
         allauth가 요구하는 try_save 메서드
         (user, response) 튜플을 반환
         """
-        from allauth.socialaccount.internal import flows
 
         # sociallogin 객체에서 user를 가져옴
         user = self.sociallogin.user
@@ -45,6 +44,7 @@ class SocialSignupForm(forms.Form):
         # username 설정 (adapter에서 이미 설정되었지만 확인)
         if not user.username:
             import uuid
+
             email = user.email
             if email:
                 base_username = email.split("@")[0]

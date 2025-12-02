@@ -2,7 +2,6 @@ import uuid
 
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
-from django.contrib import messages
 
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
@@ -56,7 +55,9 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                 message_template = message_template.replace("{user}", "{user_display}")
 
         # 부모 메서드 호출
-        super().add_message(request, level, message_template, message_context, extra_tags)
+        super().add_message(
+            request, level, message_template, message_context, extra_tags
+        )
 
 
 class CustomAccountAdapter(DefaultAccountAdapter):
@@ -89,4 +90,6 @@ class CustomAccountAdapter(DefaultAccountAdapter):
             if "{user}" in message_template:
                 message_template = message_template.replace("{user}", "{user_display}")
 
-        super().add_message(request, level, message_template, message_context, extra_tags)
+        super().add_message(
+            request, level, message_template, message_context, extra_tags
+        )
