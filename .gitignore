@@ -41,3 +41,7 @@ Thumbs.db
 # ---- Docker(선택)
 docker-compose.override.yml
 *.pid
+
+# ---- db 체크 스크립트
+check_data.py
+check_db.py

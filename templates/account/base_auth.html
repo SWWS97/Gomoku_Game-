@@ -76,10 +76,24 @@
     </div>
     <div class="messages">
       {% if messages %}
-        {% for m in messages %}<div class="msg">{{ m }}</div>{% endfor %}
+        {% for m in messages %}
+          <div class="msg">{{ m }}</div>
+        {% endfor %}
       {% endif %}
       {% if form.non_field_errors %}<div class="msg">{{ form.non_field_errors }}</div>{% endif %}
     </div>
+    <script>
+      // 메시지에서 username을 닉네임으로 변환
+      document.addEventListener('DOMContentLoaded', function() {
+        {% if user.is_authenticated and user.first_name %}
+          const username = "{{ user.username }}";
+          const nickname = "{{ user.first_name }}";
+          document.querySelectorAll('.msg').forEach(function(msg) {
+            msg.textContent = msg.textContent.replace(username, nickname);
+          });
+        {% endif %}
+      });
+    </script>
     {% block content %}{% endblock %}
   </main>
 </body>

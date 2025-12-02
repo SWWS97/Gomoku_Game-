@@ -12,8 +12,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # django-environ 초기화
 env = environ.Env()
 
-# .env 경로 우선순위: envs/.env.prod → envs/.env → 프로젝트 루트 .env
-for candidate in ("envs/.env", "envs/.env.dev", "envs/.env.prod"):
+# .env 경로 우선순위: envs/.env.dev → envs/.env.prod
+for candidate in ("envs/.env.dev", "envs/.env.prod"):
     fp = BASE_DIR / candidate
     if fp.exists():
         environ.Env.read_env(fp)
@@ -203,11 +203,16 @@ ACCOUNT_SIGNUP_FIELDS = [
     "password1*",
     "password2*",
 ]  # 일반 회원가입 필수 필드
-SOCIALACCOUNT_AUTO_SIGNUP = True  # 소셜 로그인 시 자동 회원가입
+SOCIALACCOUNT_AUTO_SIGNUP = False  # 소셜 로그인 시 닉네임 입력받기 위해 False
 SOCIALACCOUNT_LOGIN_ON_GET = True  # GET 요청으로 바로 로그인 (콜백 처리)
 SOCIALACCOUNT_QUERY_EMAIL = True  # 소셜 로그인 시 이메일 정보 요청
 SOCIALACCOUNT_EMAIL_REQUIRED = True  # 소셜 로그인 시 이메일 필수
 SOCIALACCOUNT_AUTO_CONNECT = True  # 같은 이메일이면 기존 계정에 자동 연동
+
+# 커스텀 Adapter 및 Form 설정
+ACCOUNT_ADAPTER = "app.accounts.adapters.CustomAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "app.accounts.adapters.CustomSocialAccountAdapter"
+SOCIALACCOUNT_FORMS = {"signup": "app.accounts.forms.SocialSignupForm"}
 
 # 소셜 로그인 프로바이더 설정 (환경 변수 방식)
 SOCIALACCOUNT_PROVIDERS = {
