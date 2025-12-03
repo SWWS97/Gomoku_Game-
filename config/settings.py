@@ -192,8 +192,8 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # allauth 설정
-ACCOUNT_EMAIL_VERIFICATION = "optional"  # 이메일 인증 선택사항
-ACCOUNT_EMAIL_REQUIRED = True  # 이메일 필수
+ACCOUNT_EMAIL_VERIFICATION = "none"  # 이메일 인증 비활성화
+ACCOUNT_EMAIL_REQUIRED = False  # 이메일 선택사항으로 변경
 ACCOUNT_UNIQUE_EMAIL = True  # 이메일 중복 불가 (같은 이메일로 여러 계정 방지)
 ACCOUNT_USERNAME_REQUIRED = False  # Username 필수 아님 (소셜 로그인 시 자동 생성)
 ACCOUNT_LOGIN_METHODS = ["username", "email"]  # username 또는 email로 로그인 가능
@@ -229,3 +229,12 @@ SOCIALACCOUNT_PROVIDERS = {
         }
     },
 }
+
+# ──────────────────────────────────────────────────────────────────────
+# 이메일 설정 (개발 환경에서는 콘솔로 출력)
+# ──────────────────────────────────────────────────────────────────────
+if DEBUG:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+else:
+    # 프로덕션에서도 이메일 인증을 사용하지 않으므로 콘솔로 설정
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
