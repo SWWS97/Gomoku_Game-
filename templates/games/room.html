@@ -22,6 +22,9 @@
     }
     .topbar .right{ margin-left:auto; display:flex; gap:14px; align-items:center; }
     .pill{ padding:.35rem .6rem; border:1px solid #b08f66; border-radius:.5rem; background:#fff; cursor:pointer; }
+    .players{ display:flex; gap:16px; }
+    .player-info{ padding:.4rem .7rem; border:1px solid #ccc; border-radius:.4rem; background:#fff; font-size:.9rem; }
+    .player-info .label{ color:#666; font-size:.8rem; }
 
     /* 승자 배지(상단 표시) */
     .winner-badge{
@@ -90,6 +93,18 @@
     <div>Omok #{{ game.id }}</div>
     <div id="ws-state">웹소켓 연결 중…</div>
 
+    <!-- 플레이어 정보 -->
+    <div class="players">
+      <div class="player-info">
+        <span class="label">흑(●):</span>
+        <span id="black-player">대기중...</span>
+      </div>
+      <div class="player-info">
+        <span class="label">백(○):</span>
+        <span id="white-player">대기중...</span>
+      </div>
+    </div>
+
     <!-- 여기! 상단 우측에 승자 배지 -->
     <div id="winnerTop" class="winner-badge"></div>
 
@@ -116,13 +131,15 @@
   const scheme = (location.protocol === "https:") ? "wss" : "ws";
   const wsURL  = `${scheme}://${location.host}/ws/games/${gameId}/`;
 
-  const gridEl    = document.getElementById("grid");
-  const stonesEl  = document.getElementById("stones");
-  const pointsEl  = document.getElementById("points");
-  const wsState   = document.getElementById("ws-state");
-  const turnEl    = document.getElementById("turn");
-  const winnerEl  = document.getElementById("winner");     // 하단(보조)
-  const winnerTop = document.getElementById("winnerTop");  // 상단 배지
+  const gridEl       = document.getElementById("grid");
+  const stonesEl     = document.getElementById("stones");
+  const pointsEl     = document.getElementById("points");
+  const wsState      = document.getElementById("ws-state");
+  const turnEl       = document.getElementById("turn");
+  const winnerEl     = document.getElementById("winner");     // 하단(보조)
+  const winnerTop    = document.getElementById("winnerTop");  // 상단 배지
+  const blackPlayer  = document.getElementById("black-player");
+  const whitePlayer  = document.getElementById("white-player");
 
   /* ===== 좌표/격자 ===== */
   const MARGIN_PCT = 8;
@@ -199,7 +216,11 @@
 
   /* ===== 렌더 ===== */
   function render(state){
-    const { board, turn, winner } = state;
+    const { board, turn, winner, black_player, white_player } = state;
+
+    // 플레이어 정보 업데이트
+    blackPlayer.textContent = black_player || "대기중...";
+    whitePlayer.textContent = white_player || "대기중...";
 
     // 돌 렌더
     stonesEl.innerHTML = "";

@@ -77,11 +77,22 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def game_state(self, game: Game):
+        # 닉네임 표시 (first_name이 있으면 사용, 없으면 username)
+        black_name = None
+        if game.black:
+            black_name = game.black.first_name or game.black.username
+
+        white_name = None
+        if game.white:
+            white_name = game.white.first_name or game.white.username
+
         return {
             "board": game.board,
             "turn": game.turn,
             "winner": game.winner,
             "size": BOARD_SIZE,
+            "black_player": black_name,
+            "white_player": white_name,
         }
 
     @database_sync_to_async
