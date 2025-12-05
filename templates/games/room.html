@@ -110,6 +110,7 @@
 
     <div class="right">
       <div id="turn"></div>
+      <a href="{% url 'games:lobby' %}" class="pill" id="lobby-btn" style="display:none;">로비로 가기</a>
       <a href="{% url 'games:new' %}" class="pill">새 게임</a>
     </div>
   </div>
@@ -140,6 +141,7 @@
   const winnerTop    = document.getElementById("winnerTop");  // 상단 배지
   const blackPlayer  = document.getElementById("black-player");
   const whitePlayer  = document.getElementById("white-player");
+  const lobbyBtn     = document.getElementById("lobby-btn");
 
   /* ===== 좌표/격자 ===== */
   const MARGIN_PCT = 8;
@@ -238,18 +240,21 @@
       stonesEl.appendChild(d);
     }
 
-    // 상단 승자 배지 & 턴
+    // 상단 승자 배지 & 턴 & 로비 버튼
     if (winner){
       const text = `승자: ${winner==="black" ? "흑(●)" : "백(○)"}`;
       winnerTop.textContent = text;
       winnerTop.style.display = "inline-block";
       turnEl.textContent = "";
+      // 로비로 가기 버튼 표시
+      lobbyBtn.style.display = "inline-block";
       // 하단 표시는 숨김
       winnerEl.textContent = "";
       winnerEl.style.display = "none";
     }else{
       winnerTop.style.display = "none";
       turnEl.textContent = `턴: ${turn==="black" ? "흑(●)" : "백(○)"}`;
+      lobbyBtn.style.display = "none";
     }
 
     // 빈 칸만 클릭 가능
