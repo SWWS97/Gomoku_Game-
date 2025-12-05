@@ -178,6 +178,7 @@
       <h1>오목 로비</h1>
       <div class="top-actions">
         <span class="user-info">{{ user.first_name|default:user.username }}</span>
+        <a href="{% url 'games:history' %}" class="btn" style="background: #5a4a3a; font-size: 14px; padding: 8px 16px;">내 전적</a>
         <a href="{% url 'account_logout' %}" class="btn logout-btn">로그아웃</a>
       </div>
     </div>
