@@ -222,9 +222,9 @@
             <div class="history-item">
               <div class="game-id">Game #{{ history.game_id }}</div>
               <div class="players">
-                <span>{{ history.black.first_name|default:history.black.username }}</span>
+                <span>{% if history.black %}{{ history.black.first_name|default:history.black.username }}{% else %}탈퇴한 사용자{% endif %}</span>
                 <span class="vs">vs</span>
-                <span>{{ history.white.first_name|default:history.white.username }}</span>
+                <span>{% if history.white %}{{ history.white.first_name|default:history.white.username }}{% else %}대기 중{% endif %}</span>
               </div>
               {% if history.winner == 'black' and history.black == user or history.winner == 'white' and history.white == user %}
                 <div class="result win">승리 ({{ history.winner|slice:":1"|upper }})</div>
