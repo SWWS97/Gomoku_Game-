@@ -1,16 +1,46 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
+from django.core.validators import EmailValidator
 
 User = get_user_model()
 
 
 class SignUpForm(UserCreationForm):
-    email = forms.EmailField(required=False, help_text="선택 (비밀번호 찾기 등에 사용)")
+    # EmailField 대신 CharField 사용 + EmailValidator로 검증
+    email = forms.CharField(
+        required=False,  # 선택 사항
+        max_length=254,
+        help_text="선택 (비밀번호 찾기 등에 사용)",
+        widget=forms.TextInput(attrs={"placeholder": "이메일 주소 (선택사항)"}),
+    )
 
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ("username", "email")
+        fields = ("username",)
+
+    def clean_email(self):
+        """이메일 형식 검증 (값이 있을 때만)"""
+        email = self.cleaned_data.get("email", "").strip()
+
+        # 빈 값은 허용
+        if not email:
+            return ""
+
+        # 이메일 형식 검증
+        validator = EmailValidator()
+        try:
+            validator(email)
+            return email
+        except forms.ValidationError:
+            raise forms.ValidationError("올바른 이메일 주소를 입력하세요.")
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data.get("email", "")
+        if commit:
+            user.save()
+        return user
 
 
 class SocialSignupForm(forms.Form):
