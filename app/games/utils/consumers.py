@@ -265,7 +265,14 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
 
             # 다른 사용자들에게 새 접속자 알림
             await self.channel_layer.group_send(
-                self.group_name, {"type": "user_joined", "user_info": {"user_id": self.user_id, "nickname": self.user_nickname}}
+                self.group_name,
+                {
+                    "type": "user_joined",
+                    "user_info": {
+                        "user_id": self.user_id,
+                        "nickname": self.user_nickname,
+                    },
+                },
             )
 
         except Exception as e:
