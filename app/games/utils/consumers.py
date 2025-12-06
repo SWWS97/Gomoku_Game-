@@ -2,6 +2,7 @@
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from ..models import BOARD_SIZE, Game, GameHistory, Move
@@ -15,6 +16,8 @@ from .omok import (
     is_forbidden_double_three,
     is_overline,
 )
+
+User = get_user_model()
 
 
 class GameConsumer(AsyncJsonWebsocketConsumer):
@@ -225,3 +228,97 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             # 저장
             game.save(update_fields=["board", "turn", "winner"])
             return True, "ok", None  # 게임 진행 중
+
+
+class LobbyConsumer(AsyncJsonWebsocketConsumer):
+    """로비 실시간 접속자 목록 관리"""
+
+    # 클래스 레벨에서 접속자 관리 (channel_name -> user_id 매핑)
+    connected_users = {}
+
+    async def connect(self):
+        try:
+            self.group_name = "lobby"
+            user = self.scope.get("user")
+
+            # 인증된 사용자만 허용
+            if not user or not user.is_authenticated:
+                await self.close(code=4003)
+                return
+
+            self.user_id = user.id
+            self.user_nickname = user.first_name or user.username
+
+            # 그룹 추가
+            await self.channel_layer.group_add(self.group_name, self.channel_name)
+            await self.accept()
+
+            # 접속자 목록에 추가
+            LobbyConsumer.connected_users[self.channel_name] = {
+                "user_id": self.user_id,
+                "nickname": self.user_nickname,
+            }
+
+            # 현재 접속자 목록 전송
+            users = await self.get_online_users()
+            await self.send_json({"type": "users", "users": users})
+
+            # 다른 사용자들에게 새 접속자 알림
+            await self.channel_layer.group_send(
+                self.group_name, {"type": "user_joined", "user_info": {"user_id": self.user_id, "nickname": self.user_nickname}}
+            )
+
+        except Exception as e:
+            print("[LobbyWS][connect] ERROR:", repr(e))
+            try:
+                await self.close(code=4000)
+            except Exception:
+                pass
+
+    async def disconnect(self, code):
+        try:
+            # 접속자 목록에서 제거
+            if self.channel_name in LobbyConsumer.connected_users:
+                del LobbyConsumer.connected_users[self.channel_name]
+
+            # 그룹에서 제거
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+            # 다른 사용자들에게 퇴장 알림
+            await self.channel_layer.group_send(
+                self.group_name, {"type": "user_left", "user_id": self.user_id}
+            )
+
+        except Exception as e:
+            print("[LobbyWS][disconnect] ERROR:", repr(e))
+
+    async def user_joined(self, event):
+        """새 사용자 접속 알림"""
+        try:
+            # 자기 자신에게는 알리지 않음
+            if event["user_info"]["user_id"] != self.user_id:
+                users = await self.get_online_users()
+                await self.send_json({"type": "users", "users": users})
+        except Exception as e:
+            print("[LobbyWS][user_joined] ERROR:", repr(e))
+
+    async def user_left(self, event):
+        """사용자 퇴장 알림"""
+        try:
+            # 자기 자신에게는 알리지 않음
+            if event["user_id"] != self.user_id:
+                users = await self.get_online_users()
+                await self.send_json({"type": "users", "users": users})
+        except Exception as e:
+            print("[LobbyWS][user_left] ERROR:", repr(e))
+
+    async def get_online_users(self):
+        """현재 접속 중인 사용자 목록 반환 (중복 제거)"""
+        # user_id 기준으로 중복 제거
+        unique_users = {}
+        for user_info in LobbyConsumer.connected_users.values():
+            user_id = user_info["user_id"]
+            if user_id not in unique_users:
+                unique_users[user_id] = user_info
+
+        return list(unique_users.values())
