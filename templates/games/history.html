@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>게임 전적 – Omok</title>
+  <style>
+    :root {
+      --wood: #d4b781;
+      --line: #7b5c3a;
+      --border: #3e2a1f;
+      --card: #fff9ee;
+      --win: #2d5016;
+      --loss: #7a2e2e;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 36px 36px,
+                  linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 36px 36px,
+                  var(--wood);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Noto Sans KR, sans-serif;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card);
+      padding: 20px 24px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      margin-bottom: 24px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      color: var(--border);
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: var(--border);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    /* 통계 카드 */
+    .stats-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    .stat-card .label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--border);
+    }
+
+    .stat-card.wins .value { color: var(--win); }
+    .stat-card.losses .value { color: var(--loss); }
+
+    /* 전적 리스트 */
+    .history-section {
+      background: var(--card);
+      padding: 24px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .history-section h2 {
+      margin: 0 0 20px 0;
+      font-size: 20px;
+      color: var(--border);
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--line);
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .history-item {
+      display: grid;
+      grid-template-columns: 80px 1fr 120px 100px;
+      gap: 16px;
+      padding: 16px 20px;
+      background: white;
+      border: 2px solid var(--line);
+      border-radius: 10px;
+      align-items: center;
+    }
+
+    .history-item .game-id {
+      font-weight: 700;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .history-item .players {
+      font-size: 14px;
+    }
+
+    .history-item .players .vs {
+      color: #999;
+      margin: 0 8px;
+    }
+
+    .history-item .result {
+      font-weight: 700;
+      font-size: 16px;
+      text-align: center;
+      padding: 6px 12px;
+      border-radius: 6px;
+    }
+
+    .history-item .result.win {
+      background: #e8f5e9;
+      color: var(--win);
+    }
+
+    .history-item .result.loss {
+      background: #ffebee;
+      color: var(--loss);
+    }
+
+    .history-item .date {
+      font-size: 13px;
+      color: #999;
+      text-align: right;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+      font-size: 16px;
+    }
+
+    .empty-state::before {
+      content: "📊";
+      display: block;
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>게임 전적</h1>
+      <a href="{% url 'games:lobby' %}" class="btn">로비로 돌아가기</a>
+    </div>
+
+    <!-- 통계 -->
+    <div class="stats-section">
+      <div class="stat-card">
+        <div class="label">총 게임 수</div>
+        <div class="value">{{ total_games }}</div>
+      </div>
+      <div class="stat-card wins">
+        <div class="label">승리</div>
+        <div class="value">{{ wins }}</div>
+      </div>
+      <div class="stat-card losses">
+        <div class="label">패배</div>
+        <div class="value">{{ losses }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">승률</div>
+        <div class="value">{{ win_rate }}%</div>
+      </div>
+    </div>
+
+    <!-- 전적 리스트 -->
+    <div class="history-section">
+      <h2>게임 기록</h2>
+      <div class="history-list">
+        {% if histories %}
+          {% for history in histories %}
+            <div class="history-item">
+              <div class="game-id">Game #{{ history.game_id }}</div>
+              <div class="players">
+                <span>{% if history.black %}{{ history.black.first_name|default:history.black.username }}{% else %}탈퇴한 사용자{% endif %}</span>
+                <span class="vs">vs</span>
+                <span>{% if history.white %}{{ history.white.first_name|default:history.white.username }}{% else %}대기 중{% endif %}</span>
+              </div>
+              {% if history.winner == 'black' and history.black == user or history.winner == 'white' and history.white == user %}
+                <div class="result win">승리 ({{ history.winner|slice:":1"|upper }})</div>
+              {% else %}
+                <div class="result loss">패배</div>
+              {% endif %}
+              <div class="date">
+                {{ history.finished_at|date:"Y-m-d H:i" }}<br>
+                <small style="color:#bbb;">{{ history.total_moves }}수</small>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state">
+            아직 게임 기록이 없습니다.<br>
+            첫 게임을 시작해보세요!
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

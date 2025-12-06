@@ -52,3 +52,37 @@ class Move(models.Model):
     class Meta:
         unique_together = [("game", "x", "y")]
         ordering = ["order"]
+
+
+class GameHistory(models.Model):
+    """종료된 게임의 전적 기록"""
+
+    game_id = models.IntegerField(help_text="원본 Game ID (삭제된 게임 참조용)")
+    black = models.ForeignKey(
+        User,
+        related_name="history_as_black",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    white = models.ForeignKey(
+        User,
+        related_name="history_as_white",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    winner = models.CharField(max_length=5)  # black | white | draw
+    created_at = models.DateTimeField(help_text="게임 시작 시간")
+    finished_at = models.DateTimeField(auto_now_add=True, help_text="게임 종료 시간")
+    total_moves = models.IntegerField(help_text="총 수 개수")
+
+    class Meta:
+        ordering = ["-finished_at"]
+        indexes = [
+            models.Index(fields=["black", "-finished_at"]),
+            models.Index(fields=["white", "-finished_at"]),
+        ]
+
+    def __str__(self):
+        return f"Game #{self.game_id} - {self.winner} won"
