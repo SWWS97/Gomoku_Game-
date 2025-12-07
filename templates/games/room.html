@@ -39,6 +39,60 @@
       box-shadow: 0 1px 0 rgba(255,255,255,.6) inset;
     }
 
+    /* ===== 게임 종료 모달 ===== */
+    .game-over-modal{
+      display:none;
+      position:fixed;
+      top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,0.6);
+      z-index:1000;
+      align-items:center;
+      justify-content:center;
+    }
+    .modal-content{
+      background:#fff;
+      padding:2.5rem 3rem;
+      border-radius:1rem;
+      box-shadow:0 10px 40px rgba(0,0,0,0.3);
+      text-align:center;
+      max-width:400px;
+      animation: modalFadeIn 0.3s ease;
+    }
+    @keyframes modalFadeIn {
+      from { opacity:0; transform:translateY(-20px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+    .modal-content h2{
+      margin:0 0 1rem;
+      font-size:1.8rem;
+      color:#7a2e2e;
+    }
+    .modal-content .winner-name{
+      font-size:2.2rem;
+      font-weight:900;
+      margin:1rem 0;
+      color:#2b2b2b;
+    }
+    .modal-content .winner-stone{
+      font-size:3rem;
+      margin:0.5rem 0;
+    }
+    .modal-content .modal-btn{
+      margin-top:1.5rem;
+      padding:0.75rem 2rem;
+      background:#7a2e2e;
+      color:#fff;
+      border:none;
+      border-radius:0.5rem;
+      font-size:1rem;
+      font-weight:700;
+      cursor:pointer;
+      transition:background 0.2s;
+    }
+    .modal-content .modal-btn:hover{
+      background:#5a1e1e;
+    }
+
     /* ===== Board ===== */
     .board-wrap{
       position:relative;
@@ -125,6 +179,17 @@
     <span id="winner" class="winner"></span>
   </div>
 
+  <!-- 게임 종료 모달 -->
+  <div id="gameOverModal" class="game-over-modal">
+    <div class="modal-content">
+      <h2>게임 종료!</h2>
+      <div class="winner-stone" id="modalStone"></div>
+      <div class="winner-name" id="modalWinnerName"></div>
+      <p style="font-size:1.1rem; color:#666;">승리하셨습니다!</p>
+      <button class="modal-btn" onclick="closeModal()">확인</button>
+    </div>
+  </div>
+
 <script>
 (function(){
   const SIZE   = {{ BOARD_SIZE }};
@@ -142,6 +207,25 @@
   const blackPlayer  = document.getElementById("black-player");
   const whitePlayer  = document.getElementById("white-player");
   const lobbyBtn     = document.getElementById("lobby-btn");
+  const gameOverModal = document.getElementById("gameOverModal");
+  const modalStone    = document.getElementById("modalStone");
+  const modalWinnerName = document.getElementById("modalWinnerName");
+
+  /* ===== 게임 종료 모달 ===== */
+  let modalShown = false;  // 모달이 이미 표시되었는지 추적
+
+  window.closeModal = function() {
+    gameOverModal.style.display = "none";
+  };
+
+  function showGameOverModal(winner, winnerName) {
+    if (modalShown) return;  // 이미 표시되었으면 중복 방지
+
+    modalShown = true;
+    modalStone.textContent = winner === "black" ? "●" : "○";
+    modalWinnerName.textContent = winnerName || (winner === "black" ? "흑" : "백");
+    gameOverModal.style.display = "flex";
+  }
 
   /* ===== 효과음 ===== */
   let prevStoneCount = 0;  // 이전 돌 개수 추적
@@ -288,7 +372,7 @@
     }
     prevStoneCount = currentStoneCount;
 
-    // 상단 승자 배지 & 턴 & 로비 버튼
+    // 상단 승자 배지 & 턴 & 로비 버튼 & 게임 종료 모달
     if (winner){
       const text = `승자: ${winner==="black" ? "흑(●)" : "백(○)"}`;
       winnerTop.textContent = text;
@@ -299,6 +383,10 @@
       // 하단 표시는 숨김
       winnerEl.textContent = "";
       winnerEl.style.display = "none";
+
+      // 🎉 게임 종료 모달 표시 (승자 닉네임과 함께)
+      const winnerName = winner === "black" ? black_player : white_player;
+      showGameOverModal(winner, winnerName);
     }else{
       winnerTop.style.display = "none";
       turnEl.textContent = `턴: ${turn==="black" ? "흑(●)" : "백(○)"}`;
