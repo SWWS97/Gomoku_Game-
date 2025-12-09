@@ -75,7 +75,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         self.group, {"type": "broadcast_final", "state": final_state}
                     )
                 else:
-                    await self.send_json({"type": "error", "message": "항복할 수 없습니다"})
+                    await self.send_json(
+                        {"type": "error", "message": "항복할 수 없습니다"}
+                    )
         except Exception as e:
             print("[WS][receive_json] ERROR:", repr(e))
             await self.close(code=4001)
