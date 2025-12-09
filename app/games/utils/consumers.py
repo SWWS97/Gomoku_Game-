@@ -67,6 +67,15 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     await self.channel_layer.group_send(
                         self.group, {"type": "broadcast_state"}
                     )
+            elif content.get("type") == "surrender":
+                user = self.scope.get("user")
+                final_state = await self.handle_surrender(user)
+                if final_state:
+                    await self.channel_layer.group_send(
+                        self.group, {"type": "broadcast_final", "state": final_state}
+                    )
+                else:
+                    await self.send_json({"type": "error", "message": "항복할 수 없습니다"})
         except Exception as e:
             print("[WS][receive_json] ERROR:", repr(e))
             await self.close(code=4001)
@@ -194,16 +203,17 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
             # 게임 종료 시 전적 기록 생성 및 게임 삭제
             if game.winner:
-                # 전적 기록 생성
-                total_moves = Move.objects.filter(game=game).count()
-                GameHistory.objects.create(
-                    game_id=game.id,
-                    black=game.black,
-                    white=game.white,
-                    winner=game.winner,
-                    created_at=game.created_at,
-                    total_moves=total_moves,
-                )
+                # 전적 기록 생성 (양쪽 플레이어가 모두 있는 경우만)
+                if game.black and game.white:
+                    total_moves = Move.objects.filter(game=game).count()
+                    GameHistory.objects.create(
+                        game_id=game.id,
+                        black=game.black,
+                        white=game.white,
+                        winner=game.winner,
+                        created_at=game.created_at,
+                        total_moves=total_moves,
+                    )
 
                 # 삭제 전에 최종 상태 저장 (broadcast용)
                 black_name = (
@@ -228,6 +238,59 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             # 저장
             game.save(update_fields=["board", "turn", "winner"])
             return True, "ok", None  # 게임 진행 중
+
+    @database_sync_to_async
+    def handle_surrender(self, user):
+        """항복 처리"""
+        with transaction.atomic():
+            game = Game.objects.select_for_update().get(pk=self.game_id)
+
+            # 게임이 이미 종료된 경우
+            if game.winner:
+                return None
+
+            # 양쪽 플레이어가 없으면 항복할 수 없음
+            if not game.black or not game.white:
+                return None
+
+            # 항복한 사용자가 게임 참가자인지 확인 및 승자 결정
+            if user == game.black:
+                game.winner = "white"
+            elif user == game.white:
+                game.winner = "black"
+            else:
+                return None  # 게임 참가자가 아님
+
+            # 전적 기록 생성
+            total_moves = Move.objects.filter(game=game).count()
+            GameHistory.objects.create(
+                game_id=game.id,
+                black=game.black,
+                white=game.white,
+                winner=game.winner,
+                created_at=game.created_at,
+                total_moves=total_moves,
+            )
+
+            # 삭제 전에 최종 상태 저장 (broadcast용)
+            black_name = (
+                game.black.first_name or game.black.username if game.black else None
+            )
+            white_name = (
+                game.white.first_name or game.white.username if game.white else None
+            )
+            final_state = {
+                "board": game.board,
+                "turn": game.turn,
+                "winner": game.winner,
+                "size": BOARD_SIZE,
+                "black_player": black_name,
+                "white_player": white_name,
+            }
+
+            # 게임 삭제
+            game.delete()
+            return final_state
 
 
 class LobbyConsumer(AsyncJsonWebsocketConsumer):

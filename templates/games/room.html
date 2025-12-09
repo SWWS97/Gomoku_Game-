@@ -164,6 +164,7 @@
 
     <div class="right">
       <div id="turn"></div>
+      <button class="pill" id="surrender-btn" style="display:none; background:#c44; border-color:#a33;">항복</button>
       <a href="{% url 'games:lobby' %}" class="pill" id="lobby-btn" style="display:none;">로비로 가기</a>
       <a href="{% url 'games:new' %}" class="pill">새 게임</a>
     </div>
@@ -207,6 +208,7 @@
   const blackPlayer  = document.getElementById("black-player");
   const whitePlayer  = document.getElementById("white-player");
   const lobbyBtn     = document.getElementById("lobby-btn");
+  const surrenderBtn = document.getElementById("surrender-btn");
   const gameOverModal = document.getElementById("gameOverModal");
   const modalStone    = document.getElementById("modalStone");
   const modalWinnerName = document.getElementById("modalWinnerName");
@@ -229,12 +231,51 @@
 
   /* ===== 효과음 ===== */
   let prevStoneCount = 0;  // 이전 돌 개수 추적
+  let audioCtx = null;  // AudioContext를 재사용
+  let lastPlayTime = 0;  // 마지막 재생 시간
 
-  function playStoneSound(){
+  function initAudio() {
+    if (!audioCtx) {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('AudioContext 초기화 완료:', audioCtx.state);
+      } catch(e) {
+        console.log('AudioContext 생성 실패:', e);
+      }
+    }
+
+    // AudioContext가 있으면 항상 resume 시도
+    if (audioCtx && audioCtx.state === 'suspended') {
+      console.log('[Init] AudioContext suspended, resume 시도');
+      audioCtx.resume();
+    }
+  }
+
+  // 실제 재생 함수 먼저 선언 (호이스팅 이슈 방지)
+  function actuallyPlaySound() {
     try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      console.log('[Actually] actuallyPlaySound 함수 진입');
+      console.log('[Actually] audioCtx 상태 체크:', {
+        exists: !!audioCtx,
+        state: audioCtx?.state,
+        stateType: typeof audioCtx?.state,
+        isRunning: audioCtx?.state === 'running',
+        strictCheck: audioCtx?.state !== 'running'
+      });
 
-      // 화이트 노이즈 버퍼 생성 (나무에 돌 부딪히는 소리)
+      if (!audioCtx) {
+        console.log('[Actually] audioCtx 없음');
+        return;
+      }
+
+      if (audioCtx.state === 'suspended' || audioCtx.state === 'closed') {
+        console.log('[Actually] AudioContext suspended 또는 closed:', audioCtx.state);
+        return;
+      }
+
+      lastPlayTime = Date.now();
+
+      // 매번 새로운 버퍼 생성 (suspend 문제 회피)
       const bufferSize = audioCtx.sampleRate * 0.05; // 50ms
       const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -244,10 +285,11 @@
         data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.15));
       }
 
+      // 버퍼 소스 생성
       const noise = audioCtx.createBufferSource();
       noise.buffer = buffer;
 
-      // 필터로 높은 주파수 강조 (날카로운 "딱" 소리)
+      // 필터로 높은 주파수 강조
       const filter = audioCtx.createBiquadFilter();
       filter.type = 'highpass';
       filter.frequency.value = 1000;
@@ -262,10 +304,64 @@
 
       noise.start(audioCtx.currentTime);
       noise.stop(audioCtx.currentTime + 0.05);
+
+      console.log('[Actually] 효과음 재생 성공, 시각:', audioCtx.currentTime);
     } catch(e) {
-      console.log('효과음 재생 실패:', e);
+      console.log('[Actually] 재생 실패:', e);
     }
   }
+
+  function playStoneSound(){
+    try {
+      const now = Date.now();
+      console.log('[Sound] playStoneSound 호출됨, 이전 재생:', (now - lastPlayTime) + 'ms 전');
+
+      // AudioContext가 없으면 초기화
+      if (!audioCtx) {
+        console.log('[Sound] AudioContext 없음, 초기화 시도');
+        initAudio();
+      }
+
+      if (!audioCtx) {
+        console.log('[Sound] AudioContext 없음');
+        return;
+      }
+
+      console.log('[Sound] AudioContext 상태:', audioCtx.state);
+
+      // suspended 상태면 resume 시도 (동기적으로)
+      if (audioCtx.state === 'suspended') {
+        console.log('[Sound] suspended 상태, resume 시도');
+        audioCtx.resume().then(() => {
+          console.log('[Sound] resume 완료, 재생 재시도');
+          // resume 완료 후 다시 시도
+          actuallyPlaySound();
+        }).catch(err => {
+          console.log('[Sound] resume 실패:', err);
+        });
+        return;
+      }
+
+      // running 상태면 바로 재생
+      console.log('[Sound] running 상태 확인, actuallyPlaySound 호출 직전');
+      actuallyPlaySound();
+      console.log('[Sound] actuallyPlaySound 호출 완료');
+
+    } catch(e) {
+      console.log('[Sound] 효과음 재생 실패:', e);
+    }
+  }
+
+  // 사용자가 페이지와 상호작용하면 AudioContext 초기화 (브라우저 정책 대응)
+  document.addEventListener('click', initAudio, { once: true });
+
+  // 클릭할 때마다 AudioContext resume 시도 (suspend 방지)
+  document.addEventListener('click', () => {
+    if (audioCtx && audioCtx.state === 'suspended') {
+      console.log('[Click] AudioContext suspended, resume 시도');
+      audioCtx.resume();
+    }
+  });
 
   /* ===== 좌표/격자 ===== */
   const MARGIN_PCT = 8;
@@ -322,9 +418,17 @@
 
   /* ===== WebSocket ===== */
   const ws = new WebSocket(wsURL);
-  ws.addEventListener("open",  ()=> wsState.textContent = "웹소켓 연결 OK");
-  ws.addEventListener("close", e => wsState.textContent = `연결 종료(${e.code})`);
-  ws.addEventListener("error", ()=> wsState.textContent = "웹소켓 오류");
+  ws.addEventListener("open",  ()=> {
+    wsState.textContent = "";  // 연결 성공 시 아무것도 표시하지 않음
+  });
+  ws.addEventListener("close", e => {
+    wsState.textContent = `연결이 끊어졌습니다`;
+    wsState.style.color = "#c44";
+  });
+  ws.addEventListener("error", ()=> {
+    wsState.textContent = "연결 오류";
+    wsState.style.color = "#c44";
+  });
   ws.addEventListener("message", (e)=>{
     const m = JSON.parse(e.data);
     if (m.type === "state") render(m);
@@ -339,6 +443,16 @@
     const y = +e.currentTarget.dataset.y;
     ws.send(JSON.stringify({type:"play", x, y}));
   }
+
+  /* ===== 항복 버튼 ===== */
+  surrenderBtn.addEventListener("click", ()=>{
+    if (ws.readyState !== WebSocket.OPEN){
+      alert("서버와 연결되지 않았습니다."); return;
+    }
+    if (confirm("정말 항복하시겠습니까?")) {
+      ws.send(JSON.stringify({type:"surrender"}));
+    }
+  });
 
   /* ===== 렌더 ===== */
   function render(state){
@@ -367,17 +481,21 @@
     }
 
     // 새로운 돌이 추가되었으면 효과음 재생
+    console.log('[Render] 돌 개수 - 이전:', prevStoneCount, '현재:', currentStoneCount);
     if (currentStoneCount > prevStoneCount) {
+      console.log('[Render] 새로운 돌 감지, 효과음 재생 시도');
       playStoneSound();
     }
     prevStoneCount = currentStoneCount;
 
-    // 상단 승자 배지 & 턴 & 로비 버튼 & 게임 종료 모달
+    // 상단 승자 배지 & 턴 & 항복 버튼 & 로비 버튼 & 게임 종료 모달
     if (winner){
       const text = `승자: ${winner==="black" ? "흑(●)" : "백(○)"}`;
       winnerTop.textContent = text;
       winnerTop.style.display = "inline-block";
       turnEl.textContent = "";
+      // 항복 버튼 숨김
+      surrenderBtn.style.display = "none";
       // 로비로 가기 버튼 표시
       lobbyBtn.style.display = "inline-block";
       // 하단 표시는 숨김
@@ -390,6 +508,12 @@
     }else{
       winnerTop.style.display = "none";
       turnEl.textContent = `턴: ${turn==="black" ? "흑(●)" : "백(○)"}`;
+      // 게임 진행 중: 양쪽 플레이어가 모두 있을 때만 항복 버튼 표시
+      if (black_player && white_player) {
+        surrenderBtn.style.display = "inline-block";
+      } else {
+        surrenderBtn.style.display = "none";
+      }
       lobbyBtn.style.display = "none";
     }
 
