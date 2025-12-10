@@ -24,12 +24,21 @@ def new_game(request):
 @login_required
 def join_game(request, pk):
     """게임 방 참가 (white 플레이어로)"""
+    from asgiref.sync import async_to_sync
+    from channels.layers import get_channel_layer
+
     game = get_object_or_404(Game, pk=pk)
 
     # 이미 white가 있으면 그냥 방으로 이동
     if game.white is None and game.black != request.user:
         game.white = request.user
         game.save()
+
+        # WebSocket으로 모든 클라이언트에게 상태 업데이트 알림
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"game_{game.pk}", {"type": "broadcast_state"}
+        )
 
     return redirect("games:room", pk=game.pk)
 
