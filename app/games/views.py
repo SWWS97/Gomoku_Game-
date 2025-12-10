@@ -1,4 +1,8 @@
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .models import BOARD_SIZE, Game, GameHistory
@@ -11,12 +15,31 @@ def lobby(request):
     waiting_games = Game.objects.filter(
         white__isnull=True, winner__isnull=True
     ).order_by("-created_at")
-    return render(request, "games/lobby.html", {"waiting_games": waiting_games})
+
+    # 현재 사용자가 참여 중인 진행 중인 게임이 있는지 확인
+    has_active_game = Game.objects.filter(
+        Q(black=request.user) | Q(white=request.user), winner__isnull=True
+    ).exists()
+
+    return render(
+        request,
+        "games/lobby.html",
+        {"waiting_games": waiting_games, "has_active_game": has_active_game},
+    )
 
 
 @login_required
 def new_game(request):
     """새 게임 방 생성"""
+    # 현재 사용자가 참여 중인 진행 중인 게임이 있는지 확인
+    has_active_game = Game.objects.filter(
+        Q(black=request.user) | Q(white=request.user), winner__isnull=True
+    ).exists()
+
+    if has_active_game:
+        messages.error(request, "진행 중인 게임이 있습니다. 게임을 종료한 후 새 게임을 만들 수 있습니다.")
+        return redirect("games:lobby")
+
     g = Game.objects.create(black=request.user)
     return redirect("games:room", pk=g.pk)
 
@@ -24,9 +47,6 @@ def new_game(request):
 @login_required
 def join_game(request, pk):
     """게임 방 참가 (white 플레이어로)"""
-    from asgiref.sync import async_to_sync
-    from channels.layers import get_channel_layer
-
     game = get_object_or_404(Game, pk=pk)
 
     # 이미 white가 있으면 그냥 방으로 이동
@@ -49,11 +69,55 @@ def game_room(request, pk):
 
 
 @login_required
+def leave_game(request, pk):
+    """게임 나가기"""
+    game = get_object_or_404(Game, pk=pk)
+
+    # 게임이 이미 종료되었으면 로비로
+    if game.winner:
+        return redirect("games:lobby")
+
+    # 게임이 시작되었는지 확인 (Move가 하나라도 있으면 시작됨)
+    from .models import Move
+
+    has_moves = Move.objects.filter(game=game).exists()
+
+    # 게임이 시작된 후에는 나가기 불가
+    if has_moves:
+        messages.error(request, "게임이 이미 시작되어 나갈 수 없습니다. 항복을 사용하세요.")
+        return redirect("games:room", pk=pk)
+
+    # 흑돌 플레이어(방 생성자)가 나가면 게임 삭제
+    if request.user == game.black:
+        game.delete()
+        # WebSocket으로 백돌 플레이어에게 알림 (게임 삭제됨)
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"game_{pk}", {"type": "game_deleted"}
+        )
+        messages.info(request, "게임방을 나갔습니다.")
+        return redirect("games:lobby")
+
+    # 백돌 플레이어가 나가면 백돌만 제거
+    if request.user == game.white:
+        game.white = None
+        game.save()
+        # WebSocket으로 흑돌 플레이어에게 상태 업데이트
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"game_{pk}", {"type": "broadcast_state"}
+        )
+        messages.info(request, "게임방을 나갔습니다.")
+        return redirect("games:lobby")
+
+    # 참가하지 않은 유저면 그냥 로비로
+    return redirect("games:lobby")
+
+
+@login_required
 def game_history(request):
     """사용자의 게임 전적 조회"""
     # 내가 참여한 게임 전적 (흑 또는 백으로 참여)
-    from django.db.models import Q
-
     histories = GameHistory.objects.filter(
         Q(black=request.user) | Q(white=request.user)
     ).order_by("-finished_at")
