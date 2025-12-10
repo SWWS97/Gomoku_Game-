@@ -238,15 +238,13 @@
     if (!audioCtx) {
       try {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        console.log('AudioContext 초기화 완료:', audioCtx.state);
       } catch(e) {
-        console.log('AudioContext 생성 실패:', e);
+        console.error('AudioContext 생성 실패:', e);
       }
     }
 
     // AudioContext가 있으면 항상 resume 시도
     if (audioCtx && audioCtx.state === 'suspended') {
-      console.log('[Init] AudioContext suspended, resume 시도');
       audioCtx.resume();
     }
   }
@@ -254,28 +252,12 @@
   // 실제 재생 함수 먼저 선언 (호이스팅 이슈 방지)
   function actuallyPlaySound() {
     try {
-      console.log('[Actually] actuallyPlaySound 함수 진입');
-      console.log('[Actually] audioCtx 상태 체크:', {
-        exists: !!audioCtx,
-        state: audioCtx?.state,
-        stateType: typeof audioCtx?.state,
-        isRunning: audioCtx?.state === 'running',
-        strictCheck: audioCtx?.state !== 'running'
-      });
-
-      if (!audioCtx) {
-        console.log('[Actually] audioCtx 없음');
-        return;
-      }
-
-      if (audioCtx.state === 'suspended' || audioCtx.state === 'closed') {
-        console.log('[Actually] AudioContext suspended 또는 closed:', audioCtx.state);
-        return;
-      }
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended' || audioCtx.state === 'closed') return;
 
       lastPlayTime = Date.now();
 
-      // 매번 새로운 버퍼 생성 (suspend 문제 회피)
+      // 매번 새로운 버퍼 생성
       const bufferSize = audioCtx.sampleRate * 0.05; // 50ms
       const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -289,7 +271,7 @@
       const noise = audioCtx.createBufferSource();
       noise.buffer = buffer;
 
-      // 필터로 높은 주파수 강조
+      // 필터로 높은 주파수 강조 (날카로운 "딱" 소리)
       const filter = audioCtx.createBiquadFilter();
       filter.type = 'highpass';
       filter.frequency.value = 1000;
@@ -304,51 +286,32 @@
 
       noise.start(audioCtx.currentTime);
       noise.stop(audioCtx.currentTime + 0.05);
-
-      console.log('[Actually] 효과음 재생 성공, 시각:', audioCtx.currentTime);
     } catch(e) {
-      console.log('[Actually] 재생 실패:', e);
+      console.error('효과음 재생 실패:', e);
     }
   }
 
   function playStoneSound(){
     try {
-      const now = Date.now();
-      console.log('[Sound] playStoneSound 호출됨, 이전 재생:', (now - lastPlayTime) + 'ms 전');
-
       // AudioContext가 없으면 초기화
       if (!audioCtx) {
-        console.log('[Sound] AudioContext 없음, 초기화 시도');
         initAudio();
       }
 
-      if (!audioCtx) {
-        console.log('[Sound] AudioContext 없음');
-        return;
-      }
+      if (!audioCtx) return;
 
-      console.log('[Sound] AudioContext 상태:', audioCtx.state);
-
-      // suspended 상태면 resume 시도 (동기적으로)
+      // suspended 상태면 resume 후 재생
       if (audioCtx.state === 'suspended') {
-        console.log('[Sound] suspended 상태, resume 시도');
         audioCtx.resume().then(() => {
-          console.log('[Sound] resume 완료, 재생 재시도');
-          // resume 완료 후 다시 시도
           actuallyPlaySound();
-        }).catch(err => {
-          console.log('[Sound] resume 실패:', err);
         });
         return;
       }
 
       // running 상태면 바로 재생
-      console.log('[Sound] running 상태 확인, actuallyPlaySound 호출 직전');
       actuallyPlaySound();
-      console.log('[Sound] actuallyPlaySound 호출 완료');
-
     } catch(e) {
-      console.log('[Sound] 효과음 재생 실패:', e);
+      console.error('효과음 재생 실패:', e);
     }
   }
 
@@ -358,7 +321,6 @@
   // 클릭할 때마다 AudioContext resume 시도 (suspend 방지)
   document.addEventListener('click', () => {
     if (audioCtx && audioCtx.state === 'suspended') {
-      console.log('[Click] AudioContext suspended, resume 시도');
       audioCtx.resume();
     }
   });
@@ -481,9 +443,7 @@
     }
 
     // 새로운 돌이 추가되었으면 효과음 재생
-    console.log('[Render] 돌 개수 - 이전:', prevStoneCount, '현재:', currentStoneCount);
     if (currentStoneCount > prevStoneCount) {
-      console.log('[Render] 새로운 돌 감지, 효과음 재생 시도');
       playStoneSound();
     }
     prevStoneCount = currentStoneCount;
