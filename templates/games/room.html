@@ -164,9 +164,10 @@
 
     <div class="right">
       <div id="turn"></div>
+      <a href="{% url 'games:leave' pk=game.pk %}" class="pill" id="leave-btn" style="display:none; background:#888; border-color:#666;">나가기</a>
       <button class="pill" id="surrender-btn" style="display:none; background:#c44; border-color:#a33;">항복</button>
       <a href="{% url 'games:lobby' %}" class="pill" id="lobby-btn" style="display:none;">로비로 가기</a>
-      <a href="{% url 'games:new' %}" class="pill">새 게임</a>
+      <button class="pill" id="new-game-btn" disabled style="opacity:0.5; cursor:not-allowed;">새 게임</button>
     </div>
   </div>
 
@@ -208,7 +209,9 @@
   const blackPlayer  = document.getElementById("black-player");
   const whitePlayer  = document.getElementById("white-player");
   const lobbyBtn     = document.getElementById("lobby-btn");
+  const leaveBtn     = document.getElementById("leave-btn");
   const surrenderBtn = document.getElementById("surrender-btn");
+  const newGameBtn   = document.getElementById("new-game-btn");
   const gameOverModal = document.getElementById("gameOverModal");
   const modalStone    = document.getElementById("modalStone");
   const modalWinnerName = document.getElementById("modalWinnerName");
@@ -238,15 +241,13 @@
     if (!audioCtx) {
       try {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        console.log('AudioContext 초기화 완료:', audioCtx.state);
       } catch(e) {
-        console.log('AudioContext 생성 실패:', e);
+        console.error('AudioContext 생성 실패:', e);
       }
     }
 
     // AudioContext가 있으면 항상 resume 시도
     if (audioCtx && audioCtx.state === 'suspended') {
-      console.log('[Init] AudioContext suspended, resume 시도');
       audioCtx.resume();
     }
   }
@@ -254,28 +255,12 @@
   // 실제 재생 함수 먼저 선언 (호이스팅 이슈 방지)
   function actuallyPlaySound() {
     try {
-      console.log('[Actually] actuallyPlaySound 함수 진입');
-      console.log('[Actually] audioCtx 상태 체크:', {
-        exists: !!audioCtx,
-        state: audioCtx?.state,
-        stateType: typeof audioCtx?.state,
-        isRunning: audioCtx?.state === 'running',
-        strictCheck: audioCtx?.state !== 'running'
-      });
-
-      if (!audioCtx) {
-        console.log('[Actually] audioCtx 없음');
-        return;
-      }
-
-      if (audioCtx.state === 'suspended' || audioCtx.state === 'closed') {
-        console.log('[Actually] AudioContext suspended 또는 closed:', audioCtx.state);
-        return;
-      }
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended' || audioCtx.state === 'closed') return;
 
       lastPlayTime = Date.now();
 
-      // 매번 새로운 버퍼 생성 (suspend 문제 회피)
+      // 매번 새로운 버퍼 생성
       const bufferSize = audioCtx.sampleRate * 0.05; // 50ms
       const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -289,7 +274,7 @@
       const noise = audioCtx.createBufferSource();
       noise.buffer = buffer;
 
-      // 필터로 높은 주파수 강조
+      // 필터로 높은 주파수 강조 (날카로운 "딱" 소리)
       const filter = audioCtx.createBiquadFilter();
       filter.type = 'highpass';
       filter.frequency.value = 1000;
@@ -304,51 +289,32 @@
 
       noise.start(audioCtx.currentTime);
       noise.stop(audioCtx.currentTime + 0.05);
-
-      console.log('[Actually] 효과음 재생 성공, 시각:', audioCtx.currentTime);
     } catch(e) {
-      console.log('[Actually] 재생 실패:', e);
+      console.error('효과음 재생 실패:', e);
     }
   }
 
   function playStoneSound(){
     try {
-      const now = Date.now();
-      console.log('[Sound] playStoneSound 호출됨, 이전 재생:', (now - lastPlayTime) + 'ms 전');
-
       // AudioContext가 없으면 초기화
       if (!audioCtx) {
-        console.log('[Sound] AudioContext 없음, 초기화 시도');
         initAudio();
       }
 
-      if (!audioCtx) {
-        console.log('[Sound] AudioContext 없음');
-        return;
-      }
+      if (!audioCtx) return;
 
-      console.log('[Sound] AudioContext 상태:', audioCtx.state);
-
-      // suspended 상태면 resume 시도 (동기적으로)
+      // suspended 상태면 resume 후 재생
       if (audioCtx.state === 'suspended') {
-        console.log('[Sound] suspended 상태, resume 시도');
         audioCtx.resume().then(() => {
-          console.log('[Sound] resume 완료, 재생 재시도');
-          // resume 완료 후 다시 시도
           actuallyPlaySound();
-        }).catch(err => {
-          console.log('[Sound] resume 실패:', err);
         });
         return;
       }
 
       // running 상태면 바로 재생
-      console.log('[Sound] running 상태 확인, actuallyPlaySound 호출 직전');
       actuallyPlaySound();
-      console.log('[Sound] actuallyPlaySound 호출 완료');
-
     } catch(e) {
-      console.log('[Sound] 효과음 재생 실패:', e);
+      console.error('효과음 재생 실패:', e);
     }
   }
 
@@ -358,7 +324,6 @@
   // 클릭할 때마다 AudioContext resume 시도 (suspend 방지)
   document.addEventListener('click', () => {
     if (audioCtx && audioCtx.state === 'suspended') {
-      console.log('[Click] AudioContext suspended, resume 시도');
       audioCtx.resume();
     }
   });
@@ -433,6 +398,11 @@
     const m = JSON.parse(e.data);
     if (m.type === "state") render(m);
     else if (m.type === "error") alert(m.message);
+    else if (m.type === "game_deleted") {
+      // 게임이 삭제되었으므로 로비로 이동
+      alert("방 생성자가 나가서 게임이 종료되었습니다.");
+      window.location.href = "{% url 'games:lobby' %}";
+    }
   });
 
   function onPlay(e){
@@ -451,6 +421,13 @@
     }
     if (confirm("정말 항복하시겠습니까?")) {
       ws.send(JSON.stringify({type:"surrender"}));
+    }
+  });
+
+  /* ===== 새 게임 버튼 ===== */
+  newGameBtn.addEventListener("click", ()=>{
+    if (!newGameBtn.disabled) {
+      window.location.href = "{% url 'games:new' %}";
     }
   });
 
@@ -481,23 +458,26 @@
     }
 
     // 새로운 돌이 추가되었으면 효과음 재생
-    console.log('[Render] 돌 개수 - 이전:', prevStoneCount, '현재:', currentStoneCount);
     if (currentStoneCount > prevStoneCount) {
-      console.log('[Render] 새로운 돌 감지, 효과음 재생 시도');
       playStoneSound();
     }
     prevStoneCount = currentStoneCount;
 
-    // 상단 승자 배지 & 턴 & 항복 버튼 & 로비 버튼 & 게임 종료 모달
+    // 상단 승자 배지 & 턴 & 나가기/항복 버튼 & 로비 버튼 & 새 게임 버튼 & 게임 종료 모달
     if (winner){
       const text = `승자: ${winner==="black" ? "흑(●)" : "백(○)"}`;
       winnerTop.textContent = text;
       winnerTop.style.display = "inline-block";
       turnEl.textContent = "";
-      // 항복 버튼 숨김
+      // 나가기/항복 버튼 숨김
+      leaveBtn.style.display = "none";
       surrenderBtn.style.display = "none";
       // 로비로 가기 버튼 표시
       lobbyBtn.style.display = "inline-block";
+      // 새 게임 버튼 활성화
+      newGameBtn.disabled = false;
+      newGameBtn.style.opacity = "1";
+      newGameBtn.style.cursor = "pointer";
       // 하단 표시는 숨김
       winnerEl.textContent = "";
       winnerEl.style.display = "none";
@@ -508,13 +488,30 @@
     }else{
       winnerTop.style.display = "none";
       turnEl.textContent = `턴: ${turn==="black" ? "흑(●)" : "백(○)"}`;
-      // 게임 진행 중: 양쪽 플레이어가 모두 있을 때만 항복 버튼 표시
+
+      // 게임 진행 중: 양쪽 플레이어가 모두 있는지 확인
       if (black_player && white_player) {
-        surrenderBtn.style.display = "inline-block";
+        // 게임이 시작되었는지 확인 (돌이 하나라도 놓였는지)
+        if (currentStoneCount > 0) {
+          // 게임 시작됨: 항복 버튼만 표시
+          leaveBtn.style.display = "none";
+          surrenderBtn.style.display = "inline-block";
+        } else {
+          // 게임 시작 전: 나가기 버튼만 표시
+          leaveBtn.style.display = "inline-block";
+          surrenderBtn.style.display = "none";
+        }
       } else {
+        // 한쪽 플레이어만 있으면 나가기 버튼 표시
+        leaveBtn.style.display = "inline-block";
         surrenderBtn.style.display = "none";
       }
+
       lobbyBtn.style.display = "none";
+      // 게임 진행 중이면 새 게임 버튼 비활성화
+      newGameBtn.disabled = true;
+      newGameBtn.style.opacity = "0.5";
+      newGameBtn.style.cursor = "not-allowed";
     }
 
     // 빈 칸만 클릭 가능
