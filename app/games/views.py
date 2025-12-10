@@ -37,7 +37,10 @@ def new_game(request):
     ).exists()
 
     if has_active_game:
-        messages.error(request, "진행 중인 게임이 있습니다. 게임을 종료한 후 새 게임을 만들 수 있습니다.")
+        messages.error(
+            request,
+            "진행 중인 게임이 있습니다. 게임을 종료한 후 새 게임을 만들 수 있습니다.",
+        )
         return redirect("games:lobby")
 
     g = Game.objects.create(black=request.user)
@@ -82,7 +85,9 @@ def leave_game(request, pk):
 
     # 양쪽 플레이어가 모두 있고 게임이 시작된 후에는 나가기 불가
     if has_moves and game.black and game.white:
-        messages.error(request, "게임이 이미 시작되어 나갈 수 없습니다. 항복을 사용하세요.")
+        messages.error(
+            request, "게임이 이미 시작되어 나갈 수 없습니다. 항복을 사용하세요."
+        )
         return redirect("games:room", pk=pk)
 
     # 흑돌 플레이어(방 생성자)가 나가면 게임 삭제
@@ -90,9 +95,7 @@ def leave_game(request, pk):
         game.delete()
         # WebSocket으로 백돌 플레이어에게 알림 (게임 삭제됨)
         channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f"game_{pk}", {"type": "game_deleted"}
-        )
+        async_to_sync(channel_layer.group_send)(f"game_{pk}", {"type": "game_deleted"})
         messages.info(request, "게임방을 나갔습니다.")
         return redirect("games:lobby")
 
