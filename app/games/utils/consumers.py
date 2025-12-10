@@ -98,6 +98,13 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         except Exception as e:
             print("[WS][broadcast_final] ERROR:", repr(e))
 
+    async def game_deleted(self, event):
+        """게임 삭제 시 로비로 리다이렉트"""
+        try:
+            await self.send_json({"type": "game_deleted"})
+        except Exception as e:
+            print("[WS][game_deleted] ERROR:", repr(e))
+
     # ---------------------
     # DB helpers
     # ---------------------
