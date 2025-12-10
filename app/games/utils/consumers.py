@@ -105,6 +105,15 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         except Exception as e:
             print("[WS][game_deleted] ERROR:", repr(e))
 
+    async def player_joined(self, event):
+        """플레이어 입장 시 게임판 초기화 및 알림"""
+        try:
+            game = await self.get_game()
+            state = await self.game_state(game)
+            await self.send_json({"type": "player_joined", **state})
+        except Exception as e:
+            print("[WS][player_joined] ERROR:", repr(e))
+
     # ---------------------
     # DB helpers
     # ---------------------
