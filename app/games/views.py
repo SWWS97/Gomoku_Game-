@@ -55,12 +55,20 @@ def join_game(request, pk):
     # 이미 white가 있으면 그냥 방으로 이동
     if game.white is None and game.black != request.user:
         game.white = request.user
+
+        # 백 플레이어가 입장하면 게임 초기화
+        # 1. 기존 수(Move) 모두 삭제
+        Move.objects.filter(game=game).delete()
+
+        # 2. 게임판 초기화
+        game.board = "." * (BOARD_SIZE * BOARD_SIZE)
+        game.turn = "black"  # 턴도 흑으로 리셋
         game.save()
 
-        # WebSocket으로 모든 클라이언트에게 상태 업데이트 알림
+        # WebSocket으로 모든 클라이언트에게 플레이어 입장 알림
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
-            f"game_{game.pk}", {"type": "broadcast_state"}
+            f"game_{game.pk}", {"type": "player_joined"}
         )
 
     return redirect("games:room", pk=game.pk)
