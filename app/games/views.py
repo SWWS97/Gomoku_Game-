@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import BOARD_SIZE, Game, GameHistory
+from .models import BOARD_SIZE, Game, GameHistory, Move
 
 
 @login_required
@@ -78,12 +78,10 @@ def leave_game(request, pk):
         return redirect("games:lobby")
 
     # 게임이 시작되었는지 확인 (Move가 하나라도 있으면 시작됨)
-    from .models import Move
-
     has_moves = Move.objects.filter(game=game).exists()
 
-    # 게임이 시작된 후에는 나가기 불가
-    if has_moves:
+    # 양쪽 플레이어가 모두 있고 게임이 시작된 후에는 나가기 불가
+    if has_moves and game.black and game.white:
         messages.error(request, "게임이 이미 시작되어 나갈 수 없습니다. 항복을 사용하세요.")
         return redirect("games:room", pk=pk)
 
