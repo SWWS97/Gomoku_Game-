@@ -221,15 +221,49 @@
 
   window.closeModal = function() {
     gameOverModal.style.display = "none";
+    // 모달 닫으면 로비로 이동
+    window.location.href = "{% url 'games:lobby' %}";
   };
 
-  function showGameOverModal(winner, winnerName) {
+  function showGameOverModal(winner, winnerName, isSoloPlay) {
     if (modalShown) return;  // 이미 표시되었으면 중복 방지
 
     modalShown = true;
     modalStone.textContent = winner === "black" ? "●" : "○";
     modalWinnerName.textContent = winnerName || (winner === "black" ? "흑" : "백");
-    gameOverModal.style.display = "flex";
+
+    // 혼자 플레이면 3초 후 자동으로 게임판 리셋
+    if (isSoloPlay) {
+      // 모달은 표시하지 않고, 3초 후 자동 리셋
+      setTimeout(() => {
+        resetGameForPractice();
+      }, 3000);
+    } else {
+      // 상대방과 플레이: 모달 표시
+      gameOverModal.style.display = "flex";
+    }
+  }
+
+  // 연습용 게임판 리셋 함수
+  function resetGameForPractice() {
+    // 게임 상태 초기화
+    modalShown = false;
+    prevStoneCount = 0;
+
+    // 서버에 리셋 요청 전송
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({type: "reset_practice"}));
+    }
+
+    // 빈 게임판으로 렌더링 (서버에서 broadcast_state로 다시 받겠지만, 즉각적인 UI 반응을 위해)
+    const emptyBoard = ".".repeat(SIZE * SIZE);
+    render({
+      board: emptyBoard,
+      turn: "black",
+      winner: null,
+      black_player: blackPlayer.textContent,
+      white_player: null
+    });
   }
 
   /* ===== 효과음 ===== */
@@ -495,7 +529,9 @@
 
       // 🎉 게임 종료 모달 표시 (승자 닉네임과 함께)
       const winnerName = winner === "black" ? black_player : white_player;
-      showGameOverModal(winner, winnerName);
+      // 혼자 플레이인지 확인 (백 플레이어가 없으면 혼자)
+      const isSoloPlay = !white_player || white_player === "대기중...";
+      showGameOverModal(winner, winnerName, isSoloPlay);
     }else{
       winnerTop.style.display = "none";
       turnEl.textContent = `턴: ${turn==="black" ? "흑(●)" : "백(○)"}`;
