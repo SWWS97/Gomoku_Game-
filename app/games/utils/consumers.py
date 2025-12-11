@@ -78,6 +78,12 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     await self.send_json(
                         {"type": "error", "message": "항복할 수 없습니다"}
                     )
+            elif content.get("type") == "reset_practice":
+                # 혼자 연습 모드 리셋
+                await self.reset_practice_game()
+                await self.channel_layer.group_send(
+                    self.group, {"type": "broadcast_state"}
+                )
         except Exception as e:
             print("[WS][receive_json] ERROR:", repr(e))
             await self.close(code=4001)
@@ -221,19 +227,6 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
             # 게임 종료 시 전적 기록 생성 및 게임 삭제
             if game.winner:
-                # 전적 기록 생성 (양쪽 플레이어가 모두 있는 경우만)
-                if game.black and game.white:
-                    total_moves = Move.objects.filter(game=game).count()
-                    GameHistory.objects.create(
-                        game_id=game.id,
-                        black=game.black,
-                        white=game.white,
-                        winner=game.winner,
-                        created_at=game.created_at,
-                        total_moves=total_moves,
-                    )
-
-                # 삭제 전에 최종 상태 저장 (broadcast용)
                 black_name = (
                     game.black.first_name or game.black.username if game.black else None
                 )
@@ -249,13 +242,44 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     "white_player": white_name,
                 }
 
-                # 게임 삭제 (CASCADE로 Move도 함께 삭제됨)
-                game.delete()
-                return True, "ok", final_state  # 최종 상태 반환
+                # 양쪽 플레이어가 모두 있는 경우만 전적 기록 및 게임 삭제
+                if game.black and game.white:
+                    total_moves = Move.objects.filter(game=game).count()
+                    GameHistory.objects.create(
+                        game_id=game.id,
+                        black=game.black,
+                        white=game.white,
+                        winner=game.winner,
+                        created_at=game.created_at,
+                        total_moves=total_moves,
+                    )
+                    # 게임 삭제 (CASCADE로 Move도 함께 삭제됨)
+                    game.delete()
+                    return True, "ok", final_state  # 최종 상태 반환
+                else:
+                    # 혼자 플레이(연습 모드): 게임을 삭제하지 않고 상태만 반환
+                    # 프론트엔드에서 리셋 처리
+                    game.save(update_fields=["board", "turn", "winner"])
+                    return True, "ok", final_state
 
             # 저장
             game.save(update_fields=["board", "turn", "winner"])
             return True, "ok", None  # 게임 진행 중
+
+    @database_sync_to_async
+    def reset_practice_game(self):
+        """연습 모드 게임 리셋"""
+        with transaction.atomic():
+            game = Game.objects.select_for_update().get(pk=self.game_id)
+
+            # 게임판 초기화
+            game.board = "." * (BOARD_SIZE * BOARD_SIZE)
+            game.turn = "black"
+            game.winner = None
+            game.save(update_fields=["board", "turn", "winner"])
+
+            # 수 기록 삭제
+            Move.objects.filter(game=game).delete()
 
     @database_sync_to_async
     def handle_surrender(self, user):
