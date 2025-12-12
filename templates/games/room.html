@@ -192,6 +192,17 @@
     </div>
   </div>
 
+  <!-- 플레이어 입장 모달 -->
+  <div id="playerJoinedModal" class="game-over-modal">
+    <div class="modal-content">
+      <h2 style="color:#4a7c59;">플레이어 입장!</h2>
+      <div style="font-size:2.5rem; margin:1rem 0;">●○</div>
+      <p style="font-size:1.3rem; font-weight:700; margin:1rem 0;" id="joinedPlayerName"></p>
+      <p style="font-size:1.1rem; color:#666;">게임이 시작됩니다!</p>
+      <button class="modal-btn" onclick="closePlayerJoinedModal()" style="background:#4a7c59;">확인</button>
+    </div>
+  </div>
+
 <script>
 (function(){
   const SIZE   = {{ BOARD_SIZE }};
@@ -215,6 +226,8 @@
   const gameOverModal = document.getElementById("gameOverModal");
   const modalStone    = document.getElementById("modalStone");
   const modalWinnerName = document.getElementById("modalWinnerName");
+  const playerJoinedModal = document.getElementById("playerJoinedModal");
+  const joinedPlayerName = document.getElementById("joinedPlayerName");
 
   /* ===== 게임 종료 모달 ===== */
   let modalShown = false;  // 모달이 이미 표시되었는지 추적
@@ -224,6 +237,22 @@
     // 모달 닫으면 로비로 이동
     window.location.href = "{% url 'games:lobby' %}";
   };
+
+  /* ===== 플레이어 입장 모달 ===== */
+  window.closePlayerJoinedModal = function() {
+    playerJoinedModal.style.display = "none";
+    // 모달 닫을 때도 AudioContext 활성화
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  };
+
+  function showPlayerJoinedModal(playerName) {
+    joinedPlayerName.textContent = playerName + " 님이 입장했습니다!";
+    playerJoinedModal.style.display = "flex";
+    // 입장음 재생
+    playStoneSound();
+  }
 
   function showGameOverModal(winner, winnerName, isSoloPlay) {
     if (modalShown) return;  // 이미 표시되었으면 중복 방지
@@ -352,6 +381,70 @@
     }
   }
 
+  // 플레이어 입장 벨 소리 ("띠링~")
+  function playJoinBellSound() {
+    try {
+      if (!audioCtx) {
+        initAudio();
+      }
+
+      if (!audioCtx) return;
+
+      // suspended 상태면 resume 후 재생
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().then(() => {
+          actuallyPlayBell();
+        });
+        return;
+      }
+
+      actuallyPlayBell();
+    } catch(e) {
+      console.error('벨 소리 재생 실패:', e);
+    }
+  }
+
+  function actuallyPlayBell() {
+    try {
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended' || audioCtx.state === 'closed') return;
+
+      const now = audioCtx.currentTime;
+
+      // 첫 번째 음 (높은 "띠")
+      const osc1 = audioCtx.createOscillator();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(800, now);  // 높은 음
+
+      const gain1 = audioCtx.createGain();
+      gain1.gain.setValueAtTime(0.3, now);
+      gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+
+      osc1.start(now);
+      osc1.stop(now + 0.3);
+
+      // 두 번째 음 (낮은 "링~")
+      const osc2 = audioCtx.createOscillator();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(600, now + 0.15);  // 낮은 음
+
+      const gain2 = audioCtx.createGain();
+      gain2.gain.setValueAtTime(0.3, now + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+
+      osc2.start(now + 0.15);
+      osc2.stop(now + 0.5);
+    } catch(e) {
+      console.error('벨 소리 생성 실패:', e);
+    }
+  }
+
   // 사용자가 페이지와 상호작용하면 AudioContext 초기화 (브라우저 정책 대응)
   document.addEventListener('click', initAudio, { once: true });
 
@@ -433,10 +526,11 @@
     if (m.type === "state") {
       render(m);
     } else if (m.type === "player_joined") {
-      // 플레이어 입장 알림
-      alert("플레이어가 입장했습니다! 게임이 시작됩니다.");
-      // 입장음 재생
-      playStoneSound();
+      // 플레이어 입장 모달 표시
+      const playerName = m.white_player || "상대방";
+      showPlayerJoinedModal(playerName);
+      // 입장 벨 소리 재생 ("띠링~")
+      playJoinBellSound();
       // 초기화된 상태로 렌더링
       render(m);
       // 돌 카운트도 리셋
