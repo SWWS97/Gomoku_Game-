@@ -76,7 +76,8 @@ jobs:
 
               # Let's Encrypt SSL 인증서 발급
               echo "📜 Let's Encrypt 인증서 발급 중..."
-              docker compose run --rm certbot certonly --webroot \
+              docker compose run --rm --entrypoint "" certbot \
+                certbot certonly --webroot \
                 --webroot-path=/var/www/certbot \
                 -d "$DOMAIN" \
                 -d "www.$DOMAIN" \
