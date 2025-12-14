@@ -1,4 +1,4 @@
-name: CI - Build and Push Docker Image
+name: CI - Build and Push Docker Images
 
 on:
   workflow_run:
@@ -28,12 +28,24 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
+      # Web 이미지 빌드 및 푸시
+      - name: Build and push Web image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: swws97/gomoku_game-web:latest # docker-compose.prod.yml과 동일한 이미지 태그
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: swws97/gomoku_game-web:latest
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+      # Nginx 이미지 빌드 및 푸시
+      - name: Build and push Nginx image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./nginx
+          file: ./nginx/Dockerfile
+          push: true
+          tags: swws97/gomoku_game-nginx:latest
+          cache-from: type=gha,scope=nginx
+          cache-to: type=gha,mode=max,scope=nginx
