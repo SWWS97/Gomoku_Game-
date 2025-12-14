@@ -2,7 +2,7 @@ name: CD - Deploy to EC2
 
 on:
   workflow_run:
-    workflows: ["CI - Build and Push Docker Image"] # 1. build.yml 파일 이름
+    workflows: ["CI - Build and Push Docker Images"] # 1. build.yml 파일 이름 (수정됨)
     types: [ completed ]
     branches: [ main ]
 
@@ -59,17 +59,51 @@ jobs:
             ${{ secrets.ENV_PROD }}
             EOF
 
-            # ---- 빌드 + 실행 (prod만 사용) ----
-            # --pull=always가 방금 빌드된 최신화 된 새 이미지를 도커 허브에서 받아옴
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --pull=always
+            # ---- SSL 인증서 체크 및 발급 ----
+            DOMAIN="${{ secrets.DOMAIN }}"
+            SSL_EMAIL="${{ secrets.SSL_EMAIL }}"
+            CERT_PATH="$APP_DIR/certbot/conf/live/$DOMAIN/fullchain.pem"
 
-            # (선택) 베이스 command(Dockerfile)에서 migrate/collectstatic을 이미 수행한다면 아래 2줄은 생략 가능
-            # docker compose exec -T web python manage.py migrate --noinput
-            # docker compose exec -T web python manage.py collectstatic --noinput || true
+            # 최초 배포 시 HTTP로 시작 후 SSL 인증서 발급
+            if [ ! -f "$CERT_PATH" ]; then
+              echo "🔐 SSL 인증서가 없습니다. 초기 발급을 시작합니다..."
+
+              # HTTP만으로 먼저 시작 (SSL 인증서 검증용)
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --pull=always
+
+              # 컨테이너가 완전히 시작될 때까지 대기
+              sleep 10
+
+              # Let's Encrypt SSL 인증서 발급
+              echo "📜 Let's Encrypt 인증서 발급 중..."
+              docker compose run --rm certbot certonly --webroot \
+                --webroot-path=/var/www/certbot \
+                -d "$DOMAIN" \
+                -d "www.$DOMAIN" \
+                --email "$SSL_EMAIL" \
+                --agree-tos \
+                --no-eff-email \
+                --non-interactive
+
+              # Nginx 설정을 HTTPS 버전으로 교체
+              echo "🔒 HTTPS 설정으로 전환 중..."
+              docker compose exec -T nginx sh -c "
+                sed 's/DOMAIN_PLACEHOLDER/$DOMAIN/g' /etc/nginx/conf.d/nginx-ssl.conf.template > /etc/nginx/conf.d/default.conf &&
+                nginx -t &&
+                nginx -s reload
+              "
+
+              echo "✅ SSL 인증서 발급 완료 및 HTTPS 활성화!"
+            else
+              echo "✅ SSL 인증서가 이미 존재합니다."
+            fi
+
+            # ---- 일반 배포 (이미지 업데이트) ----
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --pull=always
 
             # ---- 상태/로그 체크 ----
             docker compose ps
-            docker compose logs -n 80 web
+            docker compose logs -n 80 web nginx
 
             # ---- 사용 안 하는 이미지/레이어 정리 ----
             docker system prune -f
