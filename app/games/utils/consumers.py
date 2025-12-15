@@ -4,6 +4,7 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.utils import timezone
 
 from ..models import BOARD_SIZE, Game, GameHistory, Move
 from .omok import (
@@ -79,7 +80,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         {"type": "error", "message": "항복할 수 없습니다"}
                     )
             elif content.get("type") == "reset_practice":
-                # 혼자 연습 모드 리셋
+                # 연습 모드 게임 리셋
                 await self.reset_practice_game()
                 await self.channel_layer.group_send(
                     self.group, {"type": "broadcast_state"}
@@ -138,6 +139,18 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         if game.white:
             white_name = game.white.first_name or game.white.username
 
+        # 타이머 계산: 현재 턴인 플레이어의 시간 차감
+        black_time = game.black_time_remaining
+        white_time = game.white_time_remaining
+
+        if game.last_move_time and not game.winner:
+            # 마지막 착수 이후 경과 시간 계산
+            elapsed = (timezone.now() - game.last_move_time).total_seconds()
+            if game.turn == "black":
+                black_time = max(0, black_time - int(elapsed))
+            else:
+                white_time = max(0, white_time - int(elapsed))
+
         return {
             "board": game.board,
             "turn": game.turn,
@@ -145,6 +158,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             "size": BOARD_SIZE,
             "black_player": black_name,
             "white_player": white_name,
+            "black_time": black_time,
+            "white_time": white_time,
         }
 
     @database_sync_to_async
@@ -160,6 +175,87 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             if game.get_cell(x, y) != ".":
                 return False, "occupied", None
 
+            # 타이머 업데이트: 현재 턴 플레이어의 시간 차감
+            if game.last_move_time and game.black and game.white:
+                elapsed = (timezone.now() - game.last_move_time).total_seconds()
+                if game.turn == "black":
+                    game.black_time_remaining = max(
+                        0, game.black_time_remaining - int(elapsed)
+                    )
+                else:
+                    game.white_time_remaining = max(
+                        0, game.white_time_remaining - int(elapsed)
+                    )
+
+            # 타임아웃 체크: 현재 턴 플레이어의 시간이 0이면 자동 패배
+            if game.black and game.white:
+                if game.turn == "black" and game.black_time_remaining <= 0:
+                    game.winner = "white"
+                    black_name = (
+                        game.black.first_name or game.black.username
+                        if game.black
+                        else None
+                    )
+                    white_name = (
+                        game.white.first_name or game.white.username
+                        if game.white
+                        else None
+                    )
+                    final_state = {
+                        "board": game.board,
+                        "turn": game.turn,
+                        "winner": game.winner,
+                        "size": BOARD_SIZE,
+                        "black_player": black_name,
+                        "white_player": white_name,
+                        "black_time": 0,
+                        "white_time": game.white_time_remaining,
+                    }
+                    total_moves = Move.objects.filter(game=game).count()
+                    GameHistory.objects.create(
+                        game_id=game.id,
+                        black=game.black,
+                        white=game.white,
+                        winner=game.winner,
+                        created_at=game.created_at,
+                        total_moves=total_moves,
+                    )
+                    game.delete()
+                    return False, "시간 초과로 패배하였습니다", final_state
+                elif game.turn == "white" and game.white_time_remaining <= 0:
+                    game.winner = "black"
+                    black_name = (
+                        game.black.first_name or game.black.username
+                        if game.black
+                        else None
+                    )
+                    white_name = (
+                        game.white.first_name or game.white.username
+                        if game.white
+                        else None
+                    )
+                    final_state = {
+                        "board": game.board,
+                        "turn": game.turn,
+                        "winner": game.winner,
+                        "size": BOARD_SIZE,
+                        "black_player": black_name,
+                        "white_player": white_name,
+                        "black_time": game.black_time_remaining,
+                        "white_time": 0,
+                    }
+                    total_moves = Move.objects.filter(game=game).count()
+                    GameHistory.objects.create(
+                        game_id=game.id,
+                        black=game.black,
+                        white=game.white,
+                        winner=game.winner,
+                        created_at=game.created_at,
+                        total_moves=total_moves,
+                    )
+                    game.delete()
+                    return False, "시간 초과로 패배하였습니다", final_state
+
             # 턴 검증(선택)
             expected_user = game.black if game.turn == "black" else game.white
             if (
@@ -167,7 +263,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 and getattr(user, "is_authenticated", False)
                 and user != expected_user
             ):
-                return False, "not your turn", None
+                return False, "현재 상대 턴 입니다.", None
 
             # 이번 수의 돌 문자 통일 ("B"/"W")
             stone = game.stone_of_turn()
@@ -225,6 +321,10 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 else:
                     game.swap_turn()
 
+            # last_move_time 업데이트 (양쪽 플레이어가 있을 때만)
+            if game.black and game.white:
+                game.last_move_time = timezone.now()
+
             # 게임 종료 시 전적 기록 생성 및 게임 삭제
             if game.winner:
                 black_name = (
@@ -240,6 +340,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     "size": BOARD_SIZE,
                     "black_player": black_name,
                     "white_player": white_name,
+                    "black_time": game.black_time_remaining,
+                    "white_time": game.white_time_remaining,
                 }
 
                 # 양쪽 플레이어가 모두 있는 경우만 전적 기록 및 게임 삭제
@@ -259,11 +361,29 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 else:
                     # 혼자 플레이(연습 모드): 게임을 삭제하지 않고 상태만 반환
                     # 프론트엔드에서 리셋 처리
-                    game.save(update_fields=["board", "turn", "winner"])
+                    game.save(
+                        update_fields=[
+                            "board",
+                            "turn",
+                            "winner",
+                            "black_time_remaining",
+                            "white_time_remaining",
+                            "last_move_time",
+                        ]
+                    )
                     return True, "ok", final_state
 
             # 저장
-            game.save(update_fields=["board", "turn", "winner"])
+            game.save(
+                update_fields=[
+                    "board",
+                    "turn",
+                    "winner",
+                    "black_time_remaining",
+                    "white_time_remaining",
+                    "last_move_time",
+                ]
+            )
             return True, "ok", None  # 게임 진행 중
 
     @database_sync_to_async
@@ -276,7 +396,20 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             game.board = "." * (BOARD_SIZE * BOARD_SIZE)
             game.turn = "black"
             game.winner = None
-            game.save(update_fields=["board", "turn", "winner"])
+            # 타이머 리셋
+            game.black_time_remaining = 900
+            game.white_time_remaining = 900
+            game.last_move_time = None
+            game.save(
+                update_fields=[
+                    "board",
+                    "turn",
+                    "winner",
+                    "black_time_remaining",
+                    "white_time_remaining",
+                    "last_move_time",
+                ]
+            )
 
             # 수 기록 삭제
             Move.objects.filter(game=game).delete()
@@ -330,7 +463,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 "white_player": white_name,
             }
 
-            # 게임 삭제
+            # 게임 삭제 (CASCADE로 Move도 함께 삭제됨)
             game.delete()
             return final_state
 

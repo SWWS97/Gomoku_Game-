@@ -22,6 +22,16 @@ class Game(models.Model):
     board = models.CharField(
         max_length=BOARD_SIZE * BOARD_SIZE, default="." * (BOARD_SIZE * BOARD_SIZE)
     )
+    # Timer fields: 각 플레이어당 15분 (900초)
+    black_time_remaining = models.IntegerField(
+        default=900, help_text="흑 플레이어 남은 시간 (초)"
+    )
+    white_time_remaining = models.IntegerField(
+        default=900, help_text="백 플레이어 남은 시간 (초)"
+    )
+    last_move_time = models.DateTimeField(
+        null=True, blank=True, help_text="마지막 착수 시간"
+    )
 
     def idx(self, x, y):
         return y * BOARD_SIZE + x
