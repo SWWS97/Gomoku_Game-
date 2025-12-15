@@ -26,6 +26,52 @@
     .player-info{ padding:.4rem .7rem; border:1px solid #ccc; border-radius:.4rem; background:#fff; font-size:.9rem; }
     .player-info .label{ color:#666; font-size:.8rem; }
 
+    /* ===== 타이머 (상단 중앙) ===== */
+    .timer-container{
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 40px;
+      background: rgba(255,255,255,0.95);
+      padding: 1rem 2rem;
+      border-radius: 0.8rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border: 2px solid #d4b781;
+      z-index: 10;
+    }
+    .timer-item{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .timer-label{
+      font-size: 0.85rem;
+      color: #666;
+      font-weight: 600;
+    }
+    .timer-value{
+      font-size: 1.8rem;
+      font-weight: 900;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.05em;
+    }
+    .timer-value.black{ color: #2b2b2b; }
+    .timer-value.white{ color: #5a5a5a; }
+    .timer-value.active{
+      color: #d84315;
+      animation: timerPulse 1s ease-in-out infinite;
+    }
+    .timer-value.warning{
+      color: #d84315 !important;
+    }
+    @keyframes timerPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
     /* 승자 배지(상단 표시) */
     .winner-badge{
       display:none;  /* 기본 숨김, 승자 나오면 보여줌 */
@@ -171,6 +217,18 @@
     </div>
   </div>
 
+  <!-- 타이머 (상단 중앙) -->
+  <div class="timer-container" id="timerContainer" style="display:none;">
+    <div class="timer-item">
+      <div class="timer-label">흑(●)</div>
+      <div class="timer-value black" id="blackTimer">15:00</div>
+    </div>
+    <div class="timer-item">
+      <div class="timer-label">백(○)</div>
+      <div class="timer-value white" id="whiteTimer">15:00</div>
+    </div>
+  </div>
+
   <div class="board-wrap" id="boardWrap">
     <svg id="grid" class="grid" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
     <div class="layer" id="stones"></div>
@@ -228,14 +286,81 @@
   const modalWinnerName = document.getElementById("modalWinnerName");
   const playerJoinedModal = document.getElementById("playerJoinedModal");
   const joinedPlayerName = document.getElementById("joinedPlayerName");
+  const timerContainer = document.getElementById("timerContainer");
+  const blackTimer    = document.getElementById("blackTimer");
+  const whiteTimer    = document.getElementById("whiteTimer");
+
+  /* ===== 타이머 관련 변수 ===== */
+  let currentTurn = null;
+  let currentBlackTime = 900;
+  let currentWhiteTime = 900;
+  let timerInterval = null;
+
+  /* ===== 착수 중복 방지 ===== */
+  let isPlaying = false;
+
+  // 타이머 포맷: 초 → MM:SS
+  function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  // 타이머 업데이트 함수
+  function updateTimers() {
+    if (!currentTurn || currentBlackTime <= 0 || currentWhiteTime <= 0) {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      return;
+    }
+
+    // 현재 턴 플레이어의 시간 1초 감소
+    if (currentTurn === "black") {
+      currentBlackTime = Math.max(0, currentBlackTime - 1);
+      blackTimer.textContent = formatTime(currentBlackTime);
+      // 30초 이하면 경고 표시
+      if (currentBlackTime <= 30) {
+        blackTimer.classList.add("warning");
+      } else {
+        blackTimer.classList.remove("warning");
+      }
+    } else {
+      currentWhiteTime = Math.max(0, currentWhiteTime - 1);
+      whiteTimer.textContent = formatTime(currentWhiteTime);
+      // 30초 이하면 경고 표시
+      if (currentWhiteTime <= 30) {
+        whiteTimer.classList.add("warning");
+      } else {
+        whiteTimer.classList.remove("warning");
+      }
+    }
+  }
+
+  // 타이머 인터벌 시작
+  function startTimerInterval() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+    }
+    timerInterval = setInterval(updateTimers, 1000);
+  }
 
   /* ===== 게임 종료 모달 ===== */
   let modalShown = false;  // 모달이 이미 표시되었는지 추적
+  let isPracticeMode = false;  // 연습 모드 여부
 
   window.closeModal = function() {
     gameOverModal.style.display = "none";
-    // 모달 닫으면 로비로 이동
-    window.location.href = "{% url 'games:lobby' %}";
+    modalShown = false;  // 모달 닫으면 리셋
+
+    // 연습 모드이면 게임판 리셋, 아니면 로비로 이동
+    if (isPracticeMode && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({type: "reset_practice"}));
+    } else {
+      // 대전 모드이면 로비로 이동
+      window.location.href = "{% url 'games:lobby' %}";
+    }
   };
 
   /* ===== 플레이어 입장 모달 ===== */
@@ -510,17 +635,9 @@
 
   /* ===== WebSocket ===== */
   const ws = new WebSocket(wsURL);
-  ws.addEventListener("open",  ()=> {
-    wsState.textContent = "";  // 연결 성공 시 아무것도 표시하지 않음
-  });
-  ws.addEventListener("close", e => {
-    wsState.textContent = `연결이 끊어졌습니다`;
-    wsState.style.color = "#c44";
-  });
-  ws.addEventListener("error", ()=> {
-    wsState.textContent = "연결 오류";
-    wsState.style.color = "#c44";
-  });
+  ws.addEventListener("open",  ()=> wsState.textContent = "");
+  ws.addEventListener("close", e => wsState.textContent = "연결 끊김");
+  ws.addEventListener("error", ()=> wsState.textContent = "연결 오류");
   ws.addEventListener("message", (e)=>{
     const m = JSON.parse(e.data);
     if (m.type === "state") {
@@ -548,8 +665,15 @@
     if (ws.readyState !== WebSocket.OPEN){
       alert("서버와 연결되지 않았습니다."); return;
     }
+    // 착수 중이면 무시 (중복 클릭 방지)
+    if (isPlaying) return;
+
     const x = +e.currentTarget.dataset.x;
     const y = +e.currentTarget.dataset.y;
+
+    // 착수 중 플래그 설정
+    isPlaying = true;
+
     ws.send(JSON.stringify({type:"play", x, y}));
   }
 
@@ -572,7 +696,13 @@
 
   /* ===== 렌더 ===== */
   function render(state){
-    const { board, turn, winner, black_player, white_player } = state;
+    const { board, turn, winner, black_player, white_player, black_time, white_time } = state;
+
+    // 착수 완료, 플래그 해제
+    isPlaying = false;
+
+    // 연습 모드 감지 (양쪽 플레이어가 모두 없으면 연습 모드)
+    isPracticeMode = !black_player || !white_player;
 
     // 플레이어 정보 업데이트
     blackPlayer.textContent = black_player || "대기중...";
@@ -642,13 +772,15 @@
           leaveBtn.style.display = "inline-block";
           surrenderBtn.style.display = "none";
         }
+        // 대전 모드에서는 로비 버튼 숨김
+        lobbyBtn.style.display = "none";
       } else {
-        // 한쪽 플레이어만 있으면 나가기 버튼 표시
-        leaveBtn.style.display = "inline-block";
+        // 한쪽 플레이어만 있으면 (연습 모드) 나가기 버튼 숨김, 로비 버튼 표시
+        leaveBtn.style.display = "none";
         surrenderBtn.style.display = "none";
+        lobbyBtn.style.display = "inline-block";
       }
 
-      lobbyBtn.style.display = "none";
       // 게임 진행 중이면 새 게임 버튼 비활성화
       newGameBtn.disabled = true;
       newGameBtn.style.opacity = "0.5";
@@ -658,6 +790,65 @@
     // 빈 칸만 클릭 가능
     for (let i=0;i<pts.length;i++){
       pts[i].disabled = (board[i] !== ".");
+    }
+
+    // ===== 타이머 업데이트 =====
+    // 양쪽 플레이어가 모두 있고, 타이머 정보가 있으면 타이머 표시
+    if (black_player && white_player && black_time !== undefined && white_time !== undefined) {
+      // 타이머 정보 업데이트
+      currentBlackTime = black_time || 0;
+      currentWhiteTime = white_time || 0;
+      currentTurn = turn;
+
+      // 타이머 표시
+      blackTimer.textContent = formatTime(currentBlackTime);
+      whiteTimer.textContent = formatTime(currentWhiteTime);
+
+      // 30초 이하면 경고 표시
+      if (currentBlackTime <= 30) {
+        blackTimer.classList.add("warning");
+      } else {
+        blackTimer.classList.remove("warning");
+      }
+      if (currentWhiteTime <= 30) {
+        whiteTimer.classList.add("warning");
+      } else {
+        whiteTimer.classList.remove("warning");
+      }
+
+      // 현재 턴 플레이어에게 active 클래스 추가
+      if (turn === "black") {
+        blackTimer.classList.add("active");
+        whiteTimer.classList.remove("active");
+      } else {
+        whiteTimer.classList.add("active");
+        blackTimer.classList.remove("active");
+      }
+
+      // 게임이 진행 중이고 승자가 없으면 타이머 표시 및 인터벌 시작
+      if (!winner && currentStoneCount > 0) {
+        timerContainer.style.display = "flex";
+        startTimerInterval();
+      } else {
+        // 게임이 끝났으면 타이머 인터벌 중지
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        // 게임 종료 시 타이머 숨김
+        if (winner) {
+          timerContainer.style.display = "none";
+          blackTimer.classList.remove("active");
+          whiteTimer.classList.remove("active");
+        }
+      }
+    } else {
+      // 플레이어가 없으면 타이머 숨김
+      timerContainer.style.display = "none";
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
     }
   }
 })();
