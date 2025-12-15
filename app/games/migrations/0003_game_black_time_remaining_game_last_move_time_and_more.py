@@ -4,25 +4,30 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('games', '0002_gamehistory'),
+        ("games", "0002_gamehistory"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='game',
-            name='black_time_remaining',
-            field=models.IntegerField(default=900, help_text='흑 플레이어 남은 시간 (초)'),
+            model_name="game",
+            name="black_time_remaining",
+            field=models.IntegerField(
+                default=900, help_text="흑 플레이어 남은 시간 (초)"
+            ),
         ),
         migrations.AddField(
-            model_name='game',
-            name='last_move_time',
-            field=models.DateTimeField(blank=True, help_text='마지막 착수 시간', null=True),
+            model_name="game",
+            name="last_move_time",
+            field=models.DateTimeField(
+                blank=True, help_text="마지막 착수 시간", null=True
+            ),
         ),
         migrations.AddField(
-            model_name='game',
-            name='white_time_remaining',
-            field=models.IntegerField(default=900, help_text='백 플레이어 남은 시간 (초)'),
+            model_name="game",
+            name="white_time_remaining",
+            field=models.IntegerField(
+                default=900, help_text="백 플레이어 남은 시간 (초)"
+            ),
         ),
     ]
