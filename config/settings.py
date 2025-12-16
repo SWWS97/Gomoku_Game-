@@ -32,6 +32,9 @@ DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost"])
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
+# nginx 뒤에서 HTTPS 인식을 위한 설정
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 # ──────────────────────────────────────────────────────────────────────
 # 앱
 # ──────────────────────────────────────────────────────────────────────
