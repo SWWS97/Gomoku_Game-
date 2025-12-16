@@ -59,47 +59,7 @@ jobs:
             ${{ secrets.ENV_PROD }}
             EOF
 
-            # ---- SSL 인증서 체크 및 발급 ----
-            DOMAIN="${{ secrets.DOMAIN }}"
-            SSL_EMAIL="${{ secrets.SSL_EMAIL }}"
-            CERT_PATH="$APP_DIR/certbot/conf/live/$DOMAIN/fullchain.pem"
-
-            # 최초 배포 시 HTTP로 시작 후 SSL 인증서 발급
-            if [ ! -f "$CERT_PATH" ]; then
-              echo "🔐 SSL 인증서가 없습니다. 초기 발급을 시작합니다..."
-
-              # HTTP만으로 먼저 시작 (SSL 인증서 검증용)
-              docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --pull=always
-
-              # 컨테이너가 완전히 시작될 때까지 대기
-              sleep 10
-
-              # Let's Encrypt SSL 인증서 발급
-              echo "📜 Let's Encrypt 인증서 발급 중..."
-              docker compose run --rm --entrypoint "" certbot \
-                certbot certonly --webroot \
-                --webroot-path=/var/www/certbot \
-                -d "$DOMAIN" \
-                -d "www.$DOMAIN" \
-                --email "$SSL_EMAIL" \
-                --agree-tos \
-                --no-eff-email \
-                --non-interactive
-
-              # Nginx 설정을 HTTPS 버전으로 교체
-              echo "🔒 HTTPS 설정으로 전환 중..."
-              docker compose exec -T nginx sh -c "
-                sed 's/DOMAIN_PLACEHOLDER/$DOMAIN/g' /etc/nginx/conf.d/nginx-ssl.conf.template > /etc/nginx/conf.d/default.conf &&
-                nginx -t &&
-                nginx -s reload
-              "
-
-              echo "✅ SSL 인증서 발급 완료 및 HTTPS 활성화!"
-            else
-              echo "✅ SSL 인증서가 이미 존재합니다."
-            fi
-
-            # ---- 일반 배포 (이미지 업데이트) ----
+            # ---- 배포 (이미지 업데이트 및 컨테이너 재시작) ----
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --pull=always
 
             # ---- 상태/로그 체크 ----
