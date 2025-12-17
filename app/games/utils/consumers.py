@@ -85,6 +85,25 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 await self.channel_layer.group_send(
                     self.group, {"type": "broadcast_state"}
                 )
+            elif content.get("type") == "player_ready":
+                # 플레이어 준비 완료
+                user = self.scope.get("user")
+                await self.handle_player_ready(user)
+                await self.channel_layer.group_send(
+                    self.group, {"type": "broadcast_ready_state"}
+                )
+            elif content.get("type") == "start_game":
+                # 방장이 게임 시작
+                user = self.scope.get("user")
+                success = await self.handle_start_game(user)
+                if success:
+                    await self.channel_layer.group_send(
+                        self.group, {"type": "broadcast_game_start"}
+                    )
+                else:
+                    await self.send_json(
+                        {"type": "error", "message": "게임을 시작할 수 없습니다"}
+                    )
         except Exception as e:
             print("[WS][receive_json] ERROR:", repr(e))
             await self.close(code=4001)
@@ -413,6 +432,81 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
             # 수 기록 삭제
             Move.objects.filter(game=game).delete()
+
+    async def broadcast_ready_state(self, _event):
+        """준비 상태 브로드캐스트"""
+        try:
+            game = await self.get_game()
+            ready_state = await self.get_ready_state(game)
+            await self.send_json({"type": "ready_state", **ready_state})
+        except Exception as e:
+            print("[WS][broadcast_ready_state] ERROR:", repr(e))
+
+    async def broadcast_game_start(self, _event):
+        """게임 시작 브로드캐스트"""
+        try:
+            game = await self.get_game()
+            state = await self.game_state(game)
+            await self.send_json({"type": "game_start", **state})
+        except Exception as e:
+            print("[WS][broadcast_game_start] ERROR:", repr(e))
+
+    @database_sync_to_async
+    def get_ready_state(self, game: Game):
+        """준비 상태 반환"""
+        black_name = None
+        if game.black:
+            black_name = game.black.first_name or game.black.username
+
+        white_name = None
+        if game.white:
+            white_name = game.white.first_name or game.white.username
+
+        return {
+            "black_ready": game.black_ready,
+            "white_ready": game.white_ready,
+            "game_started": game.game_started,
+            "black_player": black_name,
+            "white_player": white_name,
+        }
+
+    @database_sync_to_async
+    def handle_player_ready(self, user):
+        """플레이어 준비 완료 처리"""
+        with transaction.atomic():
+            game = Game.objects.select_for_update().get(pk=self.game_id)
+
+            # 게임이 이미 시작되었으면 무시
+            if game.game_started:
+                return
+
+            # 사용자가 흑인지 백인지 확인하고 준비 상태 업데이트
+            if user == game.black:
+                game.black_ready = True
+            elif user == game.white:
+                game.white_ready = True
+
+            game.save(update_fields=["black_ready", "white_ready"])
+
+    @database_sync_to_async
+    def handle_start_game(self, user):
+        """게임 시작 처리 (방장만 가능)"""
+        with transaction.atomic():
+            game = Game.objects.select_for_update().get(pk=self.game_id)
+
+            # 방장(흑 플레이어)인지 확인
+            if user != game.black:
+                return False
+
+            # 양쪽 모두 준비 완료되었는지 확인
+            if not game.black_ready or not game.white_ready:
+                return False
+
+            # 게임 시작
+            game.game_started = True
+            game.last_move_time = timezone.now()  # 타이머 시작
+            game.save(update_fields=["game_started", "last_move_time"])
+            return True
 
     @database_sync_to_async
     def handle_surrender(self, user):
