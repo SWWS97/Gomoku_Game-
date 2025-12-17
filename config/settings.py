@@ -185,7 +185,8 @@ LOGOUT_REDIRECT_URL = "/accounts/login/"
 # ──────────────────────────────────────────────────────────────────────
 # django-allauth 설정
 # ──────────────────────────────────────────────────────────────────────
-SITE_ID = 2  # localhost:8000 사이트 사용
+# SITE_ID: 1=로컬(127.0.0.1:8000), 2=프로덕션(www.gomoku.co.kr)
+SITE_ID = env.int("SITE_ID", default=1)
 
 AUTHENTICATION_BACKENDS = [
     # Django 기본 인증 (username/password)
