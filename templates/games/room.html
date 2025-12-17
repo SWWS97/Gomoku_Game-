@@ -904,10 +904,10 @@
         // 대전 모드에서는 로비 버튼 숨김
         lobbyBtn.style.display = "none";
       } else {
-        // 한쪽 플레이어만 있으면 (연습 모드) 나가기 버튼 숨김, 로비 버튼 표시
-        leaveBtn.style.display = "none";
+        // 한쪽 플레이어만 있으면 (연습 모드) 나가기 버튼 표시 (방 삭제됨)
+        leaveBtn.style.display = "inline-block";
         surrenderBtn.style.display = "none";
-        lobbyBtn.style.display = "inline-block";
+        lobbyBtn.style.display = "none";
       }
 
       // 게임 진행 중이면 새 게임 버튼 비활성화
