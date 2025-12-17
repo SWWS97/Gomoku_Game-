@@ -437,8 +437,11 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         """준비 상태 브로드캐스트"""
         try:
             game = await self.get_game()
+            user = self.scope.get("user")
             ready_state = await self.get_ready_state(game)
-            await self.send_json({"type": "ready_state", **ready_state})
+            # 현재 유저가 방장(흑)인지 확인
+            is_room_creator = user == game.black if user and user.is_authenticated else False
+            await self.send_json({"type": "ready_state", "is_room_creator": is_room_creator, **ready_state})
         except Exception as e:
             print("[WS][broadcast_ready_state] ERROR:", repr(e))
 
