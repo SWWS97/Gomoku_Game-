@@ -261,6 +261,32 @@
     </div>
   </div>
 
+  <!-- 준비 모달 -->
+  <div id="readyModal" class="game-over-modal">
+    <div class="modal-content">
+      <h2 style="color:#4a7c59;">게임 준비</h2>
+      <div style="font-size:2rem; margin:1rem 0;">●○</div>
+
+      <!-- 준비 상태 표시 -->
+      <div style="margin:1.5rem 0; font-size:1.1rem;">
+        <div style="margin:0.5rem 0;">
+          <span style="font-weight:700;">흑(●):</span>
+          <span id="readyBlackStatus" style="margin-left:0.5rem; color:#999;">준비 대기중...</span>
+        </div>
+        <div style="margin:0.5rem 0;">
+          <span style="font-weight:700;">백(○):</span>
+          <span id="readyWhiteStatus" style="margin-left:0.5rem; color:#999;">준비 대기중...</span>
+        </div>
+      </div>
+
+      <!-- 준비 완료 버튼 -->
+      <button id="readyBtn" class="modal-btn" style="background:#4a7c59; margin-top:1rem;" onclick="clickReady()">준비 완료</button>
+
+      <!-- 게임 시작 버튼 (방장만, 양쪽 모두 준비 완료 시 표시) -->
+      <button id="startGameBtn" class="modal-btn" style="background:#d84315; margin-top:0.5rem; display:none;" onclick="clickStartGame()">게임 시작</button>
+    </div>
+  </div>
+
 <script>
 (function(){
   const SIZE   = {{ BOARD_SIZE }};
@@ -289,6 +315,11 @@
   const timerContainer = document.getElementById("timerContainer");
   const blackTimer    = document.getElementById("blackTimer");
   const whiteTimer    = document.getElementById("whiteTimer");
+  const readyModal = document.getElementById("readyModal");
+  const readyBlackStatus = document.getElementById("readyBlackStatus");
+  const readyWhiteStatus = document.getElementById("readyWhiteStatus");
+  const readyBtn = document.getElementById("readyBtn");
+  const startGameBtn = document.getElementById("startGameBtn");
 
   /* ===== 타이머 관련 변수 ===== */
   let currentTurn = null;
@@ -370,7 +401,81 @@
     if (audioCtx && audioCtx.state === 'suspended') {
       audioCtx.resume();
     }
+    // 플레이어 입장 모달 닫은 후 준비 모달 표시
+    showReadyModal();
   };
+
+  /* ===== 준비 모달 ===== */
+  let isRoomCreator = false;  // 현재 유저가 방장(흑)인지 여부
+
+  function showReadyModal() {
+    readyModal.style.display = "flex";
+    // 초기 상태: 모두 준비 대기중
+    readyBlackStatus.textContent = "준비 대기중...";
+    readyBlackStatus.style.color = "#999";
+    readyWhiteStatus.textContent = "준비 대기중...";
+    readyWhiteStatus.style.color = "#999";
+    // 준비 버튼 표시, 게임 시작 버튼 숨김
+    readyBtn.style.display = "inline-block";
+    startGameBtn.style.display = "none";
+  }
+
+  window.clickReady = function() {
+    if (ws.readyState !== WebSocket.OPEN) {
+      alert("서버와 연결되지 않았습니다.");
+      return;
+    }
+    // 준비 완료 메시지 전송
+    ws.send(JSON.stringify({type: "player_ready"}));
+    // 자신의 준비 버튼 비활성화 (중복 클릭 방지)
+    readyBtn.disabled = true;
+    readyBtn.style.opacity = "0.5";
+    readyBtn.style.cursor = "not-allowed";
+  };
+
+  window.clickStartGame = function() {
+    if (ws.readyState !== WebSocket.OPEN) {
+      alert("서버와 연결되지 않았습니다.");
+      return;
+    }
+    // 게임 시작 메시지 전송
+    ws.send(JSON.stringify({type: "start_game"}));
+  };
+
+  function handleReadyState(data) {
+    // 준비 상태 업데이트
+    if (data.black_ready) {
+      readyBlackStatus.textContent = "준비 완료!";
+      readyBlackStatus.style.color = "#4a7c59";
+      readyBlackStatus.style.fontWeight = "700";
+    } else {
+      readyBlackStatus.textContent = "준비 대기중...";
+      readyBlackStatus.style.color = "#999";
+    }
+
+    if (data.white_ready) {
+      readyWhiteStatus.textContent = "준비 완료!";
+      readyWhiteStatus.style.color = "#4a7c59";
+      readyWhiteStatus.style.fontWeight = "700";
+    } else {
+      readyWhiteStatus.textContent = "준비 대기중...";
+      readyWhiteStatus.style.color = "#999";
+    }
+
+    // 양쪽 모두 준비 완료 && 방장이면 게임 시작 버튼 표시
+    if (data.black_ready && data.white_ready && data.is_room_creator) {
+      startGameBtn.style.display = "inline-block";
+    }
+  }
+
+  function handleGameStart() {
+    // 준비 모달 닫기
+    readyModal.style.display = "none";
+    // 준비 버튼 리셋 (다음 게임을 위해)
+    readyBtn.disabled = false;
+    readyBtn.style.opacity = "1";
+    readyBtn.style.cursor = "pointer";
+  }
 
   function showPlayerJoinedModal(playerName) {
     joinedPlayerName.textContent = playerName + " 님이 입장했습니다!";
@@ -652,6 +757,20 @@
       render(m);
       // 돌 카운트도 리셋
       prevStoneCount = 0;
+      // 입장 모달을 자동으로 3초 후 닫고 준비 모달 표시
+      setTimeout(() => {
+        if (playerJoinedModal.style.display === "flex") {
+          closePlayerJoinedModal();
+        }
+      }, 3000);
+    } else if (m.type === "ready_state") {
+      // 준비 상태 업데이트
+      handleReadyState(m);
+    } else if (m.type === "game_start") {
+      // 게임 시작
+      handleGameStart();
+      // 게임 상태 렌더링
+      render(m);
     } else if (m.type === "error") {
       // 착수 에러 발생 시 플래그 해제 (다음 착수 가능하도록)
       isPlaying = false;
@@ -697,6 +816,8 @@
   });
 
   /* ===== 렌더 ===== */
+  let readyModalShown = false;  // 준비 모달이 이미 표시되었는지 추적
+
   function render(state){
     const { board, turn, winner, black_player, white_player, black_time, white_time } = state;
 
@@ -733,6 +854,12 @@
       playStoneSound();
     }
     prevStoneCount = currentStoneCount;
+
+    // 양쪽 플레이어가 모두 있고, 게임이 시작되지 않았고, 준비 모달을 아직 안 봤으면 표시
+    if (black_player && white_player && currentStoneCount === 0 && !readyModalShown && !winner) {
+      readyModalShown = true;
+      showReadyModal();
+    }
 
     // 상단 승자 배지 & 턴 & 나가기/항복 버튼 & 로비 버튼 & 새 게임 버튼 & 게임 종료 모달
     if (winner){

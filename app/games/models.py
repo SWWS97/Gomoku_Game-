@@ -32,6 +32,10 @@ class Game(models.Model):
     last_move_time = models.DateTimeField(
         null=True, blank=True, help_text="마지막 착수 시간"
     )
+    # Ready system fields
+    black_ready = models.BooleanField(default=False, help_text="흑 플레이어 준비 완료")
+    white_ready = models.BooleanField(default=False, help_text="백 플레이어 준비 완료")
+    game_started = models.BooleanField(default=False, help_text="게임 시작 여부")
 
     def idx(self, x, y):
         return y * BOARD_SIZE + x
