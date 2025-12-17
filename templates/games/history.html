@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>게임 전적 – Omok</title>
   <style>
     :root {
@@ -183,6 +184,156 @@
       font-size: 64px;
       margin-bottom: 16px;
       opacity: 0.3;
+    }
+
+    /* ===== 모바일 반응형 ===== */
+    @media (max-width: 768px) {
+      .container {
+        padding: 12px;
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .header h1 {
+        font-size: 22px;
+      }
+
+      .btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        align-self: stretch;
+        text-align: center;
+      }
+
+      /* 통계 카드: 2열 그리드 */
+      .stats-section {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .stat-card {
+        padding: 16px;
+      }
+
+      .stat-card .label {
+        font-size: 12px;
+      }
+
+      .stat-card .value {
+        font-size: 24px;
+      }
+
+      /* 전적 리스트 */
+      .history-section {
+        padding: 16px;
+      }
+
+      .history-section h2 {
+        font-size: 18px;
+        margin-bottom: 16px;
+      }
+
+      .history-item {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 14px 16px;
+      }
+
+      .history-item .game-id {
+        font-size: 13px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #eee;
+      }
+
+      .history-item .players {
+        font-size: 13px;
+      }
+
+      .history-item .players .vs {
+        margin: 0 6px;
+      }
+
+      .history-item .result {
+        font-size: 14px;
+        padding: 5px 10px;
+      }
+
+      .history-item .date {
+        font-size: 12px;
+        text-align: left;
+        color: #bbb;
+      }
+
+      .empty-state {
+        padding: 40px 15px;
+        font-size: 14px;
+      }
+
+      .empty-state::before {
+        font-size: 48px;
+      }
+    }
+
+    /* 초소형 모바일 */
+    @media (max-width: 375px) {
+      .header {
+        padding: 12px;
+      }
+
+      .header h1 {
+        font-size: 20px;
+      }
+
+      .btn {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      .stats-section {
+        gap: 10px;
+      }
+
+      .stat-card {
+        padding: 14px;
+      }
+
+      .stat-card .label {
+        font-size: 11px;
+      }
+
+      .stat-card .value {
+        font-size: 20px;
+      }
+
+      .history-section {
+        padding: 12px;
+      }
+
+      .history-item {
+        padding: 12px;
+      }
+
+      .history-item .game-id {
+        font-size: 12px;
+      }
+
+      .history-item .players {
+        font-size: 12px;
+      }
+
+      .history-item .result {
+        font-size: 13px;
+      }
+
+      .history-item .date {
+        font-size: 11px;
+      }
     }
   </style>
 </head>
