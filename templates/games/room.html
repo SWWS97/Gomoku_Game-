@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Omok #{{ game.id }}</title>
   <style>
     :root{
@@ -186,6 +187,133 @@
     /* 하단 상태(이제 사용 안 함, 혹시 몰라 남겨둠) */
     .status{ margin:8px 0 0 16px; font-weight:600; }
     .status .winner{ color:#7a2e2e; margin-left:10px; display:none; }
+
+    /* ===== 모바일 반응형 ===== */
+    @media (max-width: 768px) {
+      /* 상단 바 */
+      .topbar{
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px 12px;
+        font-size: 0.85rem;
+      }
+      .topbar .right{
+        width: 100%;
+        justify-content: flex-start;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .pill{
+        padding: 0.3rem 0.5rem;
+        font-size: 0.8rem;
+      }
+      .players{
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .player-info{
+        padding: 0.3rem 0.5rem;
+        font-size: 0.75rem;
+      }
+
+      /* 타이머 */
+      .timer-container{
+        top: 10px;
+        gap: 20px;
+        padding: 0.5rem 1rem;
+      }
+      .timer-label{
+        font-size: 0.7rem;
+      }
+      .timer-value{
+        font-size: 1.2rem;
+      }
+
+      /* 승자 배지 */
+      .winner-badge{
+        font-size: 0.9rem;
+        padding: 0.2rem 0.4rem;
+      }
+
+      /* 게임판 */
+      .board-wrap{
+        width: calc(95vw - 24px);
+        max-width: 500px;
+        height: calc(95vw - 24px);
+        max-height: 500px;
+        margin: 60px auto 20px;
+        border: 4px solid var(--border);
+      }
+
+      /* 모달 */
+      .modal-content{
+        padding: 1.5rem 2rem;
+        max-width: 90%;
+      }
+      .modal-content h2{
+        font-size: 1.4rem;
+      }
+      .modal-content .winner-name{
+        font-size: 1.8rem;
+      }
+      .modal-content .winner-stone{
+        font-size: 2.5rem;
+      }
+      .modal-content .modal-btn{
+        padding: 0.6rem 1.5rem;
+        font-size: 0.9rem;
+      }
+
+      /* 터치 영역 확대 (클릭하기 쉽게) */
+      .pt{
+        width: calc(var(--cell) * 1.2);
+        height: calc(var(--cell) * 1.2);
+      }
+
+      /* 돌 크기 약간 축소 */
+      .stone{
+        width: 26px;
+        height: 26px;
+      }
+    }
+
+    /* 초소형 모바일 (아이폰 SE 등) */
+    @media (max-width: 375px) {
+      .topbar{
+        font-size: 0.75rem;
+      }
+      .timer-container{
+        gap: 15px;
+        padding: 0.4rem 0.8rem;
+      }
+      .timer-value{
+        font-size: 1rem;
+      }
+      .board-wrap{
+        margin-top: 50px;
+      }
+      .modal-content{
+        padding: 1rem 1.5rem;
+      }
+      .modal-content h2{
+        font-size: 1.2rem;
+      }
+      .modal-content .winner-name{
+        font-size: 1.5rem;
+      }
+      .stone{
+        width: 22px;
+        height: 22px;
+      }
+    }
+
+    /* 태블릿 가로 모드 */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .board-wrap{
+        width: 600px;
+        height: 600px;
+      }
+    }
   </style>
 </head>
 <body>
