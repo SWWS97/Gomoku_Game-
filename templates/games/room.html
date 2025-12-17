@@ -653,6 +653,8 @@
       // 돌 카운트도 리셋
       prevStoneCount = 0;
     } else if (m.type === "error") {
+      // 착수 에러 발생 시 플래그 해제 (다음 착수 가능하도록)
+      isPlaying = false;
       alert(m.message);
     } else if (m.type === "game_deleted") {
       // 게임이 삭제되었으므로 로비로 이동
