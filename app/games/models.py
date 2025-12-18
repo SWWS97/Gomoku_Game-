@@ -7,6 +7,7 @@ BOARD_SIZE = 15
 
 
 class Game(models.Model):
+    title = models.CharField(max_length=100, default="오목 게임", help_text="방 제목")
     created_at = models.DateTimeField(auto_now_add=True)
     black = models.ForeignKey(
         User, related_name="games_as_black", null=True, on_delete=models.SET_NULL
