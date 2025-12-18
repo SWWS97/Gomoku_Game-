@@ -412,7 +412,7 @@
         {% if has_active_game %}
           <button class="btn" disabled title="진행 중인 게임이 있습니다">새 방 만들기</button>
         {% else %}
-          <a href="{% url 'games:new' %}" class="btn">새 방 만들기</a>
+          <button class="btn" id="new-room-btn">새 방 만들기</button>
         {% endif %}
       </div>
 
@@ -420,7 +420,7 @@
         {% if waiting_games %}
           {% for game in waiting_games %}
             <a href="{% url 'games:join' pk=game.pk %}" class="room-card">
-              <div class="room-title">Gomoku Room #{{ game.id }}</div>
+              <div class="room-title">{{ game.title }}</div>
               <div class="room-info">
                 <span>생성자: {{ game.black.first_name|default:game.black.username }}</span>
                 <span>|</span>
@@ -435,6 +435,28 @@
           </div>
         {% endif %}
       </div>
+    </div>
+  </div>
+
+  <!-- 제목 입력 모달 -->
+  <div class="modal-overlay" id="title-modal">
+    <div class="modal-content">
+      <h2>새 게임 방 만들기</h2>
+      <form id="new-room-form" method="post" action="{% url 'games:new' %}">
+        {% csrf_token %}
+        <input
+          type="text"
+          id="room-title"
+          name="title"
+          placeholder="방 제목을 입력하세요"
+          maxlength="100"
+          autofocus
+        />
+        <div class="modal-buttons">
+          <button type="button" class="btn btn-cancel" id="cancel-btn">취소</button>
+          <button type="submit" class="btn">만들기</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -513,6 +535,36 @@
 
     // 초기 연결
     connect();
+  })();
+
+  // 모달 관리
+  (function(){
+    const newRoomBtn = document.getElementById("new-room-btn");
+    const titleModal = document.getElementById("title-modal");
+    const cancelBtn = document.getElementById("cancel-btn");
+    const roomTitleInput = document.getElementById("room-title");
+
+    if (newRoomBtn) {
+      newRoomBtn.addEventListener("click", () => {
+        titleModal.classList.add("active");
+        setTimeout(() => roomTitleInput.focus(), 100);
+      });
+    }
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", () => {
+        titleModal.classList.remove("active");
+        roomTitleInput.value = "";
+      });
+    }
+
+    // 모달 외부 클릭 시 닫기
+    titleModal.addEventListener("click", (e) => {
+      if (e.target === titleModal) {
+        titleModal.classList.remove("active");
+        roomTitleInput.value = "";
+      }
+    });
   })();
   </script>
 </body>
