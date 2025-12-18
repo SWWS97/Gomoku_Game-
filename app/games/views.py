@@ -30,7 +30,7 @@ def lobby(request):
 
 @login_required
 def new_game(request):
-    """새 게임 방 생성"""
+    """새 게임 방 생성 (POST만 허용)"""
     # 현재 사용자가 참여 중인 진행 중인 게임이 있는지 확인
     has_active_game = Game.objects.filter(
         Q(black=request.user) | Q(white=request.user), winner__isnull=True
@@ -43,8 +43,15 @@ def new_game(request):
         )
         return redirect("games:lobby")
 
-    g = Game.objects.create(black=request.user)
-    return redirect("games:room", pk=g.pk)
+    if request.method == "POST":
+        title = request.POST.get("title", "").strip()
+        if not title:
+            title = "자신있는 사람 아무나"
+        g = Game.objects.create(black=request.user, title=title)
+        return redirect("games:room", pk=g.pk)
+
+    # GET 요청은 로비로 리다이렉트
+    return redirect("games:lobby")
 
 
 @login_required

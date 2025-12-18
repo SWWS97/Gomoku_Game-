@@ -318,7 +318,7 @@
 </head>
 <body>
   <div class="topbar">
-    <div>Omok #{{ game.id }}</div>
+    <div>{{ game.title }}</div>
     <div id="ws-state">웹소켓 연결 중…</div>
 
     <!-- 플레이어 정보 -->
@@ -340,7 +340,7 @@
       <div id="turn"></div>
       <a href="{% url 'games:leave' pk=game.pk %}" class="pill" id="leave-btn" style="display:none; background:#888; border-color:#666;">나가기</a>
       <button class="pill" id="surrender-btn" style="display:none; background:#c44; border-color:#a33;">항복</button>
-      <a href="{% url 'games:lobby' %}" class="pill" id="lobby-btn" style="display:none;">로비로 가기</a>
+      <a href="{% url 'games:leave' pk=game.pk %}" class="pill" id="lobby-btn" style="display:none;">로비로 가기</a>
       <button class="pill" id="new-game-btn" disabled style="opacity:0.5; cursor:not-allowed;">새 게임</button>
     </div>
   </div>
