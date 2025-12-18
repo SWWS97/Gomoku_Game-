@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('games', '0004_game_black_ready_game_game_started_game_white_ready'),
+        ("games", "0004_game_black_ready_game_game_started_game_white_ready"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='game',
-            name='title',
-            field=models.CharField(default='오목 게임', help_text='방 제목', max_length=100),
+            model_name="game",
+            name="title",
+            field=models.CharField(
+                default="오목 게임", help_text="방 제목", max_length=100
+            ),
         ),
     ]
