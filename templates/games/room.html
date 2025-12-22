@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Omok #{{ game.id }}</title>
+  <title>Omok {{ game.id }}</title>
   <style>
     :root{
       --cell: 40px;
@@ -319,7 +319,7 @@
 <body>
   <div class="topbar">
     <div>{{ game.title }}</div>
-    <div id="ws-state">웹소켓 연결 중…</div>
+    <div id="ws-state">게임 연결 중…</div>
 
     <!-- 플레이어 정보 -->
     <div class="players">

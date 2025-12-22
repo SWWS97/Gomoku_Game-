@@ -317,7 +317,7 @@
     .chat-container {
       position: fixed;
       bottom: 20px;
-      left: 20px;
+      left: 10px;
       width: 320px;
       height: 400px;
       background: var(--card);
@@ -613,7 +613,7 @@
   <!-- 채팅창 -->
   <div class="chat-container">
     <div class="chat-header">
-      <span>로비 채팅</span>
+      <span>Gomoku 채팅</span>
     </div>
     <div class="chat-messages" id="chat-messages">
       <!-- 채팅 메시지가 여기에 추가됩니다 -->
@@ -666,6 +666,9 @@
     function connect() {
       ws = new WebSocket(wsURL);
 
+      // WebSocket을 전역에서 접근 가능하도록
+      window.lobbyWs = ws;
+
       ws.addEventListener("open", () => {
         console.log("[Lobby] WebSocket connected");
         wsStatus.textContent = "연결됨";
@@ -703,9 +706,6 @@
         }
       });
     }
-
-    // WebSocket을 전역에서 접근 가능하도록
-    window.lobbyWs = ws;
 
     function renderUsers(users) {
       // 접속자 수 업데이트
