@@ -662,6 +662,41 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         except Exception as e:
             print("[LobbyWS][user_left] ERROR:", repr(e))
 
+    async def receive_json(self, content):
+        """클라이언트로부터 메시지 수신"""
+        try:
+            message_type = content.get("type")
+
+            if message_type == "chat_message":
+                message = content.get("message", "").strip()
+                if message:
+                    # 채팅 메시지 브로드캐스트
+                    await self.channel_layer.group_send(
+                        self.group_name,
+                        {
+                            "type": "broadcast_chat_message",
+                            "sender_id": self.user_id,
+                            "sender": self.user_nickname,
+                            "message": message,
+                        },
+                    )
+        except Exception as e:
+            print("[LobbyWS][receive_json] ERROR:", repr(e))
+
+    async def broadcast_chat_message(self, event):
+        """채팅 메시지 브로드캐스트"""
+        try:
+            await self.send_json(
+                {
+                    "type": "chat_message",
+                    "sender": event["sender"],
+                    "message": event["message"],
+                    "is_mine": event["sender_id"] == self.user_id,
+                }
+            )
+        except Exception as e:
+            print("[LobbyWS][broadcast_chat_message] ERROR:", repr(e))
+
     async def get_online_users(self):
         """현재 접속 중인 사용자 목록 반환 (중복 제거)"""
         # user_id 기준으로 중복 제거
