@@ -313,6 +313,113 @@
       background: #999;
     }
 
+    /* 채팅창 */
+    .chat-container {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 320px;
+      height: 400px;
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+    }
+
+    .chat-header {
+      padding: 12px 16px;
+      background: var(--border);
+      color: white;
+      font-weight: 700;
+      border-radius: 10px 10px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chat-message {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .chat-message .sender {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--border);
+    }
+
+    .chat-message .text {
+      background: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      font-size: 14px;
+      word-wrap: break-word;
+    }
+
+    .chat-message.mine .sender {
+      color: #4a7c59;
+      text-align: right;
+    }
+
+    .chat-message.mine .text {
+      background: #e8f5e9;
+      border-color: #4a7c59;
+      align-self: flex-end;
+    }
+
+    .chat-input-container {
+      padding: 12px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 2px solid var(--line);
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .chat-input:focus {
+      border-color: var(--border);
+    }
+
+    .chat-send-btn {
+      padding: 8px 16px;
+      background: var(--border);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .chat-send-btn:hover {
+      background: #2e1a0f;
+    }
+
+    .chat-send-btn:active {
+      transform: scale(0.95);
+    }
+
     /* ===== 모바일 반응형 ===== */
     @media (max-width: 768px) {
       .container {
@@ -503,6 +610,26 @@
     </div>
   </div>
 
+  <!-- 채팅창 -->
+  <div class="chat-container">
+    <div class="chat-header">
+      <span>로비 채팅</span>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <!-- 채팅 메시지가 여기에 추가됩니다 -->
+    </div>
+    <div class="chat-input-container">
+      <input
+        type="text"
+        id="chat-input"
+        class="chat-input"
+        placeholder="메시지를 입력하세요..."
+        maxlength="200"
+      />
+      <button id="chat-send-btn" class="chat-send-btn">전송</button>
+    </div>
+  </div>
+
   <!-- 제목 입력 모달 -->
   <div class="modal-overlay" id="title-modal">
     <div class="modal-content">
@@ -568,12 +695,17 @@
           const data = JSON.parse(e.data);
           if (data.type === "users") {
             renderUsers(data.users);
+          } else if (data.type === "chat_message") {
+            addChatMessage(data.sender, data.message, data.is_mine);
           }
         } catch (err) {
           console.error("[Lobby] Message parse error:", err);
         }
       });
     }
+
+    // WebSocket을 전역에서 접근 가능하도록
+    window.lobbyWs = ws;
 
     function renderUsers(users) {
       // 접속자 수 업데이트
@@ -628,6 +760,60 @@
       if (e.target === titleModal) {
         titleModal.classList.remove("active");
         roomTitleInput.value = "";
+      }
+    });
+  })();
+
+  // 채팅 관리
+  (function(){
+    const chatMessages = document.getElementById("chat-messages");
+    const chatInput = document.getElementById("chat-input");
+    const chatSendBtn = document.getElementById("chat-send-btn");
+
+    // 채팅 메시지 추가 함수
+    window.addChatMessage = function(sender, message, isMine) {
+      const messageDiv = document.createElement("div");
+      messageDiv.className = isMine ? "chat-message mine" : "chat-message";
+
+      const senderSpan = document.createElement("div");
+      senderSpan.className = "sender";
+      senderSpan.textContent = sender;
+
+      const textDiv = document.createElement("div");
+      textDiv.className = "text";
+      textDiv.textContent = message;
+
+      messageDiv.appendChild(senderSpan);
+      messageDiv.appendChild(textDiv);
+      chatMessages.appendChild(messageDiv);
+
+      // 스크롤을 맨 아래로
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
+
+    // 메시지 전송
+    function sendMessage() {
+      const message = chatInput.value.trim();
+      if (!message) return;
+
+      if (window.lobbyWs && window.lobbyWs.readyState === WebSocket.OPEN) {
+        window.lobbyWs.send(JSON.stringify({
+          type: "chat_message",
+          message: message
+        }));
+        chatInput.value = "";
+      } else {
+        alert("게임과 연결되지 않았습니다.");
+      }
+    }
+
+    // 전송 버튼 클릭
+    chatSendBtn.addEventListener("click", sendMessage);
+
+    // Enter 키로 전송
+    chatInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        sendMessage();
       }
     });
   })();
