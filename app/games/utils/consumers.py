@@ -20,6 +20,22 @@ from .omok import (
 
 User = get_user_model()
 
+# 욕설 필터링 목록
+PROFANITY_WORDS = [
+    "시발", "씨발", "ㅅㅂ", "ㅆㅂ", "병신", "ㅂㅅ", "개새", "새끼", "ㅅㄲ",
+    "fuck", "shit", "damn", "ass", "bitch", "dick", "pussy",
+    "지랄", "좆", "ㅈㄹ", "닥쳐", "꺼져", "죽어", "개같", "개노",
+]
+
+
+def filter_profanity(text):
+    """욕설 필터링 함수"""
+    filtered_text = text
+    for word in PROFANITY_WORDS:
+        if word in filtered_text:
+            filtered_text = filtered_text.replace(word, "*" * len(word))
+    return filtered_text
+
 
 class GameConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
@@ -670,6 +686,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             if message_type == "chat_message":
                 message = content.get("message", "").strip()
                 if message:
+                    # 욕설 필터링 적용
+                    filtered_message = filter_profanity(message)
+
                     # 채팅 메시지 브로드캐스트
                     await self.channel_layer.group_send(
                         self.group_name,
@@ -677,7 +696,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                             "type": "broadcast_chat_message",
                             "sender_id": self.user_id,
                             "sender": self.user_nickname,
-                            "message": message,
+                            "message": filtered_message,
                         },
                     )
         except Exception as e:
