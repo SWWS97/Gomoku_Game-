@@ -38,8 +38,12 @@ class Game(models.Model):
     white_ready = models.BooleanField(default=False, help_text="백 플레이어 준비 완료")
     game_started = models.BooleanField(default=False, help_text="게임 시작 여부")
     # Rematch fields
-    rematch_black = models.BooleanField(default=False, help_text="흑 플레이어 리매치 요청")
-    rematch_white = models.BooleanField(default=False, help_text="백 플레이어 리매치 요청")
+    rematch_black = models.BooleanField(
+        default=False, help_text="흑 플레이어 리매치 요청"
+    )
+    rematch_white = models.BooleanField(
+        default=False, help_text="백 플레이어 리매치 요청"
+    )
 
     def idx(self, x, y):
         return y * BOARD_SIZE + x

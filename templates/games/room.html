@@ -188,6 +188,106 @@
     .status{ margin:8px 0 0 16px; font-weight:600; }
     .status .winner{ color:#7a2e2e; margin-left:10px; display:none; }
 
+    /* ===== 리매치 대기 점 애니메이션 ===== */
+    .dots::after {
+      content: '';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+    @keyframes dots {
+      0%, 25% { content: '.'; }
+      26%, 50% { content: '..'; }
+      51%, 75% { content: '...'; }
+      76%, 100% { content: ''; }
+    }
+
+    /* ===== 리매치 아이콘 디자인 ===== */
+    /* 회전하는 원형 화살표 (리매치 요청) */
+    .rematch-icon {
+      width: 80px;
+      height: 80px;
+      position: relative;
+      margin: 1rem auto;
+    }
+    .rematch-icon .circle-arrow {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 4px solid #4a7c59;
+      border-radius: 50%;
+      border-top-color: transparent;
+      border-right-color: transparent;
+      animation: rotateArrow 1.5s ease-in-out infinite;
+    }
+    .rematch-icon .circle-arrow:nth-child(2) {
+      transform: rotate(180deg);
+      animation-delay: -0.75s;
+    }
+    .rematch-icon::before,
+    .rematch-icon::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-style: solid;
+    }
+    .rematch-icon::before {
+      top: -2px;
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+      border-width: 0 8px 8px 0;
+      border-color: transparent #4a7c59 transparent transparent;
+    }
+    .rematch-icon::after {
+      bottom: -2px;
+      right: 50%;
+      transform: translateX(50%) rotate(-135deg);
+      border-width: 0 8px 8px 0;
+      border-color: transparent #4a7c59 transparent transparent;
+    }
+    @keyframes rotateArrow {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 로딩 스피너 (리매치 대기) */
+    .loading-spinner {
+      width: 70px;
+      height: 70px;
+      position: relative;
+      margin: 1rem auto;
+    }
+    .loading-spinner::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 5px solid #e0e0e0;
+      border-radius: 50%;
+      border-top-color: #4a7c59;
+      border-right-color: #4a7c59;
+      animation: spin 1.2s linear infinite;
+    }
+    .loading-spinner::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 45px;
+      height: 45px;
+      margin: -22.5px 0 0 -22.5px;
+      border: 4px solid #f5f5f5;
+      border-radius: 50%;
+      border-bottom-color: #6b9477;
+      border-left-color: #6b9477;
+      animation: spin 1.8s linear infinite reverse;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
     /* ===== 모바일 반응형 ===== */
     @media (max-width: 768px) {
       /* 상단 바 */
@@ -379,6 +479,44 @@
     </div>
   </div>
 
+  <!-- 리매치 요청 모달 -->
+  <div id="rematchRequestModal" class="game-over-modal">
+    <div class="modal-content">
+      <h2 style="color:#4a7c59;">리매치 요청</h2>
+      <div class="rematch-icon">
+        <div class="circle-arrow"></div>
+        <div class="circle-arrow"></div>
+      </div>
+      <p style="font-size:1.3rem; font-weight:700; margin:1rem 0;">리매치 요청이 왔습니다!</p>
+      <p style="font-size:1.1rem; color:#666;">재경기를 하시겠습니까?</p>
+      <div style="display:flex; gap:12px; margin-top:1.5rem;">
+        <button class="modal-btn" onclick="acceptRematch()" style="background:#4a7c59; flex:1;">승인</button>
+        <button class="modal-btn" onclick="declineRematch()" style="background:#999; flex:1;">거절</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 재경기 카운트다운 모달 -->
+  <div id="countdownModal" class="game-over-modal">
+    <div class="modal-content">
+      <h2 style="color:#4a7c59;">재경기 시작</h2>
+      <div style="font-size:2rem; margin:1rem 0;">재경기를 시작합니다!</div>
+      <div style="font-size:4rem; font-weight:900; color:#d84315; margin:1rem 0;" id="countdownNumber">3</div>
+    </div>
+  </div>
+
+  <!-- 리매치 대기 모달 -->
+  <div id="rematchWaitingModal" class="game-over-modal">
+    <div class="modal-content">
+      <h2 style="color:#4a7c59;">리매치 요청</h2>
+      <div class="loading-spinner"></div>
+      <p style="font-size:1.3rem; font-weight:700; margin:1rem 0;">
+        리매치 요청을 기다리는중<span class="dots"></span>
+      </p>
+      <button class="modal-btn" onclick="cancelRematchRequest()" style="background:#999; margin-top:1rem;">취소</button>
+    </div>
+  </div>
+
   <!-- 플레이어 입장 모달 -->
   <div id="playerJoinedModal" class="game-over-modal">
     <div class="modal-content">
@@ -511,18 +649,91 @@
   let modalShown = false;  // 모달이 이미 표시되었는지 추적
   let isPracticeMode = false;  // 연습 모드 여부
 
+  const rematchRequestModal = document.getElementById("rematchRequestModal");
+  const rematchWaitingModal = document.getElementById("rematchWaitingModal");
+  const countdownModal = document.getElementById("countdownModal");
+  const countdownNumber = document.getElementById("countdownNumber");
+
   window.closeModal = function() {
     gameOverModal.style.display = "none";
-    modalShown = false;  // 모달 닫으면 리셋
+    modalShown = false;
 
-    // 연습 모드이면 게임판 리셋, 아니면 로비로 이동
+    // 연습 모드이면 게임판 리셋
     if (isPracticeMode && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({type: "reset_practice"}));
-    } else {
-      // 대전 모드이면 로비로 이동
-      window.location.href = "{% url 'games:lobby' %}";
     }
+    // 대전 모드이면 그냥 모달만 닫고 게임룸에 남음 (리매치 버튼 활성화됨)
   };
+
+  // 리매치 요청 승인 함수
+  window.acceptRematch = function() {
+    if (ws.readyState !== WebSocket.OPEN) {
+      alert("게임과 연결되지 않았습니다.");
+      return;
+    }
+
+    // 서버에 리매치 수락 전송
+    ws.send(JSON.stringify({type: "accept_rematch"}));
+
+    // 요청 모달 닫기
+    rematchRequestModal.style.display = "none";
+  };
+
+  // 리매치 요청 거절 함수
+  window.declineRematch = function() {
+    if (ws.readyState !== WebSocket.OPEN) {
+      alert("게임과 연결되지 않았습니다.");
+      return;
+    }
+
+    // 서버에 리매치 거절 전송
+    ws.send(JSON.stringify({type: "decline_rematch"}));
+
+    // 요청 모달 닫기
+    rematchRequestModal.style.display = "none";
+
+    // 사용자에게 알림
+    alert("리매치를 거절했습니다.");
+  };
+
+  // 리매치 요청 취소 함수
+  window.cancelRematchRequest = function() {
+    if (ws.readyState !== WebSocket.OPEN) {
+      alert("게임과 연결되지 않았습니다.");
+      return;
+    }
+
+    // 서버에 리매치 취소 전송 (decline과 동일하게 처리)
+    ws.send(JSON.stringify({type: "decline_rematch"}));
+
+    // 대기 모달 닫기
+    rematchWaitingModal.style.display = "none";
+
+    // 리매치 버튼 리셋
+    rematchBtn.textContent = "리매치 요청";
+    rematchBtn.disabled = false;
+    rematchBtn.style.opacity = "1";
+    rematchBtn.style.cursor = "pointer";
+  };
+
+  // 카운트다운 시작 함수
+  function startCountdown() {
+    let count = 3;
+    countdownNumber.textContent = count;
+    countdownModal.style.display = "flex";
+
+    const countInterval = setInterval(() => {
+      count--;
+      if (count > 0) {
+        countdownNumber.textContent = count;
+      } else {
+        clearInterval(countInterval);
+        countdownModal.style.display = "none";
+        // 카운트다운 완료 후 준비 모달 표시
+        showReadyModal();
+      }
+    }, 1000);
+  }
 
   /* ===== 플레이어 입장 모달 ===== */
   window.closePlayerJoinedModal = function() {
@@ -943,6 +1154,26 @@
     } else if (m.type === "rematch_state") {
       // 리매치 상태 업데이트
       handleRematchState(m);
+    } else if (m.type === "rematch_request") {
+      // 상대방으로부터 리매치 요청이 왔을 때 대기 모달 숨기고 요청 모달 표시
+      rematchWaitingModal.style.display = "none";
+      rematchRequestModal.style.display = "flex";
+    } else if (m.type === "rematch_accepted") {
+      // 양쪽 모두 리매치를 수락했을 때 대기 모달 숨기고 카운트다운 시작
+      rematchWaitingModal.style.display = "none";
+      startCountdown();
+    } else if (m.type === "rematch_declined") {
+      // 상대방이 리매치를 거절했을 때
+      // 대기 모달이 표시되어 있었으면 요청자이므로 알림 표시
+      if (rematchWaitingModal.style.display === "flex") {
+        rematchWaitingModal.style.display = "none";
+        alert("상대방이 리매치를 거절했습니다.");
+      }
+      // 리매치 버튼 리셋
+      rematchBtn.textContent = "리매치 요청";
+      rematchBtn.disabled = false;
+      rematchBtn.style.opacity = "1";
+      rematchBtn.style.cursor = "pointer";
     }
   });
 
@@ -983,6 +1214,9 @@
     rematchBtn.disabled = true;
     rematchBtn.style.opacity = "0.5";
     rematchBtn.style.cursor = "not-allowed";
+
+    // 대기 모달 표시
+    rematchWaitingModal.style.display = "flex";
   });
 
   /* ===== 새 게임 버튼 ===== */
@@ -1092,6 +1326,9 @@
         surrenderBtn.style.display = "none";
         lobbyBtn.style.display = "none";
       }
+
+      // 게임 진행 중이면 리매치 버튼 숨김
+      rematchBtn.style.display = "none";
 
       // 게임 진행 중이면 새 게임 버튼 비활성화
       newGameBtn.disabled = true;

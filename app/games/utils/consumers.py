@@ -150,9 +150,28 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 user = self.scope.get("user")
                 success = await self.handle_rematch_request(user)
                 if success:
+                    # 상대방에게 리매치 요청 알림
                     await self.channel_layer.group_send(
-                        self.group, {"type": "broadcast_rematch_state"}
+                        self.group,
+                        {"type": "notify_rematch_request", "requester_id": user.id},
                     )
+            elif content.get("type") == "accept_rematch":
+                # 리매치 수락
+                user = self.scope.get("user")
+                success = await self.handle_rematch_accept(user)
+                if success:
+                    # 양쪽 모두 수락했으므로 카운트다운 시작
+                    await self.channel_layer.group_send(
+                        self.group, {"type": "notify_rematch_accepted"}
+                    )
+            elif content.get("type") == "decline_rematch":
+                # 리매치 거절
+                user = self.scope.get("user")
+                await self.handle_rematch_decline(user)
+                # 상대방에게 거절 알림
+                await self.channel_layer.group_send(
+                    self.group, {"type": "notify_rematch_declined"}
+                )
         except Exception as e:
             print("[WS][receive_json] ERROR:", repr(e))
             await self.close(code=4001)
@@ -289,7 +308,13 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         total_moves=total_moves,
                     )
                     # 게임 저장 (리매치를 위해 삭제하지 않음)
-                    game.save(update_fields=["winner", "black_time_remaining", "white_time_remaining"])
+                    game.save(
+                        update_fields=[
+                            "winner",
+                            "black_time_remaining",
+                            "white_time_remaining",
+                        ]
+                    )
                     return False, "시간 초과로 패배하였습니다", final_state
                 elif game.turn == "white" and game.white_time_remaining <= 0:
                     game.winner = "black"
@@ -323,7 +348,13 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         total_moves=total_moves,
                     )
                     # 게임 저장 (리매치를 위해 삭제하지 않음)
-                    game.save(update_fields=["winner", "black_time_remaining", "white_time_remaining"])
+                    game.save(
+                        update_fields=[
+                            "winner",
+                            "black_time_remaining",
+                            "white_time_remaining",
+                        ]
+                    )
                     return False, "시간 초과로 패배하였습니다", final_state
 
             # 턴 검증(선택)
@@ -713,6 +744,111 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             "rematch_white": game.rematch_white,
             "game_reset": game.rematch_black and game.rematch_white,
         }
+
+    @database_sync_to_async
+    def handle_rematch_accept(self, user):
+        """리매치 수락 처리"""
+        with transaction.atomic():
+            game = Game.objects.select_for_update().get(pk=self.game_id)
+
+            # 게임이 종료되지 않았으면 리매치 불가
+            if not game.winner:
+                return False
+
+            # 양쪽 플레이어가 없으면 리매치 불가
+            if not game.black or not game.white:
+                return False
+
+            # 사용자가 흑인지 백인지 확인하고 리매치 수락 상태 업데이트
+            if user == game.black:
+                game.rematch_black = True
+            elif user == game.white:
+                game.rematch_white = True
+            else:
+                return False  # 게임 참가자가 아님
+
+            # 양쪽 모두 수락했으면 게임 리셋
+            if game.rematch_black and game.rematch_white:
+                # 게임판 초기화
+                game.board = "." * (BOARD_SIZE * BOARD_SIZE)
+                game.turn = "black"
+                game.winner = None
+                # 타이머 리셋
+                game.black_time_remaining = 900
+                game.white_time_remaining = 900
+                game.last_move_time = None
+                # 리매치 플래그 리셋
+                game.rematch_black = False
+                game.rematch_white = False
+                # 준비 상태 리셋
+                game.black_ready = False
+                game.white_ready = False
+                game.game_started = False
+
+                game.save(
+                    update_fields=[
+                        "board",
+                        "turn",
+                        "winner",
+                        "black_time_remaining",
+                        "white_time_remaining",
+                        "last_move_time",
+                        "rematch_black",
+                        "rematch_white",
+                        "black_ready",
+                        "white_ready",
+                        "game_started",
+                    ]
+                )
+
+                # 수 기록 삭제
+                Move.objects.filter(game=game).delete()
+                return True  # 리셋 완료
+            else:
+                # 한쪽만 수락한 경우 플래그만 저장
+                game.save(update_fields=["rematch_black", "rematch_white"])
+                return False  # 아직 대기 중
+
+    @database_sync_to_async
+    def handle_rematch_decline(self, user):
+        """리매치 거절 처리"""
+        with transaction.atomic():
+            game = Game.objects.select_for_update().get(pk=self.game_id)
+
+            # 게임이 종료되지 않았으면 무시
+            if not game.winner:
+                return
+
+            # 리매치 플래그 리셋
+            game.rematch_black = False
+            game.rematch_white = False
+            game.save(update_fields=["rematch_black", "rematch_white"])
+
+    async def notify_rematch_request(self, event):
+        """상대방에게 리매치 요청 알림"""
+        try:
+            user = self.scope.get("user")
+            requester_id = event.get("requester_id")
+
+            # 요청자가 아닌 사람에게만 모달 표시
+            if user and user.is_authenticated and user.id != requester_id:
+                await self.send_json({"type": "rematch_request"})
+        except Exception as e:
+            print("[WS][notify_rematch_request] ERROR:", repr(e))
+
+    async def notify_rematch_accepted(self, _event):
+        """양쪽 모두 리매치 수락 알림"""
+        try:
+            await self.send_json({"type": "rematch_accepted"})
+        except Exception as e:
+            print("[WS][notify_rematch_accepted] ERROR:", repr(e))
+
+    async def notify_rematch_declined(self, _event):
+        """리매치 거절 알림"""
+        try:
+            await self.send_json({"type": "rematch_declined"})
+        except Exception as e:
+            print("[WS][notify_rematch_declined] ERROR:", repr(e))
 
 
 class LobbyConsumer(AsyncJsonWebsocketConsumer):
