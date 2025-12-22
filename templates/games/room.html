@@ -340,6 +340,7 @@
       <div id="turn"></div>
       <a href="{% url 'games:leave' pk=game.pk %}" class="pill" id="leave-btn" style="display:none; background:#888; border-color:#666;">나가기</a>
       <button class="pill" id="surrender-btn" style="display:none; background:#c44; border-color:#a33;">항복</button>
+      <button class="pill" id="rematch-btn" style="display:none; background:#4a7c59; border-color:#3a6c49;">리매치 요청</button>
       <a href="{% url 'games:leave' pk=game.pk %}" class="pill" id="lobby-btn" style="display:none;">로비로 가기</a>
       <button class="pill" id="new-game-btn" disabled style="opacity:0.5; cursor:not-allowed;">새 게임</button>
     </div>
@@ -434,6 +435,7 @@
   const lobbyBtn     = document.getElementById("lobby-btn");
   const leaveBtn     = document.getElementById("leave-btn");
   const surrenderBtn = document.getElementById("surrender-btn");
+  const rematchBtn   = document.getElementById("rematch-btn");
   const newGameBtn   = document.getElementById("new-game-btn");
   const gameOverModal = document.getElementById("gameOverModal");
   const modalStone    = document.getElementById("modalStone");
@@ -603,6 +605,37 @@
     readyBtn.disabled = false;
     readyBtn.style.opacity = "1";
     readyBtn.style.cursor = "pointer";
+  }
+
+  function handleRematchState(data) {
+    // 양쪽 모두 리매치 수락하면 게임 리셋
+    if (data.game_reset) {
+      // 게임판 리셋되었으니 모달 리셋하고 준비 모달 표시
+      modalShown = false;
+      readyModalShown = false;
+      gameOverModal.style.display = "none";
+
+      // 리매치 버튼 리셋
+      rematchBtn.textContent = "리매치 요청";
+      rematchBtn.disabled = false;
+      rematchBtn.style.opacity = "1";
+      rematchBtn.style.cursor = "pointer";
+      rematchBtn.style.display = "none";
+
+      // 준비 모달 표시
+      showReadyModal();
+    } else {
+      // 한쪽만 요청한 상태: 상대방이 수락하면 버튼 텍스트 업데이트
+      if (data.rematch_black && data.rematch_white) {
+        // 이미 위에서 처리
+      } else if (data.rematch_black || data.rematch_white) {
+        // 한쪽만 요청한 상태
+        if (rematchBtn.textContent !== "요청됨...") {
+          // 상대방이 요청한 경우
+          rematchBtn.textContent = "상대방이 요청함";
+        }
+      }
+    }
   }
 
   function showPlayerJoinedModal(playerName) {
@@ -907,6 +940,9 @@
       // 게임이 삭제되었으므로 로비로 이동
       alert("방 생성자가 나가서 게임이 종료되었습니다.");
       window.location.href = "{% url 'games:lobby' %}";
+    } else if (m.type === "rematch_state") {
+      // 리매치 상태 업데이트
+      handleRematchState(m);
     }
   });
 
@@ -934,6 +970,19 @@
     if (confirm("정말 항복하시겠습니까?")) {
       ws.send(JSON.stringify({type:"surrender"}));
     }
+  });
+
+  /* ===== 리매치 버튼 ===== */
+  rematchBtn.addEventListener("click", ()=>{
+    if (ws.readyState !== WebSocket.OPEN){
+      alert("게임과 연결되지 않았습니다."); return;
+    }
+    ws.send(JSON.stringify({type:"request_rematch"}));
+    // 버튼 텍스트 변경 및 비활성화
+    rematchBtn.textContent = "요청됨...";
+    rematchBtn.disabled = true;
+    rematchBtn.style.opacity = "0.5";
+    rematchBtn.style.cursor = "not-allowed";
   });
 
   /* ===== 새 게임 버튼 ===== */
@@ -998,6 +1047,12 @@
       // 나가기/항복 버튼 숨김
       leaveBtn.style.display = "none";
       surrenderBtn.style.display = "none";
+      // 리매치 버튼 표시 (대전 모드일 때만)
+      if (!isPracticeMode) {
+        rematchBtn.style.display = "inline-block";
+      } else {
+        rematchBtn.style.display = "none";
+      }
       // 로비로 가기 버튼 표시
       lobbyBtn.style.display = "inline-block";
       // 새 게임 버튼 활성화
