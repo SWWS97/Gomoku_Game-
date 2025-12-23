@@ -57,6 +57,19 @@ class SocialSignupForm(forms.Form):
         widget=forms.TextInput(attrs={"placeholder": "닉네임을 입력하세요"}),
     )
 
+    def clean_nickname(self):
+        """닉네임 중복 체크"""
+        nickname = self.cleaned_data.get("nickname", "").strip()
+
+        if not nickname:
+            raise forms.ValidationError("닉네임을 입력하세요.")
+
+        # 중복 체크 (first_name 필드 사용)
+        if User.objects.filter(first_name=nickname).exists():
+            raise forms.ValidationError("이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해주세요.")
+
+        return nickname
+
     def __init__(self, *args, **kwargs):
         """allauth가 전달하는 sociallogin 인자를 받아서 처리"""
         self.sociallogin = kwargs.pop("sociallogin", None)
