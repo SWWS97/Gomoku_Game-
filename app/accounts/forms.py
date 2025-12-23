@@ -1,7 +1,9 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django.core.validators import EmailValidator
+from django.utils import timezone
+from datetime import timedelta
 
 User = get_user_model()
 
@@ -92,3 +94,122 @@ class SocialSignupForm(forms.Form):
         self.sociallogin.save(request, connect=True)
 
         return user, None
+
+
+class ProfileEditForm(forms.Form):
+    """
+    프로필 수정 폼 (닉네임 + 비밀번호)
+    닉네임은 하루에 한번만 변경 가능
+    """
+
+    nickname = forms.CharField(
+        max_length=30,
+        required=False,
+        label="닉네임",
+        help_text="닉네임을 변경하려면 입력하세요 (하루에 한번만 가능)",
+        widget=forms.TextInput(attrs={"placeholder": "새로운 닉네임"}),
+    )
+
+    # 비밀번호 변경 (선택 사항)
+    old_password = forms.CharField(
+        required=False,
+        label="현재 비밀번호",
+        widget=forms.PasswordInput(attrs={"placeholder": "현재 비밀번호"}),
+    )
+    new_password1 = forms.CharField(
+        required=False,
+        label="새 비밀번호",
+        widget=forms.PasswordInput(attrs={"placeholder": "새 비밀번호"}),
+    )
+    new_password2 = forms.CharField(
+        required=False,
+        label="새 비밀번호 확인",
+        widget=forms.PasswordInput(attrs={"placeholder": "새 비밀번호 확인"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
+        # 초기값 설정
+        if self.user:
+            self.fields["nickname"].initial = self.user.first_name
+
+    def clean_nickname(self):
+        """닉네임 중복 검사 (현재 사용자 제외)"""
+        nickname = self.cleaned_data.get("nickname", "").strip()
+
+        # 닉네임을 변경하지 않으면 검사 안함
+        if not nickname or nickname == self.user.first_name:
+            return nickname
+
+        # 다른 사용자와 중복 체크
+        if User.objects.filter(first_name=nickname).exclude(pk=self.user.pk).exists():
+            raise forms.ValidationError("이미 사용 중인 닉네임입니다.")
+
+        # 24시간 제한 체크
+        from .models import NicknameChangeLog
+
+        last_change = (
+            NicknameChangeLog.objects.filter(user=self.user).order_by("-changed_at").first()
+        )
+
+        if last_change:
+            time_since_change = timezone.now() - last_change.changed_at
+            if time_since_change < timedelta(days=1):
+                hours_left = 24 - int(time_since_change.total_seconds() / 3600)
+                raise forms.ValidationError(f"닉네임은 하루에 한번만 변경할 수 있습니다. ({hours_left}시간 후 변경 가능)")
+
+        return nickname
+
+    def clean(self):
+        """비밀번호 변경 검증"""
+        cleaned_data = super().clean()
+        old_password = cleaned_data.get("old_password")
+        new_password1 = cleaned_data.get("new_password1")
+        new_password2 = cleaned_data.get("new_password2")
+
+        # 비밀번호 변경하려는 경우
+        if any([old_password, new_password1, new_password2]):
+            # 모든 필드가 입력되었는지 확인
+            if not all([old_password, new_password1, new_password2]):
+                raise forms.ValidationError("비밀번호를 변경하려면 모든 비밀번호 필드를 입력해야 합니다.")
+
+            # 현재 비밀번호 확인
+            if not self.user.check_password(old_password):
+                raise forms.ValidationError("현재 비밀번호가 올바르지 않습니다.")
+
+            # 새 비밀번호 일치 확인
+            if new_password1 != new_password2:
+                raise forms.ValidationError("새 비밀번호가 일치하지 않습니다.")
+
+            # 비밀번호 최소 길이 체크
+            if len(new_password1) < 8:
+                raise forms.ValidationError("새 비밀번호는 최소 8자 이상이어야 합니다.")
+
+        return cleaned_data
+
+    def save(self):
+        """프로필 수정 저장"""
+        from .models import NicknameChangeLog
+
+        nickname = self.cleaned_data.get("nickname", "").strip()
+        new_password1 = self.cleaned_data.get("new_password1")
+
+        # 닉네임 변경
+        if nickname and nickname != self.user.first_name:
+            old_nickname = self.user.first_name
+            self.user.first_name = nickname
+            self.user.save()
+
+            # 변경 이력 저장
+            NicknameChangeLog.objects.create(
+                user=self.user, old_nickname=old_nickname, new_nickname=nickname
+            )
+
+        # 비밀번호 변경
+        if new_password1:
+            self.user.set_password(new_password1)
+            self.user.save()
+
+        return self.user

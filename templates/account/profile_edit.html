@@ -1,0 +1,110 @@
+{% extends "account/base_auth.html" %}
+{% block title %}프로필 수정 – Omok{% endblock %}
+{% block content %}
+<h1><span class="stone white"></span> 프로필 수정</h1>
+<p class="sub">닉네임과 비밀번호를 변경할 수 있습니다</p>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+
+<form method="post" action="{% url 'accounts:profile_edit' %}">
+  {% csrf_token %}
+
+  <!-- 비폼 필드 에러 표시 -->
+  {% if form.non_field_errors %}
+    <div class="error-message">
+      {% for error in form.non_field_errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="row">
+    <label for="id_nickname">닉네임</label>
+    {{ form.nickname }}
+    {% if form.nickname.errors %}
+      <div class="error-message">
+        {% for error in form.nickname.errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+    <p class="muted">닉네임은 하루에 한번만 변경할 수 있습니다</p>
+  </div>
+
+  <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
+
+  <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">비밀번호 변경 <span class="muted">(선택)</span></h3>
+
+  <div class="row">
+    <label for="id_old_password">현재 비밀번호</label>
+    {{ form.old_password }}
+    {% if form.old_password.errors %}
+      <div class="error-message">
+        {% for error in form.old_password.errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="row">
+    <label for="id_new_password1">새 비밀번호</label>
+    {{ form.new_password1 }}
+    {% if form.new_password1.errors %}
+      <div class="error-message">
+        {% for error in form.new_password1.errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="row">
+    <label for="id_new_password2">새 비밀번호 확인</label>
+    {{ form.new_password2 }}
+    {% if form.new_password2.errors %}
+      <div class="error-message">
+        {% for error in form.new_password2.errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <button class="btn" type="submit">저장하기</button>
+  <div class="links">
+    <a href="{% url 'games:lobby' %}">취소하고 로비로 돌아가기</a>
+  </div>
+</form>
+
+<style>
+  .alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+  }
+  .alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+  .alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+  .error-message {
+    margin-top: 0.5rem;
+    color: #dc3545;
+    font-size: 0.9rem;
+  }
+  .error-message p {
+    margin: 0.25rem 0;
+  }
+</style>
+{% endblock %}
