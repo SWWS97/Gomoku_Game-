@@ -6,7 +6,9 @@ class NicknameChangeLog(models.Model):
     """닉네임 변경 이력"""
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="nickname_changes"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="nickname_changes",
     )
     old_nickname = models.CharField(max_length=30, blank=True)
     new_nickname = models.CharField(max_length=30)

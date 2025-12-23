@@ -33,7 +33,9 @@ def ProfileEditView(request):
             # 비밀번호 변경 시 세션 유지
             if password_changed:
                 update_session_auth_hash(request, request.user)
-                messages.success(request, "프로필이 수정되었습니다. 비밀번호가 변경되었습니다.")
+                messages.success(
+                    request, "프로필이 수정되었습니다. 비밀번호가 변경되었습니다."
+                )
             else:
                 messages.success(request, "프로필이 수정되었습니다.")
 

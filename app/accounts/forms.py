@@ -151,14 +151,18 @@ class ProfileEditForm(forms.Form):
         from .models import NicknameChangeLog
 
         last_change = (
-            NicknameChangeLog.objects.filter(user=self.user).order_by("-changed_at").first()
+            NicknameChangeLog.objects.filter(user=self.user)
+            .order_by("-changed_at")
+            .first()
         )
 
         if last_change:
             time_since_change = timezone.now() - last_change.changed_at
             if time_since_change < timedelta(days=1):
                 hours_left = 24 - int(time_since_change.total_seconds() / 3600)
-                raise forms.ValidationError(f"닉네임은 하루에 한번만 변경할 수 있습니다. ({hours_left}시간 후 변경 가능)")
+                raise forms.ValidationError(
+                    f"닉네임은 하루에 한번만 변경할 수 있습니다. ({hours_left}시간 후 변경 가능)"
+                )
 
         return nickname
 
@@ -173,7 +177,9 @@ class ProfileEditForm(forms.Form):
         if any([old_password, new_password1, new_password2]):
             # 모든 필드가 입력되었는지 확인
             if not all([old_password, new_password1, new_password2]):
-                raise forms.ValidationError("비밀번호를 변경하려면 모든 비밀번호 필드를 입력해야 합니다.")
+                raise forms.ValidationError(
+                    "비밀번호를 변경하려면 모든 비밀번호 필드를 입력해야 합니다."
+                )
 
             # 현재 비밀번호 확인
             if not self.user.check_password(old_password):

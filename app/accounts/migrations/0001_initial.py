@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -15,18 +14,33 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='NicknameChangeLog',
+            name="NicknameChangeLog",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('old_nickname', models.CharField(blank=True, max_length=30)),
-                ('new_nickname', models.CharField(max_length=30)),
-                ('changed_at', models.DateTimeField(auto_now_add=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='nickname_changes', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("old_nickname", models.CharField(blank=True, max_length=30)),
+                ("new_nickname", models.CharField(max_length=30)),
+                ("changed_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="nickname_changes",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': '닉네임 변경 이력',
-                'verbose_name_plural': '닉네임 변경 이력',
-                'ordering': ['-changed_at'],
+                "verbose_name": "닉네임 변경 이력",
+                "verbose_name_plural": "닉네임 변경 이력",
+                "ordering": ["-changed_at"],
             },
         ),
     ]
