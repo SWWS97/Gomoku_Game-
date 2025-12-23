@@ -66,7 +66,9 @@ class SocialSignupForm(forms.Form):
 
         # 중복 체크 (first_name 필드 사용)
         if User.objects.filter(first_name=nickname).exists():
-            raise forms.ValidationError("이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해주세요.")
+            raise forms.ValidationError(
+                "이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해주세요."
+            )
 
         return nickname
 
