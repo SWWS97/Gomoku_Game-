@@ -163,16 +163,12 @@ def _has_open_three_on_dir(board, x, y, dx, dy, color):
     """
     (x,y)에 color가 '이미' 놓였다고 가정.
     같은 방향에서 '빈칸 하나에 한 수 더 두면' 열린4(.BBBB.)가 되는 경우가 있으면 True.
-    추가로, 메인 착수만으로 그 방향이 이미 열린4(.BBBB.)라면
-    해당 방향도 33 판정에서 '열린3'로 간주한다.  (테스트 기대치 반영)
+
+    주의: 이미 열린4(.BBBB.)인 방향은 열린3으로 간주하지 않음 (표준 렌주 룰)
     """
     # 현재 라인 문자열
     s, _ = _line_as_string_with_coords(board, x, y, dx, dy, span=6)
     c = color
-
-    # ✅ 변경점: 메인 착수만으로 이미 열린4면 이 방향을 '열린3'로 인정
-    if f".{c}{c}{c}{c}." in s:
-        return True
 
     n = len(board)
 
