@@ -913,31 +913,45 @@
     const chatToggleBtn = document.getElementById("chat-toggle-btn");
     const chatCloseBtn = document.getElementById("chat-close-btn");
 
+    let userManuallyOpened = false; // 사용자가 수동으로 열었는지 추적
+
     // 초기 상태 설정 (데스크톱에서는 열림, 모바일에서는 닫힘)
     function initChatState() {
       if (window.innerWidth <= 768) {
-        // 모바일: 닫힌 상태로 시작
-        chatContainer.classList.add("hidden");
+        // 모바일: 사용자가 수동으로 열지 않았으면 닫힌 상태
+        if (!userManuallyOpened) {
+          chatContainer.classList.add("hidden");
+        }
       } else {
-        // 데스크톱: 열린 상태로 시작
+        // 데스크톱: 항상 열린 상태
         chatContainer.classList.remove("hidden");
+        userManuallyOpened = false; // 데스크톱에서는 플래그 리셋
       }
     }
 
     // 초기 상태 설정
     initChatState();
 
-    // 화면 크기 변경 시 상태 업데이트
-    window.addEventListener("resize", initChatState);
+    // 화면 크기 변경 시 상태 업데이트 (debounce로 키보드 올라올 때 방지)
+    let resizeTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        // 너비 변경이 클 때만 실행 (키보드로 인한 높이 변경은 무시)
+        initChatState();
+      }, 200);
+    });
 
     // 토글 버튼 클릭 (모바일에서 채팅 열기)
     chatToggleBtn.addEventListener("click", () => {
       chatContainer.classList.remove("hidden");
+      userManuallyOpened = true; // 사용자가 수동으로 열었음을 표시
     });
 
     // 닫기 버튼 클릭 (모바일에서 채팅 닫기)
     chatCloseBtn.addEventListener("click", () => {
       chatContainer.classList.add("hidden");
+      userManuallyOpened = false; // 플래그 리셋
     });
   })();
   </script>
