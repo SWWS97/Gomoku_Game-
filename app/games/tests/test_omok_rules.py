@@ -61,10 +61,10 @@ class OmokRuleTests(unittest.TestCase):
         # 중심 (7,7)에 둘 차례로 생각하고 주변에 '열린3'이 양방향 생기게 배치
         # 가로: .BB.B. 형태 (중앙 7,7에 두면 .BBB.)
         put(bd, [(7, 5), (7, 6)], BLACK)  # BB . (중앙 7,7) . B
-        put(bd, [(7, 9)], BLACK)           # 한 칸 띄워서 B
+        put(bd, [(7, 9)], BLACK)  # 한 칸 띄워서 B
         # 세로: .BB.B. 형태 (중앙 7,7에 두면 .BBB.)
         put(bd, [(5, 7), (6, 7)], BLACK)  # BB . (중앙 7,7) . B
-        put(bd, [(9, 7)], BLACK)           # 한 칸 띄워서 B
+        put(bd, [(9, 7)], BLACK)  # 한 칸 띄워서 B
 
         # 흑이 (7,7)에 두면 가로/세로 모두 열린3 (.BBB.) → 쌍삼 금수
         self.assertTrue(is_forbidden_double_three([row[:] for row in bd], 7, 7, BLACK))
