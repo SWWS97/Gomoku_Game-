@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>오목 로비 – Omok</title>
+  <title>Gomoku 로비 – Omok</title>
   <style>
     :root {
       --wood: #d4b781;
@@ -327,6 +327,49 @@
       display: flex;
       flex-direction: column;
       z-index: 100;
+      transition: transform 0.3s ease;
+    }
+
+    .chat-container.hidden {
+      transform: translateY(calc(100% + 30px));
+    }
+
+    .chat-toggle-btn {
+      position: fixed;
+      bottom: 20px;
+      left: 10px;
+      width: 60px;
+      height: 60px;
+      background: var(--border);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 99;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+
+    .chat-toggle-btn:active {
+      transform: scale(0.95);
+    }
+
+    .chat-close-btn {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: none;
+      align-items: center;
+      justify-content: center;
     }
 
     .chat-header {
@@ -526,6 +569,42 @@
       .empty-state::before {
         font-size: 36px;
       }
+
+      /* 모바일 채팅창 스타일 */
+      .chat-container {
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        border: none;
+      }
+
+      .chat-container.hidden {
+        transform: translateY(100%);
+      }
+
+      .chat-header {
+        border-radius: 0;
+        padding: 16px;
+      }
+
+      .chat-close-btn {
+        display: flex;
+      }
+
+      .chat-toggle-btn {
+        display: flex;
+        bottom: 80px;
+        right: 20px;
+        left: auto;
+      }
+
+      .chat-message .text {
+        max-width: calc(100vw - 80px);
+      }
     }
 
     /* 초소형 모바일 */
@@ -564,7 +643,7 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>오목 로비</h1>
+      <h1>Gomoku 로비</h1>
       <div class="top-actions">
         <span class="user-info">{{ user.first_name|default:user.username }}</span>
         <a href="{% url 'games:history' %}" class="btn" style="background: #5a4a3a; font-size: 14px; padding: 8px 16px;">내 전적</a>
@@ -616,10 +695,14 @@
     </div>
   </div>
 
+  <!-- 채팅 토글 버튼 (모바일용) -->
+  <button class="chat-toggle-btn" id="chat-toggle-btn" aria-label="채팅 열기">💬</button>
+
   <!-- 채팅창 -->
-  <div class="chat-container">
+  <div class="chat-container hidden" id="chat-container">
     <div class="chat-header">
       <span>Gomoku 채팅</span>
+      <button class="chat-close-btn" id="chat-close-btn" aria-label="채팅 닫기">×</button>
     </div>
     <div class="chat-messages" id="chat-messages">
       <!-- 채팅 메시지가 여기에 추가됩니다 -->
@@ -821,6 +904,40 @@
       if (e.key === "Enter") {
         sendMessage();
       }
+    });
+  })();
+
+  // 채팅 토글 관리 (모바일용)
+  (function(){
+    const chatContainer = document.getElementById("chat-container");
+    const chatToggleBtn = document.getElementById("chat-toggle-btn");
+    const chatCloseBtn = document.getElementById("chat-close-btn");
+
+    // 초기 상태 설정 (데스크톱에서는 열림, 모바일에서는 닫힘)
+    function initChatState() {
+      if (window.innerWidth <= 768) {
+        // 모바일: 닫힌 상태로 시작
+        chatContainer.classList.add("hidden");
+      } else {
+        // 데스크톱: 열린 상태로 시작
+        chatContainer.classList.remove("hidden");
+      }
+    }
+
+    // 초기 상태 설정
+    initChatState();
+
+    // 화면 크기 변경 시 상태 업데이트
+    window.addEventListener("resize", initChatState);
+
+    // 토글 버튼 클릭 (모바일에서 채팅 열기)
+    chatToggleBtn.addEventListener("click", () => {
+      chatContainer.classList.remove("hidden");
+    });
+
+    // 닫기 버튼 클릭 (모바일에서 채팅 닫기)
+    chatCloseBtn.addEventListener("click", () => {
+      chatContainer.classList.add("hidden");
     });
   })();
   </script>
