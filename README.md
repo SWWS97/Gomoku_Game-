@@ -17,8 +17,7 @@ WebSocket을 활용한 실시간 멀티플레이어 오목 게임입니다.
 | 백엔드       | Django 5.0 + Channels 4.x  |
 | WebSocket | Daphne (ASGI 서버)           |
 | 메시지 브로커   | Redis 7.0                  |
-| DB (개발)   | SQLite                     |
-| DB (프로덕션) | PostgreSQL 16              |
+| DB        | PostgreSQL 16 (AWS RDS)    |
 | 프론트엔드     | Vanilla JS + WebSocket API |
 | 소셜 로그인    | django-allauth             |
 | 패키지 매니저   | UV                         |
