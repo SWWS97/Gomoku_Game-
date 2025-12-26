@@ -59,13 +59,14 @@ class OmokRuleTests(unittest.TestCase):
         # 동일 배치에서 백은 금수 아님, 흑은 금수
         bd = board()
         # 중심 (7,7)에 둘 차례로 생각하고 주변에 '열린3'이 양방향 생기게 배치
-        # 가로: . B . B B .  형태가 되도록
-        put(bd, [(7, 6), (7, 8)], BLACK)  # B . B
-        put(bd, [(7, 9)], BLACK)  # B . B B
-        # 세로: . B B . .  형태로 (중앙에 둘 때 .BBB. 하나 더 생김)
-        put(bd, [(6, 7), (8, 7)], BLACK)
+        # 가로: .BB.B. 형태 (중앙 7,7에 두면 .BBB.)
+        put(bd, [(7, 5), (7, 6)], BLACK)  # BB . (중앙 7,7) . B
+        put(bd, [(7, 9)], BLACK)           # 한 칸 띄워서 B
+        # 세로: .BB.B. 형태 (중앙 7,7에 두면 .BBB.)
+        put(bd, [(5, 7), (6, 7)], BLACK)  # BB . (중앙 7,7) . B
+        put(bd, [(9, 7)], BLACK)           # 한 칸 띄워서 B
 
-        # 흑이 (7,7)에 두면 가로/세로 모두 열린3 → 쌍삼 금수
+        # 흑이 (7,7)에 두면 가로/세로 모두 열린3 (.BBB.) → 쌍삼 금수
         self.assertTrue(is_forbidden_double_three([row[:] for row in bd], 7, 7, BLACK))
         # 백은 동일 위치 허용
         self.assertFalse(is_forbidden_double_three([row[:] for row in bd], 7, 7, WHITE))
