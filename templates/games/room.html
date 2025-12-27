@@ -1243,6 +1243,8 @@
 
   /* ===== 렌더 ===== */
   let readyModalShown = false;  // 준비 모달이 이미 표시되었는지 추적
+  let prevBoard = "";  // 이전 보드 상태 (마지막 착수 찾기용)
+  let lastStoneIndex = -1;  // 마지막 착수 위치 (전역으로 관리)
 
   function render(state){
     const { board, turn, winner, black_player, white_player, black_time, white_time } = state;
@@ -1260,13 +1262,13 @@
     // 돌 렌더
     stonesEl.innerHTML = "";
     let currentStoneCount = 0;
-    let lastStoneIndex = -1;
 
-    // 마지막 착수 위치 찾기 (가장 마지막에 놓인 돌)
-    for (let i = board.length - 1; i >= 0; i--) {
-      if (board[i] !== ".") {
-        lastStoneIndex = i;
-        break;
+    // 마지막 착수 위치 찾기 (새로운 돌이 추가되었을 때만)
+    if (prevBoard && prevBoard.length === board.length) {
+      for (let i = 0; i < board.length; i++) {
+        if (prevBoard[i] === "." && board[i] !== ".") {
+          lastStoneIndex = i;  // 새로 추가된 돌의 위치 업데이트
+        }
       }
     }
 
@@ -1281,8 +1283,8 @@
       const d = document.createElement("div");
       d.className = "stone " + (cell==="B" ? "black" : "white");
 
-      // 마지막 착수된 돌이면 애니메이션 추가
-      if (i === lastStoneIndex && currentStoneCount > prevStoneCount) {
+      // 마지막 착수된 돌이면 항상 애니메이션 클래스 추가
+      if (i === lastStoneIndex) {
         d.className += " last-move";
       }
 
@@ -1430,6 +1432,9 @@
         timerInterval = null;
       }
     }
+
+    // 현재 보드 상태를 저장 (다음 render 시 마지막 착수 찾기용)
+    prevBoard = board;
   }
 })();
 </script>
