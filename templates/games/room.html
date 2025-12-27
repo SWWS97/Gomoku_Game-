@@ -199,10 +199,6 @@
       }
     }
 
-    /* 하단 상태(이제 사용 안 함, 혹시 몰라 남겨둠) */
-    .status{ margin:8px 0 0 16px; font-weight:600; }
-    .status .winner{ color:#7a2e2e; margin-left:10px; display:none; }
-
     /* ===== 리매치 대기 점 애니메이션 ===== */
     .dots::after {
       content: '';
@@ -479,10 +475,6 @@
     <div class="layer" id="points"></div>
   </div>
 
-  <div class="status">
-    <span id="winner" class="winner"></span>
-  </div>
-
   <!-- 게임 종료 모달 -->
   <div id="gameOverModal" class="game-over-modal">
     <div class="modal-content">
@@ -581,7 +573,6 @@
   const pointsEl     = document.getElementById("points");
   const wsState      = document.getElementById("ws-state");
   const turnEl       = document.getElementById("turn");
-  const winnerEl     = document.getElementById("winner");     // 하단(보조)
   const winnerTop    = document.getElementById("winnerTop");  // 상단 배지
   const blackPlayer  = document.getElementById("black-player");
   const whitePlayer  = document.getElementById("white-player");
@@ -634,21 +625,11 @@
     if (currentTurn === "black") {
       currentBlackTime = Math.max(0, currentBlackTime - 1);
       blackTimer.textContent = formatTime(currentBlackTime);
-      // 30초 이하면 경고 표시
-      if (currentBlackTime <= 30) {
-        blackTimer.classList.add("warning");
-      } else {
-        blackTimer.classList.remove("warning");
-      }
+      updateTimerWarning(blackTimer, currentBlackTime);
     } else {
       currentWhiteTime = Math.max(0, currentWhiteTime - 1);
       whiteTimer.textContent = formatTime(currentWhiteTime);
-      // 30초 이하면 경고 표시
-      if (currentWhiteTime <= 30) {
-        whiteTimer.classList.add("warning");
-      } else {
-        whiteTimer.classList.remove("warning");
-      }
+      updateTimerWarning(whiteTimer, currentWhiteTime);
     }
   }
 
@@ -753,17 +734,12 @@
   /* ===== 플레이어 입장 모달 ===== */
   window.closePlayerJoinedModal = function() {
     playerJoinedModal.style.display = "none";
-    // 모달 닫을 때도 AudioContext 활성화
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
+    ensureAudioReady();
     // 플레이어 입장 모달 닫은 후 준비 모달 표시
     showReadyModal();
   };
 
   /* ===== 준비 모달 ===== */
-  let isRoomCreator = false;  // 현재 유저가 방장(흑)인지 여부
-
   function showReadyModal() {
     // 이미 표시되어 있으면 중복 방지
     if (readyModal.style.display === "flex") return;
@@ -804,23 +780,8 @@
 
   function handleReadyState(data) {
     // 준비 상태 업데이트
-    if (data.black_ready) {
-      readyBlackStatus.textContent = "준비 완료!";
-      readyBlackStatus.style.color = "#4a7c59";
-      readyBlackStatus.style.fontWeight = "700";
-    } else {
-      readyBlackStatus.textContent = "준비 대기중...";
-      readyBlackStatus.style.color = "#999";
-    }
-
-    if (data.white_ready) {
-      readyWhiteStatus.textContent = "준비 완료!";
-      readyWhiteStatus.style.color = "#4a7c59";
-      readyWhiteStatus.style.fontWeight = "700";
-    } else {
-      readyWhiteStatus.textContent = "준비 대기중...";
-      readyWhiteStatus.style.color = "#999";
-    }
+    updateReadyStatus(readyBlackStatus, data.black_ready);
+    updateReadyStatus(readyWhiteStatus, data.white_ready);
 
     // 양쪽 모두 준비 완료 && 방장이면 게임 시작 버튼 표시
     if (data.black_ready && data.white_ready && data.is_room_creator) {
@@ -854,16 +815,11 @@
 
       // 준비 모달 표시
       showReadyModal();
-    } else {
-      // 한쪽만 요청한 상태: 상대방이 수락하면 버튼 텍스트 업데이트
-      if (data.rematch_black && data.rematch_white) {
-        // 이미 위에서 처리
-      } else if (data.rematch_black || data.rematch_white) {
-        // 한쪽만 요청한 상태
-        if (rematchBtn.textContent !== "요청됨...") {
-          // 상대방이 요청한 경우
-          rematchBtn.textContent = "상대방이 요청함";
-        }
+    } else if (data.rematch_black || data.rematch_white) {
+      // 한쪽만 요청한 상태
+      if (rematchBtn.textContent !== "요청됨...") {
+        // 상대방이 요청한 경우
+        rematchBtn.textContent = "상대방이 요청함";
       }
     }
   }
@@ -919,7 +875,37 @@
   /* ===== 효과음 ===== */
   let prevStoneCount = 0;  // 이전 돌 개수 추적
   let audioCtx = null;  // AudioContext를 재사용
-  let lastPlayTime = 0;  // 마지막 재생 시간
+
+  /* ===== 헬퍼 함수들 ===== */
+  // AudioContext resume 헬퍼
+  function ensureAudioReady() {
+    if (audioCtx && audioCtx.state === 'suspended') {
+      return audioCtx.resume();
+    }
+    return Promise.resolve();
+  }
+
+  // 타이머 경고 표시 헬퍼
+  function updateTimerWarning(timerEl, timeInSeconds) {
+    if (timeInSeconds <= 30) {
+      timerEl.classList.add("warning");
+    } else {
+      timerEl.classList.remove("warning");
+    }
+  }
+
+  // 준비 상태 업데이트 헬퍼
+  function updateReadyStatus(statusEl, isReady) {
+    if (isReady) {
+      statusEl.textContent = "준비 완료!";
+      statusEl.style.color = "#4a7c59";
+      statusEl.style.fontWeight = "700";
+    } else {
+      statusEl.textContent = "준비 대기중...";
+      statusEl.style.color = "#999";
+      statusEl.style.fontWeight = "";
+    }
+  }
 
   function initAudio() {
     if (!audioCtx) {
@@ -929,11 +915,7 @@
         console.error('AudioContext 생성 실패:', e);
       }
     }
-
-    // AudioContext가 있으면 항상 resume 시도
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
+    ensureAudioReady();
   }
 
   // 실제 재생 함수 먼저 선언 (호이스팅 이슈 방지)
@@ -941,8 +923,6 @@
     try {
       if (!audioCtx) return;
       if (audioCtx.state === 'suspended' || audioCtx.state === 'closed') return;
-
-      lastPlayTime = Date.now();
 
       // 매번 새로운 버퍼 생성
       const bufferSize = audioCtx.sampleRate * 0.05; // 50ms
@@ -1330,9 +1310,6 @@
       newGameBtn.disabled = false;
       newGameBtn.style.opacity = "1";
       newGameBtn.style.cursor = "pointer";
-      // 하단 표시는 숨김
-      winnerEl.textContent = "";
-      winnerEl.style.display = "none";
 
       // 🎉 게임 종료 모달 표시 (승자 닉네임과 함께)
       const winnerName = winner === "black" ? black_player : white_player;
@@ -1389,18 +1366,8 @@
       // 타이머 표시
       blackTimer.textContent = formatTime(currentBlackTime);
       whiteTimer.textContent = formatTime(currentWhiteTime);
-
-      // 30초 이하면 경고 표시
-      if (currentBlackTime <= 30) {
-        blackTimer.classList.add("warning");
-      } else {
-        blackTimer.classList.remove("warning");
-      }
-      if (currentWhiteTime <= 30) {
-        whiteTimer.classList.add("warning");
-      } else {
-        whiteTimer.classList.remove("warning");
-      }
+      updateTimerWarning(blackTimer, currentBlackTime);
+      updateTimerWarning(whiteTimer, currentWhiteTime);
 
       // 현재 턴 플레이어에게 active 클래스 추가
       if (turn === "black") {
