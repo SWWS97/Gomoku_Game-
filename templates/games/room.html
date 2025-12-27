@@ -765,6 +765,10 @@
   let isRoomCreator = false;  // 현재 유저가 방장(흑)인지 여부
 
   function showReadyModal() {
+    // 이미 표시되어 있으면 중복 방지
+    if (readyModal.style.display === "flex") return;
+
+    readyModalShown = true;  // 플래그 설정
     readyModal.style.display = "flex";
     // 초기 상태: 모두 준비 대기중
     readyBlackStatus.textContent = "준비 대기중...";
