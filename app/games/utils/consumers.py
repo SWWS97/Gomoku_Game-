@@ -694,6 +694,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
             # 양쪽 모두 리매치 요청했으면 게임 리셋
             if game.rematch_black and game.rematch_white:
+                # 흑/백 플레이어 교체 (색 교대)
+                game.black, game.white = game.white, game.black
+
                 # 게임판 초기화
                 game.board = "." * (BOARD_SIZE * BOARD_SIZE)
                 game.turn = "black"
@@ -715,6 +718,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         "board",
                         "turn",
                         "winner",
+                        "black",
+                        "white",
                         "black_time_remaining",
                         "white_time_remaining",
                         "last_move_time",
@@ -776,6 +781,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
             # 양쪽 모두 수락했으면 게임 리셋
             if game.rematch_black and game.rematch_white:
+                # 흑/백 플레이어 교체 (색 교대)
+                game.black, game.white = game.white, game.black
+
                 # 게임판 초기화
                 game.board = "." * (BOARD_SIZE * BOARD_SIZE)
                 game.turn = "black"
@@ -797,6 +805,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         "board",
                         "turn",
                         "winner",
+                        "black",
+                        "white",
                         "black_time_remaining",
                         "white_time_remaining",
                         "last_move_time",
