@@ -5,6 +5,7 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
+from django.db.models import Q
 
 from ..models import BOARD_SIZE, Game, GameHistory, Move
 from .omok import (
@@ -73,6 +74,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             game = await self.get_game()
             state = await self.game_state(game)
             await self.send_json({"type": "state", **state})
+
+            # 로비에 사용자 상태 변경 알림 (게임방 입장)
+            await self.notify_lobby_status_change()
         except Exception as e:
             print("[WS][connect] ERROR:", repr(e))
             try:
@@ -83,6 +87,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
     async def disconnect(self, code):
         try:
             await self.channel_layer.group_discard(self.group, self.channel_name)
+
+            # 로비에 사용자 상태 변경 알림 (게임방 퇴장)
+            await self.notify_lobby_status_change()
         except Exception:
             pass
 
@@ -850,6 +857,15 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         except Exception as e:
             print("[WS][notify_rematch_declined] ERROR:", repr(e))
 
+    async def notify_lobby_status_change(self):
+        """로비에 사용자 상태 변경 알림"""
+        try:
+            await self.channel_layer.group_send(
+                "lobby", {"type": "user_status_changed"}
+            )
+        except Exception as e:
+            print("[WS][notify_lobby_status_change] ERROR:", repr(e))
+
 
 class LobbyConsumer(AsyncJsonWebsocketConsumer):
     """로비 실시간 접속자 목록 관리"""
@@ -940,6 +956,14 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         except Exception as e:
             print("[LobbyWS][user_left] ERROR:", repr(e))
 
+    async def user_status_changed(self, event):
+        """사용자 상태 변경 알림"""
+        try:
+            users = await self.get_online_users()
+            await self.send_json({"type": "users", "users": users})
+        except Exception as e:
+            print("[LobbyWS][user_status_changed] ERROR:", repr(e))
+
     async def receive_json(self, content):
         """클라이언트로부터 메시지 수신"""
         try:
@@ -979,12 +1003,83 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             print("[LobbyWS][broadcast_chat_message] ERROR:", repr(e))
 
     async def get_online_users(self):
-        """현재 접속 중인 사용자 목록 반환 (중복 제거)"""
-        # user_id 기준으로 중복 제거
+        """현재 접속 중인 사용자 목록 반환 (중복 제거) + 게임 상태"""
+        # 1. 로비에 연결된 사용자
         unique_users = {}
         for user_info in LobbyConsumer.connected_users.values():
             user_id = user_info["user_id"]
             if user_id not in unique_users:
                 unique_users[user_id] = user_info
 
-        return list(unique_users.values())
+        # 2. 게임 중인 사용자 추가 (로비에 없는 사람)
+        game_users = await self.get_users_in_games()
+        for user_info in game_users:
+            user_id = user_info["user_id"]
+            if user_id not in unique_users:
+                unique_users[user_id] = user_info
+
+        # 각 사용자의 게임 상태 확인
+        users_with_status = []
+        for user_info in unique_users.values():
+            status = await self.get_user_game_status(user_info["user_id"])
+            users_with_status.append(
+                {
+                    "user_id": user_info["user_id"],
+                    "nickname": user_info["nickname"],
+                    "status": status,
+                }
+            )
+
+        return users_with_status
+
+    @database_sync_to_async
+    def get_users_in_games(self):
+        """진행 중인 게임의 모든 플레이어 조회"""
+        # 승자가 없는 모든 게임 (진행 중인 게임)
+        games = Game.objects.filter(winner__isnull=True).select_related(
+            "black", "white"
+        )
+
+        users = []
+        seen_user_ids = set()
+
+        for game in games:
+            # 흑 플레이어
+            if game.black and game.black.id not in seen_user_ids:
+                users.append(
+                    {
+                        "user_id": game.black.id,
+                        "nickname": game.black.first_name or game.black.username,
+                    }
+                )
+                seen_user_ids.add(game.black.id)
+
+            # 백 플레이어
+            if game.white and game.white.id not in seen_user_ids:
+                users.append(
+                    {
+                        "user_id": game.white.id,
+                        "nickname": game.white.first_name or game.white.username,
+                    }
+                )
+                seen_user_ids.add(game.white.id)
+
+        return users
+
+    @database_sync_to_async
+    def get_user_game_status(self, user_id):
+        """사용자의 게임 상태 반환: online, waiting, playing"""
+        # 진행 중인 게임 찾기 (승자가 없는 게임)
+        game = Game.objects.filter(
+            Q(black_id=user_id) | Q(white_id=user_id), winner__isnull=True
+        ).first()
+
+        if not game:
+            return "online"  # 게임 없음
+
+        # 양쪽 플레이어가 모두 있으면 "게임중"
+        if game.black and game.white:
+            return "playing"
+
+        # 한쪽만 있으면 "게임룸 대기중"
+        return "waiting"
