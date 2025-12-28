@@ -1022,11 +1022,13 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         users_with_status = []
         for user_info in unique_users.values():
             status = await self.get_user_game_status(user_info["user_id"])
-            users_with_status.append({
-                "user_id": user_info["user_id"],
-                "nickname": user_info["nickname"],
-                "status": status
-            })
+            users_with_status.append(
+                {
+                    "user_id": user_info["user_id"],
+                    "nickname": user_info["nickname"],
+                    "status": status,
+                }
+            )
 
         return users_with_status
 
@@ -1034,7 +1036,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
     def get_users_in_games(self):
         """진행 중인 게임의 모든 플레이어 조회"""
         # 승자가 없는 모든 게임 (진행 중인 게임)
-        games = Game.objects.filter(winner__isnull=True).select_related('black', 'white')
+        games = Game.objects.filter(winner__isnull=True).select_related(
+            "black", "white"
+        )
 
         users = []
         seen_user_ids = set()
@@ -1042,18 +1046,22 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         for game in games:
             # 흑 플레이어
             if game.black and game.black.id not in seen_user_ids:
-                users.append({
-                    "user_id": game.black.id,
-                    "nickname": game.black.first_name or game.black.username
-                })
+                users.append(
+                    {
+                        "user_id": game.black.id,
+                        "nickname": game.black.first_name or game.black.username,
+                    }
+                )
                 seen_user_ids.add(game.black.id)
 
             # 백 플레이어
             if game.white and game.white.id not in seen_user_ids:
-                users.append({
-                    "user_id": game.white.id,
-                    "nickname": game.white.first_name or game.white.username
-                })
+                users.append(
+                    {
+                        "user_id": game.white.id,
+                        "nickname": game.white.first_name or game.white.username,
+                    }
+                )
                 seen_user_ids.add(game.white.id)
 
         return users
@@ -1063,8 +1071,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         """사용자의 게임 상태 반환: online, waiting, playing"""
         # 진행 중인 게임 찾기 (승자가 없는 게임)
         game = Game.objects.filter(
-            Q(black_id=user_id) | Q(white_id=user_id),
-            winner__isnull=True
+            Q(black_id=user_id) | Q(white_id=user_id), winner__isnull=True
         ).first()
 
         if not game:
