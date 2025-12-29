@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.db.models import Q
 
 from ..models import BOARD_SIZE, Game, GameHistory, Move
+from app.accounts.models import UserProfile
 from .omok import (
     BLACK,
     WHITE,
@@ -61,6 +62,24 @@ def filter_profanity(text):
         if word in filtered_text:
             filtered_text = filtered_text.replace(word, "*" * len(word))
     return filtered_text
+
+
+def update_user_stats(black_user, white_user, winner):
+    """게임 종료 시 사용자 전적 업데이트"""
+    # 프로필이 없으면 생성
+    black_profile, _ = UserProfile.objects.get_or_create(user=black_user)
+    white_profile, _ = UserProfile.objects.get_or_create(user=white_user)
+
+    # 승패 업데이트
+    if winner == "black":
+        black_profile.wins += 1
+        white_profile.losses += 1
+    else:  # winner == "white"
+        white_profile.wins += 1
+        black_profile.losses += 1
+
+    black_profile.save(update_fields=["wins", "losses"])
+    white_profile.save(update_fields=["wins", "losses"])
 
 
 class GameConsumer(AsyncJsonWebsocketConsumer):
@@ -323,6 +342,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         created_at=game.created_at,
                         total_moves=total_moves,
                     )
+                    # 전적 업데이트
+                    update_user_stats(game.black, game.white, game.winner)
                     # 게임 저장 (리매치를 위해 삭제하지 않음)
                     game.save(
                         update_fields=[
@@ -363,6 +384,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         created_at=game.created_at,
                         total_moves=total_moves,
                     )
+                    # 전적 업데이트
+                    update_user_stats(game.black, game.white, game.winner)
                     # 게임 저장 (리매치를 위해 삭제하지 않음)
                     game.save(
                         update_fields=[
@@ -472,6 +495,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         created_at=game.created_at,
                         total_moves=total_moves,
                     )
+                    # 전적 업데이트
+                    update_user_stats(game.black, game.white, game.winner)
                     # 게임 저장 (리매치를 위해 삭제하지 않음)
                     game.save(
                         update_fields=[
@@ -658,6 +683,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 created_at=game.created_at,
                 total_moves=total_moves,
             )
+            # 전적 업데이트
+            update_user_stats(game.black, game.white, game.winner)
 
             # 최종 상태 저장 (broadcast용)
             black_name = (
