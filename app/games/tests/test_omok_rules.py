@@ -88,10 +88,10 @@ class OmokRuleTests(unittest.TestCase):
     def test_clear_double_three_with_two_open_threes(self):
         # 확실한 쌍삼 케이스: 두 방향 모두 .BBB. 가 되게 구성
         bd = board()
-        # 가로 라인: ..B.B.. (중앙에 두면 .BB.B. 포함)
+        # 가로 라인: ..B.B.. (중앙에 두면 .BBB. 포함)
         put(bd, [(8, 6), (8, 8)], BLACK)
-        # 세로 라인: ..B.B.. (중앙에 두면 .BB.B. 포함)
-        put(bd, [(6, 7), (10, 7)], BLACK)
+        # 세로 라인: ..B.B.. (중앙에 두면 .B.BB. 포함)
+        put(bd, [(6, 7), (9, 7)], BLACK)
         # (8,7)에 흑을 두면 가로/세로 모두 열린3 → 33
         self.assertTrue(is_forbidden_double_three([row[:] for row in bd], 8, 7, BLACK))
 
