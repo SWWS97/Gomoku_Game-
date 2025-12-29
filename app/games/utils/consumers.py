@@ -911,13 +911,17 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 if not game.game_started:
                     # 방장(흑)이 나간 경우 → 방 삭제
                     if is_black:
-                        print(f"[CLEANUP] 방장이 게임 시작 전 나감 - 방 삭제: game_id={game.id}")
+                        print(
+                            f"[CLEANUP] 방장이 게임 시작 전 나감 - 방 삭제: game_id={game.id}"
+                        )
                         game.delete()
                         return
 
                     # 백플레이어가 나간 경우 → 백플레이어만 제거
                     if is_white:
-                        print(f"[CLEANUP] 백플레이어가 게임 시작 전 나감 - 백플레이어 제거: game_id={game.id}")
+                        print(
+                            f"[CLEANUP] 백플레이어가 게임 시작 전 나감 - 백플레이어 제거: game_id={game.id}"
+                        )
                         game.white = None
                         game.white_ready = False
                         game.save(update_fields=["white", "white_ready"])
@@ -930,7 +934,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     return
 
                 # 케이스 3: 게임이 진행 중인 경우 → 아무것도 안 함 (재접속 가능)
-                print(f"[CLEANUP] 게임 진행 중 - 유지: game_id={game.id}, user={user.username}")
+                print(
+                    f"[CLEANUP] 게임 진행 중 - 유지: game_id={game.id}, user={user.username}"
+                )
 
         except Game.DoesNotExist:
             # 게임이 이미 삭제된 경우
