@@ -184,12 +184,11 @@ def _has_open_three_on_dir(board, x, y, dx, dy, color):
         finally:
             board[i][j] = EMPTY
 
-    # (2) 보조 패턴: .BBB. / .BB.B. / .B.BB. / .B.B.
+    # (2) 보조 패턴: .BBB. / .BB.B. / .B.BB.
     patterns = [
         f".{c}{c}{c}.",  # .BBB.
         f".{c}{c}.{c}.",  # .BB.B.
         f".{c}.{c}{c}.",  # .B.BB.
-        f".{c}.{c}.",  # .B.B. (점프 활삼)
     ]
     return any(p in s for p in patterns)
 
