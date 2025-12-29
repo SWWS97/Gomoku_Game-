@@ -744,6 +744,13 @@
     // 이미 표시되어 있으면 중복 방지
     if (readyModal.style.display === "flex") return;
 
+    // 다른 모든 모달 먼저 닫기
+    playerJoinedModal.style.display = "none";
+    gameOverModal.style.display = "none";
+    rematchRequestModal.style.display = "none";
+    rematchWaitingModal.style.display = "none";
+    countdownModal.style.display = "none";
+
     readyModalShown = true;  // 플래그 설정
     readyModal.style.display = "flex";
     // 초기 상태: 모두 준비 대기중
@@ -758,7 +765,7 @@
 
   window.clickReady = function() {
     if (ws.readyState !== WebSocket.OPEN) {
-      alert("서버와 연결되지 않았습니다.");
+      alert("게임과 연결되지 않았습니다.");
       return;
     }
     // 준비 완료 메시지 전송
@@ -771,7 +778,7 @@
 
   window.clickStartGame = function() {
     if (ws.readyState !== WebSocket.OPEN) {
-      alert("서버와 연결되지 않았습니다.");
+      alert("게임과 연결되지 않았습니다.");
       return;
     }
     // 게임 시작 메시지 전송
@@ -1178,7 +1185,7 @@
 
   function onPlay(e){
     if (ws.readyState !== WebSocket.OPEN){
-      alert("서버와 연결되지 않았습니다."); return;
+      alert("게임과 연결되지 않았습니다."); return;
     }
     // 착수 중이면 무시 (중복 클릭 방지)
     if (isPlaying) return;
@@ -1195,7 +1202,7 @@
   /* ===== 항복 버튼 ===== */
   surrenderBtn.addEventListener("click", ()=>{
     if (ws.readyState !== WebSocket.OPEN){
-      alert("서버와 연결되지 않았습니다."); return;
+      alert("게임과 연결되지 않았습니다."); return;
     }
     if (confirm("정말 항복하시겠습니까?")) {
       ws.send(JSON.stringify({type:"surrender"}));
