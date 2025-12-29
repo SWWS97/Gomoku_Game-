@@ -176,6 +176,10 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     await self.channel_layer.group_send(
                         self.group, {"type": "notify_rematch_accepted"}
                     )
+                    # 게임 리셋된 상태를 브로드캐스트
+                    await self.channel_layer.group_send(
+                        self.group, {"type": "broadcast_state"}
+                    )
             elif content.get("type") == "decline_rematch":
                 # 리매치 거절
                 user = self.scope.get("user")
