@@ -88,6 +88,11 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         try:
             await self.channel_layer.group_discard(self.group, self.channel_name)
 
+            # 브라우저 뒤로가기 등으로 연결이 끊긴 경우 게임 정리
+            user = self.scope.get("user")
+            if user and user.is_authenticated:
+                await self.cleanup_game_on_disconnect(user)
+
             # 로비에 사용자 상태 변경 알림 (게임방 퇴장)
             await self.notify_lobby_status_change()
         except Exception:
@@ -875,6 +880,69 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             )
         except Exception as e:
             print("[WS][notify_lobby_status_change] ERROR:", repr(e))
+
+    @database_sync_to_async
+    def cleanup_game_on_disconnect(self, user):
+        """
+        브라우저 뒤로가기 등으로 연결이 끊긴 경우 게임 정리
+        - 게임 시작 전: 방장이 나가면 방 삭제, 백플레이어가 나가면 제거
+        - 게임 진행 중: 아무것도 안 함 (재접속 가능)
+        - 혼자 연습 모드: 방 삭제
+        """
+        try:
+            with transaction.atomic():
+                game = Game.objects.select_for_update().filter(pk=self.game_id).first()
+
+                if not game:
+                    return
+
+                # 게임이 종료되었으면 정리하지 않음 (리매치 가능하도록)
+                if game.winner:
+                    return
+
+                # 사용자가 게임 참가자인지 확인
+                is_black = user == game.black
+                is_white = user == game.white
+
+                if not is_black and not is_white:
+                    return  # 관전자는 무시
+
+                # 케이스 1: 게임이 시작되지 않은 경우
+                if not game.game_started:
+                    # 방장(흑)이 나간 경우 → 방 삭제
+                    if is_black:
+                        print(
+                            f"[CLEANUP] 방장이 게임 시작 전 나감 - 방 삭제: game_id={game.id}"
+                        )
+                        game.delete()
+                        return
+
+                    # 백플레이어가 나간 경우 → 백플레이어만 제거
+                    if is_white:
+                        print(
+                            f"[CLEANUP] 백플레이어가 게임 시작 전 나감 - 백플레이어 제거: game_id={game.id}"
+                        )
+                        game.white = None
+                        game.white_ready = False
+                        game.save(update_fields=["white", "white_ready"])
+                        return
+
+                # 케이스 2: 게임이 시작되었지만 상대가 없는 경우 (연습 모드)
+                if game.game_started and not game.white:
+                    print(f"[CLEANUP] 혼자 연습 모드 - 방 삭제: game_id={game.id}")
+                    game.delete()
+                    return
+
+                # 케이스 3: 게임이 진행 중인 경우 → 아무것도 안 함 (재접속 가능)
+                print(
+                    f"[CLEANUP] 게임 진행 중 - 유지: game_id={game.id}, user={user.username}"
+                )
+
+        except Game.DoesNotExist:
+            # 게임이 이미 삭제된 경우
+            pass
+        except Exception as e:
+            print(f"[CLEANUP] ERROR: {repr(e)}")
 
 
 class LobbyConsumer(AsyncJsonWebsocketConsumer):
