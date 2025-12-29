@@ -2,10 +2,11 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q, F
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .models import BOARD_SIZE, Game, GameHistory, Move
+from app.accounts.models import UserProfile
 
 
 @login_required
@@ -21,10 +22,59 @@ def lobby(request):
         Q(black=request.user) | Q(white=request.user), winner__isnull=True
     ).exists()
 
+    # 랭킹 데이터 - 승률 기준 (최소 5판 이상, 승률 높은 순, 동률시 총 게임 수가 많은 순)
+    ranking_by_winrate = (
+        UserProfile.objects.filter(wins__gt=0)
+        .annotate(total_games=F("wins") + F("losses"))
+        .filter(total_games__gte=5)
+        .select_related("user")
+        .order_by("-wins", "-total_games")[:10]
+    )
+
+    # 랭킹 데이터 - 판수 기준 (총 게임 수가 많은 순)
+    ranking_by_games = (
+        UserProfile.objects.filter(wins__gt=0)
+        .annotate(total_games=F("wins") + F("losses"))
+        .select_related("user")
+        .order_by("-total_games", "-wins")[:10]
+    )
+
+    # 승률 계산을 위한 데이터 가공
+    winrate_rankings = []
+    for idx, profile in enumerate(ranking_by_winrate, 1):
+        winrate_rankings.append(
+            {
+                "rank": idx,
+                "nickname": profile.user.first_name or profile.user.username,
+                "wins": profile.wins,
+                "losses": profile.losses,
+                "total_games": profile.total_games,
+                "win_rate": profile.win_rate,
+            }
+        )
+
+    games_rankings = []
+    for idx, profile in enumerate(ranking_by_games, 1):
+        games_rankings.append(
+            {
+                "rank": idx,
+                "nickname": profile.user.first_name or profile.user.username,
+                "wins": profile.wins,
+                "losses": profile.losses,
+                "total_games": profile.total_games,
+                "win_rate": profile.win_rate,
+            }
+        )
+
     return render(
         request,
         "games/lobby.html",
-        {"waiting_games": waiting_games, "has_active_game": has_active_game},
+        {
+            "waiting_games": waiting_games,
+            "has_active_game": has_active_game,
+            "ranking_by_winrate": winrate_rankings,
+            "ranking_by_games": games_rankings,
+        },
     )
 
 

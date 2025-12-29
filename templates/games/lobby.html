@@ -268,6 +268,143 @@
     .ws-status.connected { color: #4a7c59; }
     .ws-status.disconnected { color: #c44; }
 
+    /* 랭킹판 스타일 */
+    .ranking-section {
+      background: var(--card);
+      padding: 20px 24px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      margin-bottom: 24px;
+    }
+
+    .ranking-header {
+      margin-bottom: 16px;
+    }
+
+    .ranking-header h3 {
+      margin: 0;
+      font-size: 16px;
+      color: var(--border);
+      font-weight: 700;
+    }
+
+    .ranking-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid var(--line);
+    }
+
+    .ranking-tab {
+      flex: 1;
+      padding: 10px 16px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: #666;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .ranking-tab:hover {
+      color: var(--border);
+      background: rgba(123, 92, 58, 0.05);
+    }
+
+    .ranking-tab.active {
+      color: var(--border);
+      border-bottom-color: var(--border);
+    }
+
+    .ranking-content {
+      display: block;
+    }
+
+    .ranking-content.hidden {
+      display: none;
+    }
+
+    .ranking-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .ranking-table thead {
+      background: var(--line);
+      color: white;
+    }
+
+    .ranking-table th {
+      padding: 10px 8px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .ranking-table tbody tr {
+      border-bottom: 1px solid #e0e0e0;
+      transition: background 0.2s;
+    }
+
+    .ranking-table tbody tr:hover {
+      background: rgba(212, 183, 129, 0.1);
+    }
+
+    .ranking-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .ranking-table td {
+      padding: 12px 8px;
+      text-align: center;
+    }
+
+    .ranking-table td.rank {
+      font-weight: 700;
+      color: var(--border);
+      font-size: 15px;
+    }
+
+    .ranking-table td.nickname {
+      font-weight: 600;
+      color: #333;
+      text-align: left;
+    }
+
+    .ranking-table td.winrate {
+      font-weight: 700;
+      color: #4a7c59;
+    }
+
+    .ranking-table td.total-games {
+      font-weight: 700;
+      color: #5a7c9a;
+    }
+
+    /* 순위별 메달 색상 */
+    .ranking-table tbody tr:nth-child(1) td.rank {
+      color: #FFD700; /* 금메달 */
+    }
+
+    .ranking-table tbody tr:nth-child(2) td.rank {
+      color: #C0C0C0; /* 은메달 */
+    }
+
+    .ranking-table tbody tr:nth-child(3) td.rank {
+      color: #CD7F32; /* 동메달 */
+    }
+
+    .empty-ranking {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+      font-size: 14px;
+    }
+
     /* 제목 입력 모달 */
     .modal-overlay {
       display: none;
@@ -667,6 +804,7 @@
       <div class="top-actions">
         <span class="user-info">{{ user.first_name|default:user.username }}</span>
         <a href="{% url 'games:history' %}" class="btn" style="background: #5a4a3a; font-size: 14px; padding: 8px 16px;">내 전적</a>
+        <button class="btn" id="ranking-btn" style="background: #4a7c59; font-size: 14px; padding: 8px 16px;">Gomoku 랭킹</button>
         <a href="{% url 'accounts:profile_edit' %}" class="btn" style="background: #6a5d4a; font-size: 14px; padding: 8px 16px;">프로필 수정</a>
         <a href="{% url 'account_logout' %}" class="btn logout-btn">로그아웃</a>
       </div>
@@ -758,6 +896,93 @@
           <button type="submit" class="btn">만들기</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 랭킹 모달 -->
+  <div class="modal-overlay" id="ranking-modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <h2>Gomoku 랭킹</h2>
+
+      <!-- 랭킹 탭 -->
+      <div class="ranking-tabs">
+        <button class="ranking-tab active" data-tab="winrate">승률 순위</button>
+        <button class="ranking-tab" data-tab="games">판수 순위</button>
+      </div>
+
+      <!-- 승률 순위 -->
+      <div id="ranking-winrate" class="ranking-content">
+        {% if ranking_by_winrate %}
+        <table class="ranking-table">
+          <thead>
+            <tr>
+              <th style="width: 60px;">순위</th>
+              <th style="text-align: left;">닉네임</th>
+              <th style="width: 80px;">승률</th>
+              <th style="width: 60px;">승</th>
+              <th style="width: 60px;">패</th>
+              <th style="width: 80px;">총 판수</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in ranking_by_winrate %}
+            <tr>
+              <td class="rank">{{ item.rank }}</td>
+              <td class="nickname">{{ item.nickname }}</td>
+              <td class="winrate">{{ item.win_rate }}%</td>
+              <td>{{ item.wins }}</td>
+              <td>{{ item.losses }}</td>
+              <td class="total-games">{{ item.total_games }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-ranking">
+          아직 랭킹 데이터가 없습니다.<br>
+          게임을 플레이하여 랭킹에 도전하세요!
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- 판수 순위 -->
+      <div id="ranking-games" class="ranking-content hidden">
+        {% if ranking_by_games %}
+        <table class="ranking-table">
+          <thead>
+            <tr>
+              <th style="width: 60px;">순위</th>
+              <th style="text-align: left;">닉네임</th>
+              <th style="width: 80px;">총 판수</th>
+              <th style="width: 60px;">승</th>
+              <th style="width: 60px;">패</th>
+              <th style="width: 80px;">승률</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in ranking_by_games %}
+            <tr>
+              <td class="rank">{{ item.rank }}</td>
+              <td class="nickname">{{ item.nickname }}</td>
+              <td class="total-games">{{ item.total_games }}</td>
+              <td>{{ item.wins }}</td>
+              <td>{{ item.losses }}</td>
+              <td class="winrate">{{ item.win_rate }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-ranking">
+          아직 랭킹 데이터가 없습니다.<br>
+          게임을 플레이하여 랭킹에 도전하세요!
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="modal-buttons" style="margin-top: 20px;">
+        <button type="button" class="btn" id="ranking-close-btn" style="width: 100%;">닫기</button>
+      </div>
     </div>
   </div>
 
@@ -884,6 +1109,32 @@
     });
   })();
 
+  // 랭킹 모달 관리
+  (function(){
+    const rankingBtn = document.getElementById("ranking-btn");
+    const rankingModal = document.getElementById("ranking-modal");
+    const rankingCloseBtn = document.getElementById("ranking-close-btn");
+
+    if (rankingBtn) {
+      rankingBtn.addEventListener("click", () => {
+        rankingModal.classList.add("active");
+      });
+    }
+
+    if (rankingCloseBtn) {
+      rankingCloseBtn.addEventListener("click", () => {
+        rankingModal.classList.remove("active");
+      });
+    }
+
+    // 모달 외부 클릭 시 닫기
+    rankingModal.addEventListener("click", (e) => {
+      if (e.target === rankingModal) {
+        rankingModal.classList.remove("active");
+      }
+    });
+  })();
+
   // 채팅 관리
   (function(){
     const chatMessages = document.getElementById("chat-messages");
@@ -983,6 +1234,31 @@
     chatCloseBtn.addEventListener("click", () => {
       chatContainer.classList.add("hidden");
       userManuallyOpened = false; // 플래그 리셋
+    });
+  })();
+
+  // 랭킹 탭 전환 관리
+  (function(){
+    const rankingTabs = document.querySelectorAll(".ranking-tab");
+    const rankingContents = document.querySelectorAll(".ranking-content");
+
+    rankingTabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        const targetTab = tab.dataset.tab;
+
+        // 모든 탭 비활성화
+        rankingTabs.forEach(t => t.classList.remove("active"));
+        // 클릭한 탭 활성화
+        tab.classList.add("active");
+
+        // 모든 컨텐츠 숨기기
+        rankingContents.forEach(content => content.classList.add("hidden"));
+        // 선택한 컨텐츠 표시
+        const targetContent = document.getElementById(`ranking-${targetTab}`);
+        if (targetContent) {
+          targetContent.classList.remove("hidden");
+        }
+      });
     });
   })();
   </script>
