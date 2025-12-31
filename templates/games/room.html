@@ -192,6 +192,12 @@
       box-shadow: inset 1px 1px 2px rgba(255,255,255,.75), inset -7px -7px 12px rgba(0,0,0,.12);
     }
 
+    /* 미리보기 돌 (반투명) */
+    .stone.preview{
+      opacity: 0.4;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,.2));
+    }
+
     /* 마지막 착수 강조 애니메이션 */
     .stone.last-move {
       animation: stonePulse 1.5s ease-in-out 3;
@@ -385,10 +391,10 @@
 
       /* 터치 영역 확대 (클릭하기 쉽게) */
       .pt{
-        width: calc(var(--cell) * 2.5);
-        height: calc(var(--cell) * 2.5);
-        min-width: 48px;
-        min-height: 48px;
+        width: calc(var(--cell) * 1.5);
+        height: calc(var(--cell) * 1.5);
+        min-width: 44px;
+        min-height: 44px;
       }
 
       /* 돌 크기 약간 축소 */
@@ -1108,6 +1114,37 @@
   }
   drawGrid();
 
+  /* ===== 미리보기 ===== */
+  let previewStone = null;  // 현재 미리보기 돌
+  let currentBoardState = "";  // 현재 보드 상태 (미리보기 판단용)
+  let currentTurnState = "black";  // 현재 턴 상태 (미리보기 색상용)
+
+  function showPreview(x, y, turn) {
+    // 이미 미리보기가 있으면 제거
+    hidePreview();
+
+    // 빈 칸이 아니면 미리보기 표시 안 함
+    const idx = y * SIZE + x;
+    if (currentBoardState[idx] !== ".") return;
+
+    const px = innerMin + x * step;
+    const py = innerMin + y * step;
+    const preview = document.createElement("div");
+    preview.className = "stone preview " + (turn === "black" ? "black" : "white");
+    preview.style.left = px + "%";
+    preview.style.top = py + "%";
+    preview.id = "preview-stone";
+    stonesEl.appendChild(preview);
+    previewStone = preview;
+  }
+
+  function hidePreview() {
+    if (previewStone) {
+      previewStone.remove();
+      previewStone = null;
+    }
+  }
+
   /* ===== 클릭 포인트 ===== */
   const pts = [];
   for (let y=0;y<SIZE;y++){
@@ -1121,6 +1158,24 @@
       btn.dataset.x = x;
       btn.dataset.y = y;
       btn.addEventListener("click", onPlay);
+
+      // 미리보기 이벤트 (PC)
+      btn.addEventListener("mouseenter", (e) => {
+        const bx = +e.currentTarget.dataset.x;
+        const by = +e.currentTarget.dataset.y;
+        showPreview(bx, by, currentTurnState);
+      });
+      btn.addEventListener("mouseleave", hidePreview);
+
+      // 미리보기 이벤트 (모바일)
+      btn.addEventListener("touchstart", (e) => {
+        const bx = +e.currentTarget.dataset.x;
+        const by = +e.currentTarget.dataset.y;
+        showPreview(bx, by, currentTurnState);
+      });
+      btn.addEventListener("touchend", hidePreview);
+      btn.addEventListener("touchcancel", hidePreview);
+
       pointsEl.appendChild(btn);
       pts.push(btn);
     }
@@ -1423,6 +1478,10 @@
 
     // 현재 보드 상태를 저장 (다음 render 시 마지막 착수 찾기용)
     prevBoard = board;
+
+    // 미리보기를 위한 상태 업데이트
+    currentBoardState = board;
+    currentTurnState = turn;
   }
 })();
 </script>
