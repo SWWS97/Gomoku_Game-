@@ -644,22 +644,36 @@
 
       .top-actions {
         width: 100%;
-        flex-wrap: wrap;
-        gap: 8px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
       }
 
       .user-info {
-        font-size: 14px;
+        grid-column: 1 / -1; /* 전체 너비 */
+        font-size: 15px;
+        font-weight: 700;
+        padding: 8px 12px;
+        background: rgba(74, 124, 89, 0.1);
+        border-radius: 8px;
+        text-align: center;
       }
 
-      .btn {
-        padding: 8px 16px;
+      .top-actions .btn {
+        padding: 10px 12px;
         font-size: 13px;
+        text-align: center;
+        white-space: nowrap;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .logout-btn {
-        padding: 6px 12px;
-        font-size: 12px;
+        background: #c44 !important;
+        padding: 10px 12px !important;
+        font-size: 13px !important;
       }
 
       .online-users-section {
