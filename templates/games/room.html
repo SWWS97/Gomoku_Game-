@@ -159,12 +159,20 @@
       position:absolute; width:var(--cell); height:var(--cell);
       transform: translate(-50%, -50%);
       pointer-events:auto; background:transparent; border:none; padding:0; cursor:pointer;
+      -webkit-tap-highlight-color: transparent; /* 모바일 기본 하이라이트 제거 */
     }
     .pt:hover::after{
       content:""; position:absolute; left:50%; top:50%;
       width:18px; height:18px; transform:translate(-50%,-50%);
       border-radius:50%;
       background: radial-gradient(circle at 35% 35%, rgba(0,0,0,.18), rgba(0,0,0,0) 60%);
+    }
+    /* 모바일 터치 피드백 */
+    .pt:active::after{
+      content:""; position:absolute; left:50%; top:50%;
+      width:22px; height:22px; transform:translate(-50%,-50%);
+      border-radius:50%;
+      background: radial-gradient(circle at 35% 35%, rgba(74, 124, 89, .35), rgba(74, 124, 89, 0) 60%);
     }
 
     .stone{
@@ -377,8 +385,10 @@
 
       /* 터치 영역 확대 (클릭하기 쉽게) */
       .pt{
-        width: calc(var(--cell) * 1.2);
-        height: calc(var(--cell) * 1.2);
+        width: calc(var(--cell) * 1.8);
+        height: calc(var(--cell) * 1.8);
+        min-width: 44px; /* Apple HIG 최소 터치 영역 권장 */
+        min-height: 44px;
       }
 
       /* 돌 크기 약간 축소 */
