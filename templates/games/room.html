@@ -1118,6 +1118,7 @@
   let previewStone = null;  // 현재 미리보기 돌
   let currentBoardState = "";  // 현재 보드 상태 (미리보기 판단용)
   let currentTurnState = "black";  // 현재 턴 상태 (미리보기 색상용)
+  let touchCoords = null;  // 모바일 터치 좌표 저장
 
   function showPreview(x, y, turn) {
     // 이미 미리보기가 있으면 제거
@@ -1169,12 +1170,57 @@
 
       // 미리보기 이벤트 (모바일)
       btn.addEventListener("touchstart", (e) => {
-        const bx = +e.currentTarget.dataset.x;
-        const by = +e.currentTarget.dataset.y;
-        showPreview(bx, by, currentTurnState);
+        // 실제 터치 좌표로 가장 가까운 교차점 계산
+        const boardEl = document.getElementById("boardWrap");
+        const rect = boardEl.getBoundingClientRect();
+        const touchX = e.touches[0].clientX - rect.left;
+        const touchY = e.touches[0].clientY - rect.top;
+        const cellWidth = rect.width * step / 100;
+        const cellHeight = rect.height * step / 100;
+        const offsetX = rect.width * innerMin / 100;
+        const offsetY = rect.height * innerMin / 100;
+        const bx = Math.round((touchX - offsetX) / cellWidth);
+        const by = Math.round((touchY - offsetY) / cellHeight);
+
+        // 범위 체크
+        if (bx >= 0 && bx < SIZE && by >= 0 && by < SIZE) {
+          showPreview(bx, by, currentTurnState);
+          // 터치 좌표 저장 (touchend에서 사용)
+          touchCoords = {x: bx, y: by};
+        }
       });
-      btn.addEventListener("touchend", hidePreview);
-      btn.addEventListener("touchcancel", hidePreview);
+
+      btn.addEventListener("touchend", (e) => {
+        hidePreview();
+
+        // 터치 좌표로 직접 착수
+        if (touchCoords && ws.readyState === WebSocket.OPEN && !isPlaying) {
+          e.preventDefault(); // click 이벤트 방지
+
+          const x = touchCoords.x;
+          const y = touchCoords.y;
+          touchCoords = null; // 좌표 초기화
+
+          // 착수 처리
+          isPlaying = true;
+          ws.send(JSON.stringify({type:"play", x, y}));
+
+          // 안전장치
+          setTimeout(() => {
+            if (isPlaying) {
+              console.warn('착수 응답 타임아웃, 플래그 해제');
+              isPlaying = false;
+            }
+          }, 3000);
+        } else {
+          touchCoords = null;
+        }
+      });
+
+      btn.addEventListener("touchcancel", () => {
+        hidePreview();
+        touchCoords = null;
+      });
 
       pointsEl.appendChild(btn);
       pts.push(btn);
@@ -1255,6 +1301,7 @@
     // 착수 중이면 무시 (중복 클릭 방지)
     if (isPlaying) return;
 
+    // 버튼의 dataset에서 직접 좌표 가져오기 (더 정확함)
     const x = +e.currentTarget.dataset.x;
     const y = +e.currentTarget.dataset.y;
 
@@ -1262,6 +1309,14 @@
     isPlaying = true;
 
     ws.send(JSON.stringify({type:"play", x, y}));
+
+    // 안전장치: 3초 후에도 응답이 없으면 플래그 해제
+    setTimeout(() => {
+      if (isPlaying) {
+        console.warn('착수 응답 타임아웃, 플래그 해제');
+        isPlaying = false;
+      }
+    }, 3000);
   }
 
   /* ===== 항복 버튼 ===== */
