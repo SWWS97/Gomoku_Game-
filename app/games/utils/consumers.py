@@ -295,7 +295,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             if not (0 <= x < BOARD_SIZE and 0 <= y < BOARD_SIZE):
                 return False, "out of bounds", None
             if game.get_cell(x, y) != ".":
-                return False, "occupied", None
+                return False, "이미 착수가 된 자리입니다.", None
 
             # 타이머 업데이트: 현재 턴 플레이어의 시간 차감
             if game.last_move_time and game.black and game.white:
