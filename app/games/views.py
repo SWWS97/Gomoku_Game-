@@ -124,6 +124,7 @@ def join_game(request, pk):
         # 비밀번호가 설정된 방인데 비밀번호가 틀리면 403 반환
         if game.password and game.password != input_password:
             from django.http import HttpResponseForbidden
+
             return HttpResponseForbidden("비밀번호가 틀렸습니다.")
         # 비밀번호가 맞으면 계속 진행 (아래 코드 실행)
 
