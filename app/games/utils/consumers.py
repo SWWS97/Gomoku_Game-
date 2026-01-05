@@ -1014,11 +1014,14 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
     async def notify_opponent_left(self, user):
         """게임 종료 후 상대방에게 퇴장 알림"""
         try:
-            should_notify, opponent_id = await self.check_opponent_in_finished_game(user)
+            should_notify, opponent_id = await self.check_opponent_in_finished_game(
+                user
+            )
             if should_notify and opponent_id:
                 # 상대방에게만 알림 전송
                 await self.channel_layer.group_send(
-                    self.group, {"type": "opponent_left_game", "opponent_id": opponent_id}
+                    self.group,
+                    {"type": "opponent_left_game", "opponent_id": opponent_id},
                 )
         except Exception as e:
             print("[WS][notify_opponent_left] ERROR:", repr(e))
