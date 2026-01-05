@@ -100,9 +100,13 @@ def new_game(request):
 
     if request.method == "POST":
         title = request.POST.get("title", "").strip()
+        password = request.POST.get("password", "").strip()
         if not title:
             title = "자신있는 사람 아무나"
-        g = Game.objects.create(black=request.user, title=title)
+        # 비밀번호가 빈 문자열이면 None으로 저장
+        g = Game.objects.create(
+            black=request.user, title=title, password=password if password else None
+        )
         return redirect("games:room", pk=g.pk)
 
     # GET 요청은 로비로 리다이렉트
@@ -113,6 +117,19 @@ def new_game(request):
 def join_game(request, pk):
     """게임 방 참가 (white 플레이어로)"""
     game = get_object_or_404(Game, pk=pk)
+
+    # POST 요청인 경우 - 비밀번호 확인
+    if request.method == "POST":
+        input_password = request.POST.get("password", "")
+        # 비밀번호가 설정된 방인데 비밀번호가 틀리면 403 반환
+        if game.password and game.password != input_password:
+            from django.http import HttpResponseForbidden
+
+            return HttpResponseForbidden("비밀번호가 틀렸습니다.")
+        # 비밀번호가 맞으면 계속 진행 (아래 코드 실행)
+
+    # GET 요청인 경우 - 비밀번호가 있으면 클라이언트에서 처리됨 (JavaScript)
+    # 비밀번호가 없는 방이거나 비밀번호가 맞는 경우
 
     # 이미 white가 있으면 그냥 방으로 이동
     if game.white is None and game.black != request.user:

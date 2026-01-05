@@ -445,7 +445,8 @@
       text-align: center;
     }
 
-    .modal-content input[type="text"] {
+    .modal-content input[type="text"],
+    .modal-content input[type="password"] {
       width: 100%;
       padding: 12px 16px;
       border: 2px solid var(--line);
@@ -456,7 +457,8 @@
       margin-bottom: 16px;
     }
 
-    .modal-content input[type="text"]:focus {
+    .modal-content input[type="text"]:focus,
+    .modal-content input[type="password"]:focus {
       outline: none;
       border-color: var(--border);
     }
@@ -853,8 +855,10 @@
       <div class="room-list">
         {% if waiting_games %}
           {% for game in waiting_games %}
-            <a href="{% url 'games:join' pk=game.pk %}" class="room-card">
-              <div class="room-title">{{ game.title }}</div>
+            <a href="{% url 'games:join' pk=game.pk %}" class="room-card" data-game-id="{{ game.pk }}" data-has-password="{% if game.password %}true{% else %}false{% endif %}">
+              <div class="room-title">
+                {% if game.password %}🔒 {% endif %}{{ game.title }}
+              </div>
               <div class="room-info">
                 <span>생성자: {{ game.black.first_name|default:game.black.username }}</span>
                 <span>|</span>
@@ -910,9 +914,38 @@
           maxlength="100"
           autofocus
         />
+        <input
+          type="password"
+          id="room-password"
+          name="password"
+          placeholder="비밀번호 (선택사항)"
+          maxlength="128"
+        />
         <div class="modal-buttons">
           <button type="button" class="btn btn-cancel" id="cancel-btn">취소</button>
           <button type="submit" class="btn">만들기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 비밀번호 입력 모달 -->
+  <div class="modal-overlay" id="password-modal">
+    <div class="modal-content">
+      <h2>비밀번호 입력</h2>
+      <form id="password-form" method="post">
+        {% csrf_token %}
+        <input
+          type="password"
+          id="game-password"
+          name="password"
+          placeholder="비밀번호를 입력하세요"
+          maxlength="128"
+          autofocus
+        />
+        <div class="modal-buttons">
+          <button type="button" class="btn btn-cancel" id="password-cancel-btn">취소</button>
+          <button type="submit" class="btn">입장</button>
         </div>
       </form>
     </div>
@@ -1278,6 +1311,91 @@
           targetContent.classList.remove("hidden");
         }
       });
+    });
+  })();
+
+  // 비밀번호 모달 관리
+  (function(){
+    const passwordModal = document.getElementById("password-modal");
+    const passwordForm = document.getElementById("password-form");
+    const passwordCancelBtn = document.getElementById("password-cancel-btn");
+    const gamePasswordInput = document.getElementById("game-password");
+    const roomCards = document.querySelectorAll(".room-card");
+
+    let selectedGameId = null;
+    let selectedGameUrl = null;
+
+    // 방 카드 클릭 이벤트
+    roomCards.forEach(card => {
+      card.addEventListener("click", (e) => {
+        e.preventDefault();
+        const hasPassword = card.dataset.hasPassword === "true";
+        selectedGameId = card.dataset.gameId;
+        selectedGameUrl = card.href;
+
+        if (hasPassword) {
+          // 비밀번호가 있으면 모달 표시
+          passwordModal.classList.add("active");
+          setTimeout(() => gamePasswordInput.focus(), 100);
+        } else {
+          // 비밀번호가 없으면 바로 이동
+          window.location.href = selectedGameUrl;
+        }
+      });
+    });
+
+    // 비밀번호 form submit
+    passwordForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const password = gamePasswordInput.value;
+
+      if (!password) {
+        alert("비밀번호를 입력하세요.");
+        return;
+      }
+
+      // 비밀번호와 함께 POST 요청
+      const formData = new FormData();
+      formData.append("password", password);
+      formData.append("csrfmiddlewaretoken", document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+      try {
+        const response = await fetch(selectedGameUrl, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          // 성공하면 리다이렉트
+          window.location.href = response.url;
+        } else {
+          // 비밀번호가 틀리면 경고
+          alert("비밀번호가 틀렸습니다.");
+          gamePasswordInput.value = "";
+          gamePasswordInput.focus();
+        }
+      } catch (err) {
+        console.error("비밀번호 확인 오류:", err);
+        alert("오류가 발생했습니다. 다시 시도해주세요.");
+      }
+    });
+
+    // 취소 버튼
+    passwordCancelBtn.addEventListener("click", () => {
+      passwordModal.classList.remove("active");
+      gamePasswordInput.value = "";
+      selectedGameId = null;
+      selectedGameUrl = null;
+    });
+
+    // 모달 외부 클릭 시 닫기
+    passwordModal.addEventListener("click", (e) => {
+      if (e.target === passwordModal) {
+        passwordModal.classList.remove("active");
+        gamePasswordInput.value = "";
+        selectedGameId = null;
+        selectedGameUrl = null;
+      }
     });
   })();
   </script>
