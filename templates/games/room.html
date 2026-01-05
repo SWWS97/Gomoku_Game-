@@ -469,7 +469,6 @@
       <button class="pill" id="surrender-btn" style="display:none; background:#c44; border-color:#a33;">항복</button>
       <button class="pill" id="rematch-btn" style="display:none; background:#4a7c59; border-color:#3a6c49;">리매치 요청</button>
       <a href="{% url 'games:leave' pk=game.pk %}" class="pill" id="lobby-btn" style="display:none;">로비로 가기</a>
-      <button class="pill" id="new-game-btn" disabled style="opacity:0.5; cursor:not-allowed;">새 게임</button>
     </div>
   </div>
 
@@ -596,7 +595,6 @@
   const leaveBtn     = document.getElementById("leave-btn");
   const surrenderBtn = document.getElementById("surrender-btn");
   const rematchBtn   = document.getElementById("rematch-btn");
-  const newGameBtn   = document.getElementById("new-game-btn");
   const gameOverModal = document.getElementById("gameOverModal");
   const modalStone    = document.getElementById("modalStone");
   const modalWinnerName = document.getElementById("modalWinnerName");
@@ -629,7 +627,7 @@
 
   // 타이머 업데이트 함수
   function updateTimers() {
-    if (!currentTurn || currentBlackTime <= 0 || currentWhiteTime <= 0) {
+    if (!currentTurn) {
       if (timerInterval) {
         clearInterval(timerInterval);
         timerInterval = null;
@@ -642,10 +640,34 @@
       currentBlackTime = Math.max(0, currentBlackTime - 1);
       blackTimer.textContent = formatTime(currentBlackTime);
       updateTimerWarning(blackTimer, currentBlackTime);
+
+      // 타임아웃 체크: 흑 시간이 0이 되면 서버에 알림
+      if (currentBlackTime === 0) {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({type: "timeout", player: "black"}));
+        }
+        return;
+      }
     } else {
       currentWhiteTime = Math.max(0, currentWhiteTime - 1);
       whiteTimer.textContent = formatTime(currentWhiteTime);
       updateTimerWarning(whiteTimer, currentWhiteTime);
+
+      // 타임아웃 체크: 백 시간이 0이 되면 서버에 알림
+      if (currentWhiteTime === 0) {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({type: "timeout", player: "white"}));
+        }
+        return;
+      }
     }
   }
 
@@ -1291,6 +1313,17 @@
       rematchBtn.disabled = false;
       rematchBtn.style.opacity = "1";
       rematchBtn.style.cursor = "pointer";
+    } else if (m.type === "opponent_left") {
+      // 상대방이 게임 종료 후 나갔을 때
+      // 대기 모달이 있으면 닫기
+      if (rematchWaitingModal.style.display === "flex") {
+        rematchWaitingModal.style.display = "none";
+      }
+      // 리매치 버튼 비활성화
+      rematchBtn.textContent = "상대방이 나감";
+      rematchBtn.disabled = true;
+      rematchBtn.style.opacity = "0.5";
+      rematchBtn.style.cursor = "not-allowed";
     }
   });
 
@@ -1343,13 +1376,6 @@
 
     // 대기 모달 표시
     rematchWaitingModal.style.display = "flex";
-  });
-
-  /* ===== 새 게임 버튼 ===== */
-  newGameBtn.addEventListener("click", ()=>{
-    if (!newGameBtn.disabled) {
-      window.location.href = "{% url 'games:new' %}";
-    }
   });
 
   /* ===== 렌더 ===== */
@@ -1433,10 +1459,6 @@
       }
       // 로비로 가기 버튼 표시
       lobbyBtn.style.display = "inline-block";
-      // 새 게임 버튼 활성화
-      newGameBtn.disabled = false;
-      newGameBtn.style.opacity = "1";
-      newGameBtn.style.cursor = "pointer";
 
       // 🎉 게임 종료 모달 표시 (승자 닉네임과 함께)
       const winnerName = winner === "black" ? black_player : white_player;

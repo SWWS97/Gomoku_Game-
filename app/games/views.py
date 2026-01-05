@@ -13,10 +13,8 @@ from .models import BOARD_SIZE, Game, GameHistory, Move
 @login_required
 def lobby(request):
     """게임 로비 - 대기 중인 방 목록 표시"""
-    # white가 null인 게임 = 대기 중인 방
-    waiting_games = Game.objects.filter(
-        white__isnull=True, winner__isnull=True
-    ).order_by("-created_at")
+    # white가 null인 게임 = 대기 중인 방 (승자 여부 무관 - 게임 종료 후 상대방 나가면 다시 대기 방으로 전환)
+    waiting_games = Game.objects.filter(white__isnull=True).order_by("-created_at")
 
     # 현재 사용자가 참여 중인 진행 중인 게임이 있는지 확인
     has_active_game = Game.objects.filter(
