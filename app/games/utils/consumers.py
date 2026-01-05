@@ -1041,6 +1041,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         브라우저 뒤로가기 등으로 연결이 끊긴 경우 게임 정리
         - 게임 시작 전: 방장이 나가면 방 삭제, 백플레이어가 나가면 제거
         - 게임 진행 중: 아무것도 안 함 (재접속 가능)
+        - 게임 종료 후: 상대방이 나가면 게임 초기화 (대기 방으로 전환)
         - 혼자 연습 모드: 방 삭제
         """
         try:
@@ -1050,10 +1051,6 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 if not game:
                     return
 
-                # 게임이 종료되었으면 정리하지 않음 (리매치 가능하도록)
-                if game.winner:
-                    return
-
                 # 사용자가 게임 참가자인지 확인
                 is_black = user == game.black
                 is_white = user == game.white
@@ -1061,7 +1058,58 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 if not is_black and not is_white:
                     return  # 관전자는 무시
 
-                # 케이스 1: 게임이 시작되지 않은 경우
+                # 케이스 1: 게임이 종료된 경우 → 나간 사람 제거 후 게임 초기화
+                if game.winner:
+                    # 백플레이어가 나간 경우 → 게임 초기화 (대기 방으로 전환)
+                    if is_white:
+                        print(
+                            f"[CLEANUP] 게임 종료 후 백플레이어 나감 - 게임 초기화: game_id={game.id}"
+                        )
+                        # 게임판 초기화
+                        game.board = "." * (BOARD_SIZE * BOARD_SIZE)
+                        game.turn = "black"
+                        game.winner = None
+                        game.white = None
+                        # 타이머 리셋
+                        game.black_time_remaining = 900
+                        game.white_time_remaining = 900
+                        game.last_move_time = None
+                        # 준비 상태 리셋
+                        game.black_ready = False
+                        game.white_ready = False
+                        game.game_started = False
+                        # 리매치 플래그 리셋
+                        game.rematch_black = False
+                        game.rematch_white = False
+                        game.save(
+                            update_fields=[
+                                "board",
+                                "turn",
+                                "winner",
+                                "white",
+                                "black_time_remaining",
+                                "white_time_remaining",
+                                "last_move_time",
+                                "black_ready",
+                                "white_ready",
+                                "game_started",
+                                "rematch_black",
+                                "rematch_white",
+                            ]
+                        )
+                        # 수 기록 삭제
+                        Move.objects.filter(game=game).delete()
+                        return
+
+                    # 방장(흑)이 나간 경우 → 방 삭제
+                    if is_black:
+                        print(
+                            f"[CLEANUP] 게임 종료 후 방장 나감 - 방 삭제: game_id={game.id}"
+                        )
+                        game.delete()
+                        return
+
+                # 케이스 2: 게임이 시작되지 않은 경우
                 if not game.game_started:
                     # 방장(흑)이 나간 경우 → 방 삭제
                     if is_black:
@@ -1081,13 +1129,13 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         game.save(update_fields=["white", "white_ready"])
                         return
 
-                # 케이스 2: 게임이 시작되었지만 상대가 없는 경우 (연습 모드)
+                # 케이스 3: 게임이 시작되었지만 상대가 없는 경우 (연습 모드)
                 if game.game_started and not game.white:
                     print(f"[CLEANUP] 혼자 연습 모드 - 방 삭제: game_id={game.id}")
                     game.delete()
                     return
 
-                # 케이스 3: 게임이 진행 중인 경우 → 아무것도 안 함 (재접속 가능)
+                # 케이스 4: 게임이 진행 중인 경우 → 아무것도 안 함 (재접속 가능)
                 print(
                     f"[CLEANUP] 게임 진행 중 - 유지: game_id={game.id}, user={user.username}"
                 )

@@ -469,7 +469,6 @@
       <button class="pill" id="surrender-btn" style="display:none; background:#c44; border-color:#a33;">항복</button>
       <button class="pill" id="rematch-btn" style="display:none; background:#4a7c59; border-color:#3a6c49;">리매치 요청</button>
       <a href="{% url 'games:leave' pk=game.pk %}" class="pill" id="lobby-btn" style="display:none;">로비로 가기</a>
-      <button class="pill" id="new-game-btn" disabled style="opacity:0.5; cursor:not-allowed;">새 게임</button>
     </div>
   </div>
 
@@ -596,7 +595,6 @@
   const leaveBtn     = document.getElementById("leave-btn");
   const surrenderBtn = document.getElementById("surrender-btn");
   const rematchBtn   = document.getElementById("rematch-btn");
-  const newGameBtn   = document.getElementById("new-game-btn");
   const gameOverModal = document.getElementById("gameOverModal");
   const modalStone    = document.getElementById("modalStone");
   const modalWinnerName = document.getElementById("modalWinnerName");
@@ -1380,13 +1378,6 @@
     rematchWaitingModal.style.display = "flex";
   });
 
-  /* ===== 새 게임 버튼 ===== */
-  newGameBtn.addEventListener("click", ()=>{
-    if (!newGameBtn.disabled) {
-      window.location.href = "{% url 'games:new' %}";
-    }
-  });
-
   /* ===== 렌더 ===== */
   let readyModalShown = false;  // 준비 모달이 이미 표시되었는지 추적
   let prevBoard = "";  // 이전 보드 상태 (마지막 착수 찾기용)
@@ -1468,10 +1459,6 @@
       }
       // 로비로 가기 버튼 표시
       lobbyBtn.style.display = "inline-block";
-      // 새 게임 버튼 활성화
-      newGameBtn.disabled = false;
-      newGameBtn.style.opacity = "1";
-      newGameBtn.style.cursor = "pointer";
 
       // 🎉 게임 종료 모달 표시 (승자 닉네임과 함께)
       const winnerName = winner === "black" ? black_player : white_player;
