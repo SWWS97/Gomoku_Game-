@@ -22,20 +22,17 @@ def lobby(request):
     ).exists()
 
     # 랭킹 데이터 - 승률 기준 (최소 5판 이상)
+    # 승률은 property라서 DB에서 정렬 불가 -> Python에서 정렬
     ranking_by_winrate_raw = (
-        UserProfile.objects.filter(wins__gt=0)
-        .select_related("user")
-        .order_by("-wins")[:10]
+        UserProfile.objects.filter(wins__gt=0).select_related("user").all()
     )
 
-    # 승률 순위 데이터 포맷팅
+    # 최소 5판 이상인 프로필만 필터링하고 승률로 정렬
     ranking_by_winrate = []
-    for idx, profile in enumerate(ranking_by_winrate_raw, 1):
-        # 최소 5판 이상인 경우만 포함
+    for profile in ranking_by_winrate_raw:
         if profile.total_games >= 5:
             ranking_by_winrate.append(
                 {
-                    "rank": idx,
                     "nickname": profile.user.first_name or profile.user.username,
                     "wins": profile.wins,
                     "losses": profile.losses,
@@ -43,6 +40,14 @@ def lobby(request):
                     "win_rate": profile.win_rate,
                 }
             )
+
+    # 승률 내림차순 정렬 (승률 같으면 총 게임 수 많은 순)
+    ranking_by_winrate.sort(key=lambda x: (-x["win_rate"], -x["total_games"]))
+
+    # 상위 10명만 선택하고 순위 부여
+    ranking_by_winrate = ranking_by_winrate[:10]
+    for idx, item in enumerate(ranking_by_winrate, 1):
+        item["rank"] = idx
 
     # 랭킹 데이터 - 판수 기준
     ranking_by_games_raw = (
