@@ -207,6 +207,14 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 await self.channel_layer.group_send(
                     self.group, {"type": "notify_rematch_declined"}
                 )
+            elif content.get("type") == "timeout":
+                # 타임아웃으로 게임 종료
+                timeout_player = content.get("player")
+                final_state = await self.handle_timeout(timeout_player)
+                if final_state:
+                    await self.channel_layer.group_send(
+                        self.group, {"type": "broadcast_final", "state": final_state}
+                    )
         except Exception as e:
             print("[WS][receive_json] ERROR:", repr(e))
             await self.close(code=4001)
@@ -876,6 +884,71 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             game.rematch_black = False
             game.rematch_white = False
             game.save(update_fields=["rematch_black", "rematch_white"])
+
+    @database_sync_to_async
+    def handle_timeout(self, timeout_player):
+        """타임아웃 처리"""
+        with transaction.atomic():
+            game = Game.objects.select_for_update().get(pk=self.game_id)
+
+            # 게임이 이미 종료된 경우
+            if game.winner:
+                return None
+
+            # 양쪽 플레이어가 없으면 타임아웃 처리 불가
+            if not game.black or not game.white:
+                return None
+
+            # 타임아웃된 플레이어 확인 및 승자 결정
+            if timeout_player == "black":
+                game.winner = "white"
+                game.black_time_remaining = 0
+            elif timeout_player == "white":
+                game.winner = "black"
+                game.white_time_remaining = 0
+            else:
+                return None  # 잘못된 타임아웃 플레이어
+
+            # 전적 기록 생성
+            total_moves = Move.objects.filter(game=game).count()
+            GameHistory.objects.create(
+                game_id=game.id,
+                black=game.black,
+                white=game.white,
+                winner=game.winner,
+                created_at=game.created_at,
+                total_moves=total_moves,
+            )
+            # 전적 업데이트
+            update_user_stats(game.black, game.white, game.winner)
+
+            # 최종 상태 저장 (broadcast용)
+            black_name = (
+                game.black.first_name or game.black.username if game.black else None
+            )
+            white_name = (
+                game.white.first_name or game.white.username if game.white else None
+            )
+            final_state = {
+                "board": game.board,
+                "turn": game.turn,
+                "winner": game.winner,
+                "size": BOARD_SIZE,
+                "black_player": black_name,
+                "white_player": white_name,
+                "black_time": game.black_time_remaining,
+                "white_time": game.white_time_remaining,
+            }
+
+            # 게임 저장 (리매치를 위해 삭제하지 않음)
+            game.save(
+                update_fields=[
+                    "winner",
+                    "black_time_remaining",
+                    "white_time_remaining",
+                ]
+            )
+            return final_state
 
     async def notify_rematch_request(self, event):
         """상대방에게 리매치 요청 알림"""

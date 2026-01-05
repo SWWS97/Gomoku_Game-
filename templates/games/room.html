@@ -629,7 +629,7 @@
 
   // 타이머 업데이트 함수
   function updateTimers() {
-    if (!currentTurn || currentBlackTime <= 0 || currentWhiteTime <= 0) {
+    if (!currentTurn) {
       if (timerInterval) {
         clearInterval(timerInterval);
         timerInterval = null;
@@ -642,10 +642,34 @@
       currentBlackTime = Math.max(0, currentBlackTime - 1);
       blackTimer.textContent = formatTime(currentBlackTime);
       updateTimerWarning(blackTimer, currentBlackTime);
+
+      // 타임아웃 체크: 흑 시간이 0이 되면 서버에 알림
+      if (currentBlackTime === 0) {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({type: "timeout", player: "black"}));
+        }
+        return;
+      }
     } else {
       currentWhiteTime = Math.max(0, currentWhiteTime - 1);
       whiteTimer.textContent = formatTime(currentWhiteTime);
       updateTimerWarning(whiteTimer, currentWhiteTime);
+
+      // 타임아웃 체크: 백 시간이 0이 되면 서버에 알림
+      if (currentWhiteTime === 0) {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({type: "timeout", player: "white"}));
+        }
+        return;
+      }
     }
   }
 
