@@ -24,9 +24,7 @@ def lobby(request):
     # 랭킹 데이터 - 승률 기준 (최소 5판 이상)
     # 승률은 property라서 DB에서 정렬 불가 -> Python에서 정렬
     ranking_by_winrate_raw = (
-        UserProfile.objects.filter(wins__gt=0)
-        .select_related("user")
-        .all()
+        UserProfile.objects.filter(wins__gt=0).select_related("user").all()
     )
 
     # 최소 5판 이상인 프로필만 필터링하고 승률로 정렬
