@@ -1315,6 +1315,17 @@
       rematchBtn.disabled = false;
       rematchBtn.style.opacity = "1";
       rematchBtn.style.cursor = "pointer";
+    } else if (m.type === "opponent_left") {
+      // 상대방이 게임 종료 후 나갔을 때
+      // 대기 모달이 있으면 닫기
+      if (rematchWaitingModal.style.display === "flex") {
+        rematchWaitingModal.style.display = "none";
+      }
+      // 리매치 버튼 비활성화
+      rematchBtn.textContent = "상대방이 나감";
+      rematchBtn.disabled = true;
+      rematchBtn.style.opacity = "0.5";
+      rematchBtn.style.cursor = "not-allowed";
     }
   });
 

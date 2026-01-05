@@ -105,10 +105,14 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
     async def disconnect(self, code):
         try:
+            # 게임 종료 후 상대방에게 퇴장 알림
+            user = self.scope.get("user")
+            if user and user.is_authenticated:
+                await self.notify_opponent_left(user)
+
             await self.channel_layer.group_discard(self.group, self.channel_name)
 
             # 브라우저 뒤로가기 등으로 연결이 끊긴 경우 게임 정리
-            user = self.scope.get("user")
             if user and user.is_authenticated:
                 await self.cleanup_game_on_disconnect(user)
 
@@ -984,6 +988,52 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             )
         except Exception as e:
             print("[WS][notify_lobby_status_change] ERROR:", repr(e))
+
+    @database_sync_to_async
+    def check_opponent_in_finished_game(self, user):
+        """게임 종료 후 상대방이 남아있는지 확인"""
+        try:
+            game = Game.objects.filter(pk=self.game_id).first()
+            if not game or not game.winner:
+                return False, None
+
+            # 양쪽 플레이어가 없으면 체크할 필요 없음
+            if not game.black or not game.white:
+                return False, None
+
+            # 나간 사용자의 상대방 확인
+            if user == game.black:
+                return True, game.white.id
+            elif user == game.white:
+                return True, game.black.id
+
+            return False, None
+        except Exception:
+            return False, None
+
+    async def notify_opponent_left(self, user):
+        """게임 종료 후 상대방에게 퇴장 알림"""
+        try:
+            should_notify, opponent_id = await self.check_opponent_in_finished_game(user)
+            if should_notify and opponent_id:
+                # 상대방에게만 알림 전송
+                await self.channel_layer.group_send(
+                    self.group, {"type": "opponent_left_game", "opponent_id": opponent_id}
+                )
+        except Exception as e:
+            print("[WS][notify_opponent_left] ERROR:", repr(e))
+
+    async def opponent_left_game(self, event):
+        """상대방 퇴장 알림 수신"""
+        try:
+            user = self.scope.get("user")
+            opponent_id = event.get("opponent_id")
+
+            # 해당 유저에게만 알림
+            if user and user.is_authenticated and user.id == opponent_id:
+                await self.send_json({"type": "opponent_left"})
+        except Exception as e:
+            print("[WS][opponent_left_game] ERROR:", repr(e))
 
     @database_sync_to_async
     def cleanup_game_on_disconnect(self, user):
