@@ -219,6 +219,20 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     await self.channel_layer.group_send(
                         self.group, {"type": "broadcast_final", "state": final_state}
                     )
+            elif content.get("type") == "quick_chat":
+                # 빠른 채팅 메시지 브로드캐스트
+                message = content.get("message", "").strip()
+                user = self.scope.get("user")
+                if message and user and user.is_authenticated:
+                    # 상대방에게만 전송 (본인은 프론트엔드에서 이미 표시)
+                    await self.channel_layer.group_send(
+                        self.group,
+                        {
+                            "type": "broadcast_quick_chat",
+                            "message": message,
+                            "sender_id": user.id,
+                        },
+                    )
         except Exception as e:
             print("[WS][receive_json] ERROR:", repr(e))
             await self.close(code=4001)
@@ -953,6 +967,19 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 ]
             )
             return final_state
+
+    async def broadcast_quick_chat(self, event):
+        """빠른 채팅 메시지 브로드캐스트"""
+        try:
+            user = self.scope.get("user")
+            sender_id = event.get("sender_id")
+            message = event.get("message")
+
+            # 발신자가 아닌 사람에게만 메시지 전송
+            if user and user.is_authenticated and user.id != sender_id:
+                await self.send_json({"type": "quick_chat", "message": message})
+        except Exception as e:
+            print("[WS][broadcast_quick_chat] ERROR:", repr(e))
 
     async def notify_rematch_request(self, event):
         """상대방에게 리매치 요청 알림"""

@@ -145,12 +145,12 @@
       position:relative;
       width: calc(({{ BOARD_SIZE }} - 1) * var(--cell) + 2 * var(--margin));
       height: calc(({{ BOARD_SIZE }} - 1) * var(--cell) + 2 * var(--margin));
-      margin: 10px auto 36px;
       border: 6px solid var(--border);
       background: var(--wood);
       border-radius: 6px;
       box-shadow: 0 18px 26px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.25);
       overflow: visible;
+      margin: 10px auto 36px;
     }
     .grid{ position:absolute; inset:0; display:block; }
     .layer{ position:absolute; inset:0; pointer-events:none; }
@@ -441,6 +441,122 @@
         height: 600px;
       }
     }
+
+    /* ===== 빠른 채팅 ===== */
+    .quick-chat-container {
+      display: none; /* 기본 숨김 */
+      position: fixed;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      flex-direction: column;
+      min-width: 240px;
+      max-width: 260px;
+      z-index: 100;
+    }
+    .quick-chat-panel {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .quick-chat-btn {
+      padding: 12px 8px;
+      background: white;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--border);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      word-wrap: break-word;
+    }
+    .quick-chat-btn:hover {
+      background: var(--wood);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .quick-chat-btn:active {
+      transform: translateY(0);
+    }
+
+    /* 말풍선 - 오목판 오른쪽에 표시 */
+    .chat-bubble {
+      position: fixed;
+      top: 50%;
+      right: 80px;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.98);
+      border: 3px solid var(--border);
+      border-radius: 20px;
+      padding: 20px 30px;
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--border);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      z-index: 2000;
+      animation: bubbleSlideIn 0.3s ease-out;
+      pointer-events: none;
+      max-width: 280px;
+      word-wrap: break-word;
+    }
+    @keyframes bubbleSlideIn {
+      0% {
+        opacity: 0;
+        transform: translateY(-50%) translateX(20px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(-50%) translateX(0);
+      }
+    }
+
+    /* 모바일 반응형 */
+    @media (max-width: 1024px) {
+      .quick-chat-container {
+        position: static;
+        transform: none;
+        min-width: auto;
+        max-width: 100%;
+        width: calc(100% - 40px);
+        margin: 20px auto;
+      }
+      /* 모바일에서는 말풍선을 중앙에 표시 */
+      .chat-bubble {
+        right: auto;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.4rem;
+        padding: 15px 25px;
+        max-width: 80%;
+      }
+      @keyframes bubbleSlideIn {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.8);
+        }
+        100% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+    }
+
+    @media (max-width: 768px) {
+      .quick-chat-btn {
+        font-size: 0.75rem;
+        padding: 10px 6px;
+      }
+      .quick-chat-title {
+        font-size: 0.9rem;
+      }
+      .chat-bubble {
+        font-size: 1.2rem;
+        padding: 12px 20px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -488,6 +604,22 @@
     <svg id="grid" class="grid" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
     <div class="layer" id="stones"></div>
     <div class="layer" id="points"></div>
+  </div>
+
+  <!-- 빠른 채팅 -->
+  <div class="quick-chat-container" id="quickChatContainer" style="display:none;">
+    <div class="quick-chat-panel">
+      <button class="quick-chat-btn" data-message="안녕하세요!">안녕하세요!</button>
+      <button class="quick-chat-btn" data-message="잘 부탁드립니다!">잘 부탁드립니다!</button>
+      <button class="quick-chat-btn" data-message="수고하셨습니다!">수고하셨습니다!</button>
+      <button class="quick-chat-btn" data-message="멋진데요?!">멋진데요?!</button>
+      <button class="quick-chat-btn" data-message="잘하시네요!">잘하시네요!</button>
+      <button class="quick-chat-btn" data-message="대단하네요!">대단하네요!</button>
+      <button class="quick-chat-btn" data-message="빨리 두세요!">빨리 두세요!</button>
+      <button class="quick-chat-btn" data-message="빨리빨리!">빨리빨리!</button>
+      <button class="quick-chat-btn" data-message="감사합니다!">감사합니다!</button>
+      <button class="quick-chat-btn" data-message="죄송합니다...">죄송합니다...</button>
+    </div>
   </div>
 
   <!-- 게임 종료 모달 -->
@@ -608,6 +740,10 @@
   const readyWhiteStatus = document.getElementById("readyWhiteStatus");
   const readyBtn = document.getElementById("readyBtn");
   const startGameBtn = document.getElementById("startGameBtn");
+
+  /* ===== 빠른 채팅 관련 변수 ===== */
+  const quickChatContainer = document.getElementById("quickChatContainer");
+  const quickChatBtns = document.querySelectorAll(".quick-chat-btn");
 
   /* ===== 타이머 관련 변수 ===== */
   let currentTurn = null;
@@ -872,8 +1008,6 @@
   function showPlayerJoinedModal(playerName) {
     joinedPlayerName.textContent = playerName + " 님이 입장했습니다!";
     playerJoinedModal.style.display = "flex";
-    // 입장음 재생
-    playStoneSound();
   }
 
   function showGameOverModal(winner, winnerName, isSoloPlay) {
@@ -1324,6 +1458,9 @@
       rematchBtn.disabled = true;
       rematchBtn.style.opacity = "0.5";
       rematchBtn.style.cursor = "not-allowed";
+    } else if (m.type === "quick_chat") {
+      // 상대방이 보낸 빠른 채팅 메시지 표시
+      showChatBubble(m.message);
     }
   });
 
@@ -1377,6 +1514,40 @@
     // 대기 모달 표시
     rematchWaitingModal.style.display = "flex";
   });
+
+  /* ===== 빠른 채팅 ===== */
+  // 빠른 채팅 버튼 클릭 이벤트
+  quickChatBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const message = btn.dataset.message;
+      if (ws.readyState === WebSocket.OPEN) {
+        // 자기 자신에게도 말풍선 표시
+        showChatBubble(message);
+        // 서버로 전송
+        ws.send(JSON.stringify({type: "quick_chat", message: message}));
+      }
+    });
+  });
+
+  // 말풍선 표시 함수
+  function showChatBubble(message) {
+    // 기존 말풍선 제거
+    const existingBubble = document.querySelector(".chat-bubble");
+    if (existingBubble) {
+      existingBubble.remove();
+    }
+
+    // 새 말풍선 생성
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble";
+    bubble.textContent = message;
+    document.body.appendChild(bubble);
+
+    // 2.5초 후 자동 제거
+    setTimeout(() => {
+      bubble.remove();
+    }, 2500);
+  }
 
   /* ===== 렌더 ===== */
   let readyModalShown = false;  // 준비 모달이 이미 표시되었는지 추적
@@ -1492,11 +1663,6 @@
 
       // 게임 진행 중이면 리매치 버튼 숨김
       rematchBtn.style.display = "none";
-
-      // 게임 진행 중이면 새 게임 버튼 비활성화
-      newGameBtn.disabled = true;
-      newGameBtn.style.opacity = "0.5";
-      newGameBtn.style.cursor = "not-allowed";
     }
 
     // 빈 칸만 클릭 가능
@@ -1551,6 +1717,14 @@
         clearInterval(timerInterval);
         timerInterval = null;
       }
+    }
+
+    // ===== 빠른 채팅 패널 표시/숨김 =====
+    // 양쪽 플레이어가 모두 있고, 게임이 끝나지 않았으면 표시
+    if (black_player && white_player && !winner) {
+      quickChatContainer.style.display = "flex";
+    } else {
+      quickChatContainer.style.display = "none";
     }
 
     // 현재 보드 상태를 저장 (다음 render 시 마지막 착수 찾기용)
