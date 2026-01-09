@@ -60,9 +60,9 @@ def user_profile(request, username):
     profile, _ = UserProfile.objects.get_or_create(user=user)
 
     # GameHistory 가져오기 (최근 20개)
-    histories = GameHistory.objects.filter(
-        Q(black=user) | Q(white=user)
-    ).order_by("-finished_at")[:20]
+    histories = GameHistory.objects.filter(Q(black=user) | Q(white=user)).order_by(
+        "-finished_at"
+    )[:20]
 
     # 전적 통계
     stats = {
