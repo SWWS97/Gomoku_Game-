@@ -82,6 +82,20 @@ def update_user_stats(black_user, white_user, winner):
     white_profile.save(update_fields=["wins", "losses"])
 
 
+def record_game_result(game):
+    """게임 종료 시 전적 기록 및 통계 업데이트"""
+    total_moves = game.moves.count()
+    GameHistory.objects.create(
+        game_id=game.id,
+        black=game.black,
+        white=game.white,
+        winner=game.winner,
+        created_at=game.created_at,
+        total_moves=total_moves,
+    )
+    update_user_stats(game.black, game.white, game.winner)
+
+
 class GameConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         try:
@@ -278,15 +292,6 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def game_state(self, game: Game):
-        # 닉네임 표시 (first_name이 있으면 사용, 없으면 username)
-        black_name = None
-        if game.black:
-            black_name = game.black.first_name or game.black.username
-
-        white_name = None
-        if game.white:
-            white_name = game.white.first_name or game.white.username
-
         # 타이머 계산: 현재 턴인 플레이어의 시간 차감
         black_time = game.black_time_remaining
         white_time = game.white_time_remaining
@@ -304,8 +309,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             "turn": game.turn,
             "winner": game.winner,
             "size": BOARD_SIZE,
-            "black_player": black_name,
-            "white_player": white_name,
+            **game.get_both_player_names(),
             "black_time": black_time,
             "white_time": white_time,
         }
@@ -339,37 +343,16 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             if game.black and game.white:
                 if game.turn == "black" and game.black_time_remaining <= 0:
                     game.winner = "white"
-                    black_name = (
-                        game.black.first_name or game.black.username
-                        if game.black
-                        else None
-                    )
-                    white_name = (
-                        game.white.first_name or game.white.username
-                        if game.white
-                        else None
-                    )
                     final_state = {
                         "board": game.board,
                         "turn": game.turn,
                         "winner": game.winner,
                         "size": BOARD_SIZE,
-                        "black_player": black_name,
-                        "white_player": white_name,
+                        **game.get_both_player_names(),
                         "black_time": 0,
                         "white_time": game.white_time_remaining,
                     }
-                    total_moves = Move.objects.filter(game=game).count()
-                    GameHistory.objects.create(
-                        game_id=game.id,
-                        black=game.black,
-                        white=game.white,
-                        winner=game.winner,
-                        created_at=game.created_at,
-                        total_moves=total_moves,
-                    )
-                    # 전적 업데이트
-                    update_user_stats(game.black, game.white, game.winner)
+                    record_game_result(game)
                     # 게임 저장 (리매치를 위해 삭제하지 않음)
                     game.save(
                         update_fields=[
@@ -381,37 +364,16 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     return False, "시간 초과로 패배하였습니다", final_state
                 elif game.turn == "white" and game.white_time_remaining <= 0:
                     game.winner = "black"
-                    black_name = (
-                        game.black.first_name or game.black.username
-                        if game.black
-                        else None
-                    )
-                    white_name = (
-                        game.white.first_name or game.white.username
-                        if game.white
-                        else None
-                    )
                     final_state = {
                         "board": game.board,
                         "turn": game.turn,
                         "winner": game.winner,
                         "size": BOARD_SIZE,
-                        "black_player": black_name,
-                        "white_player": white_name,
+                        **game.get_both_player_names(),
                         "black_time": game.black_time_remaining,
                         "white_time": 0,
                     }
-                    total_moves = Move.objects.filter(game=game).count()
-                    GameHistory.objects.create(
-                        game_id=game.id,
-                        black=game.black,
-                        white=game.white,
-                        winner=game.winner,
-                        created_at=game.created_at,
-                        total_moves=total_moves,
-                    )
-                    # 전적 업데이트
-                    update_user_stats(game.black, game.white, game.winner)
+                    record_game_result(game)
                     # 게임 저장 (리매치를 위해 삭제하지 않음)
                     game.save(
                         update_fields=[
@@ -493,36 +455,19 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
             # 게임 종료 시 전적 기록 생성 및 게임 삭제
             if game.winner:
-                black_name = (
-                    game.black.first_name or game.black.username if game.black else None
-                )
-                white_name = (
-                    game.white.first_name or game.white.username if game.white else None
-                )
                 final_state = {
                     "board": game.board,
                     "turn": game.turn,
                     "winner": game.winner,
                     "size": BOARD_SIZE,
-                    "black_player": black_name,
-                    "white_player": white_name,
+                    **game.get_both_player_names(),
                     "black_time": game.black_time_remaining,
                     "white_time": game.white_time_remaining,
                 }
 
                 # 양쪽 플레이어가 모두 있는 경우만 전적 기록
                 if game.black and game.white:
-                    total_moves = Move.objects.filter(game=game).count()
-                    GameHistory.objects.create(
-                        game_id=game.id,
-                        black=game.black,
-                        white=game.white,
-                        winner=game.winner,
-                        created_at=game.created_at,
-                        total_moves=total_moves,
-                    )
-                    # 전적 업데이트
-                    update_user_stats(game.black, game.white, game.winner)
+                    record_game_result(game)
                     # 게임 저장 (리매치를 위해 삭제하지 않음)
                     game.save(
                         update_fields=[
@@ -569,14 +514,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         with transaction.atomic():
             game = Game.objects.select_for_update().get(pk=self.game_id)
 
-            # 게임판 초기화
-            game.board = "." * (BOARD_SIZE * BOARD_SIZE)
-            game.turn = "black"
-            game.winner = None
-            # 타이머 리셋
-            game.black_time_remaining = 900
-            game.white_time_remaining = 900
-            game.last_move_time = None
+            # 게임 초기화
+            game.clear_moves()
+            game.reset_for_new_round()
             game.save(
                 update_fields=[
                     "board",
@@ -587,9 +527,6 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     "last_move_time",
                 ]
             )
-
-            # 수 기록 삭제
-            Move.objects.filter(game=game).delete()
 
     async def broadcast_ready_state(self, _event):
         """준비 상태 브로드캐스트"""
@@ -623,20 +560,11 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def get_ready_state(self, game: Game):
         """준비 상태 반환"""
-        black_name = None
-        if game.black:
-            black_name = game.black.first_name or game.black.username
-
-        white_name = None
-        if game.white:
-            white_name = game.white.first_name or game.white.username
-
         return {
             "black_ready": game.black_ready,
             "white_ready": game.white_ready,
             "game_started": game.game_started,
-            "black_player": black_name,
-            "white_player": white_name,
+            **game.get_both_player_names(),
         }
 
     @database_sync_to_async
@@ -700,32 +628,15 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 return None  # 게임 참가자가 아님
 
             # 전적 기록 생성
-            total_moves = Move.objects.filter(game=game).count()
-            GameHistory.objects.create(
-                game_id=game.id,
-                black=game.black,
-                white=game.white,
-                winner=game.winner,
-                created_at=game.created_at,
-                total_moves=total_moves,
-            )
-            # 전적 업데이트
-            update_user_stats(game.black, game.white, game.winner)
+            record_game_result(game)
 
             # 최종 상태 저장 (broadcast용)
-            black_name = (
-                game.black.first_name or game.black.username if game.black else None
-            )
-            white_name = (
-                game.white.first_name or game.white.username if game.white else None
-            )
             final_state = {
                 "board": game.board,
                 "turn": game.turn,
                 "winner": game.winner,
                 "size": BOARD_SIZE,
-                "black_player": black_name,
-                "white_player": white_name,
+                **game.get_both_player_names(),
             }
 
             # 게임 저장 (리매치를 위해 삭제하지 않음)
@@ -759,14 +670,10 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 # 흑/백 플레이어 교체 (색 교대)
                 game.black, game.white = game.white, game.black
 
-                # 게임판 초기화
-                game.board = "." * (BOARD_SIZE * BOARD_SIZE)
-                game.turn = "black"
-                game.winner = None
-                # 타이머 리셋
-                game.black_time_remaining = 900
-                game.white_time_remaining = 900
-                game.last_move_time = None
+                # 게임 초기화
+                game.clear_moves()
+                game.reset_for_new_round()
+
                 # 리매치 플래그 리셋
                 game.rematch_black = False
                 game.rematch_white = False
@@ -792,9 +699,6 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         "game_started",
                     ]
                 )
-
-                # 수 기록 삭제
-                Move.objects.filter(game=game).delete()
             else:
                 # 한쪽만 요청한 경우 리매치 플래그만 저장
                 game.save(update_fields=["rematch_black", "rematch_white"])
@@ -846,14 +750,10 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 # 흑/백 플레이어 교체 (색 교대)
                 game.black, game.white = game.white, game.black
 
-                # 게임판 초기화
-                game.board = "." * (BOARD_SIZE * BOARD_SIZE)
-                game.turn = "black"
-                game.winner = None
-                # 타이머 리셋
-                game.black_time_remaining = 900
-                game.white_time_remaining = 900
-                game.last_move_time = None
+                # 게임 초기화
+                game.clear_moves()
+                game.reset_for_new_round()
+
                 # 리매치 플래그 리셋
                 game.rematch_black = False
                 game.rematch_white = False
@@ -879,9 +779,6 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         "game_started",
                     ]
                 )
-
-                # 수 기록 삭제
-                Move.objects.filter(game=game).delete()
                 return True  # 리셋 완료
             else:
                 # 한쪽만 수락한 경우 플래그만 저장
@@ -928,32 +825,15 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 return None  # 잘못된 타임아웃 플레이어
 
             # 전적 기록 생성
-            total_moves = Move.objects.filter(game=game).count()
-            GameHistory.objects.create(
-                game_id=game.id,
-                black=game.black,
-                white=game.white,
-                winner=game.winner,
-                created_at=game.created_at,
-                total_moves=total_moves,
-            )
-            # 전적 업데이트
-            update_user_stats(game.black, game.white, game.winner)
+            record_game_result(game)
 
             # 최종 상태 저장 (broadcast용)
-            black_name = (
-                game.black.first_name or game.black.username if game.black else None
-            )
-            white_name = (
-                game.white.first_name or game.white.username if game.white else None
-            )
             final_state = {
                 "board": game.board,
                 "turn": game.turn,
                 "winner": game.winner,
                 "size": BOARD_SIZE,
-                "black_player": black_name,
-                "white_player": white_name,
+                **game.get_both_player_names(),
                 "black_time": game.black_time_remaining,
                 "white_time": game.white_time_remaining,
             }
@@ -1095,22 +975,20 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         print(
                             f"[CLEANUP] 게임 종료 후 백플레이어 나감 - 게임 초기화: game_id={game.id}"
                         )
-                        # 게임판 초기화
-                        game.board = "." * (BOARD_SIZE * BOARD_SIZE)
-                        game.turn = "black"
-                        game.winner = None
+                        # 백플레이어 제거
                         game.white = None
-                        # 타이머 리셋
-                        game.black_time_remaining = 900
-                        game.white_time_remaining = 900
-                        game.last_move_time = None
-                        # 준비 상태 리셋
+
+                        # 게임 초기화
+                        game.clear_moves()
+                        game.reset_for_new_round()
+
+                        # 준비 상태 및 리매치 플래그 리셋
                         game.black_ready = False
                         game.white_ready = False
                         game.game_started = False
-                        # 리매치 플래그 리셋
                         game.rematch_black = False
                         game.rematch_white = False
+
                         game.save(
                             update_fields=[
                                 "board",
@@ -1127,8 +1005,6 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                                 "rematch_white",
                             ]
                         )
-                        # 수 기록 삭제
-                        Move.objects.filter(game=game).delete()
                         return
 
                     # 방장(흑)이 나간 경우 → 방 삭제
