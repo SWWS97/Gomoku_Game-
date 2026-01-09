@@ -65,6 +65,30 @@ class Game(models.Model):
     def swap_turn(self):
         self.turn = "white" if self.turn == "black" else "black"
 
+    def get_player_name(self, color):
+        """색상에 해당하는 플레이어의 표시 이름 반환"""
+        player = self.black if color == "black" else self.white
+        return (player.first_name or player.username) if player else None
+
+    def get_both_player_names(self):
+        """양쪽 플레이어의 이름을 딕셔너리로 반환"""
+        return {
+            "black_player": self.get_player_name("black"),
+            "white_player": self.get_player_name("white"),
+        }
+
+    def reset_for_new_round(self):
+        """새 라운드를 위해 게임판, 타이머, 턴을 초기화"""
+        self.board = "." * (BOARD_SIZE * BOARD_SIZE)
+        self.turn = "black"
+        self.black_time_remaining = 900
+        self.white_time_remaining = 900
+        self.last_move_time = None
+
+    def clear_moves(self):
+        """게임의 모든 수를 삭제"""
+        self.moves.all().delete()
+
 
 class Move(models.Model):
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="moves")

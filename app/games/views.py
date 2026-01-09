@@ -143,12 +143,8 @@ def join_game(request, pk):
         game.white = request.user
 
         # 백 플레이어가 입장하면 게임 초기화
-        # 1. 기존 수(Move) 모두 삭제
-        Move.objects.filter(game=game).delete()
-
-        # 2. 게임판 초기화
-        game.board = "." * (BOARD_SIZE * BOARD_SIZE)
-        game.turn = "black"  # 턴도 흑으로 리셋
+        game.clear_moves()
+        game.reset_for_new_round()
         game.save()
 
         # WebSocket으로 모든 클라이언트에게 플레이어 입장 알림
