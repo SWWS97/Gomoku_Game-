@@ -33,6 +33,7 @@ def lobby(request):
         if profile.total_games >= 5:
             ranking_by_winrate.append(
                 {
+                    "username": profile.user.username,
                     "nickname": profile.user.first_name or profile.user.username,
                     "wins": profile.wins,
                     "losses": profile.losses,
@@ -62,6 +63,7 @@ def lobby(request):
         ranking_by_games.append(
             {
                 "rank": idx,
+                "username": profile.user.username,
                 "nickname": profile.user.first_name or profile.user.username,
                 "wins": profile.wins,
                 "losses": profile.losses,

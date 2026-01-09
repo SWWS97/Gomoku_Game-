@@ -1,10 +1,15 @@
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import ProfileEditForm, SignUpForm
+from .models import UserProfile
+from app.games.models import GameHistory
+
+User = get_user_model()
 
 
 def SignUpView(request):
@@ -44,3 +49,34 @@ def ProfileEditView(request):
         form = ProfileEditForm(user=request.user)
 
     return render(request, "account/profile_edit.html", {"form": form})
+
+
+def user_profile(request, username):
+    """사용자 프로필 페이지"""
+    # 사용자 찾기
+    user = get_object_or_404(User, username=username)
+
+    # 프로필 가져오기 (없으면 생성)
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+
+    # GameHistory 가져오기 (최근 20개)
+    histories = GameHistory.objects.filter(
+        Q(black=user) | Q(white=user)
+    ).order_by("-finished_at")[:20]
+
+    # 전적 통계
+    stats = {
+        "total_games": profile.total_games,
+        "wins": profile.wins,
+        "losses": profile.losses,
+        "win_rate": profile.win_rate,
+    }
+
+    context = {
+        "profile_user": user,
+        "profile": profile,
+        "stats": stats,
+        "histories": histories,
+    }
+
+    return render(request, "account/profile.html", context)
