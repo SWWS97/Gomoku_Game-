@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>{{ profile_user.first_name|default:profile_user.username }}님의 프로필</title>
+  <style>
+    :root {
+      --wood: #d4b781;
+      --line: #7b5c3a;
+      --border: #3e2a1f;
+      --card: #fff9ee;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 36px 36px,
+                  linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 36px 36px,
+                  var(--wood);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Noto Sans KR, sans-serif;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card);
+      padding: 20px 24px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      margin-bottom: 24px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      color: var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: var(--border);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .stats-section {
+      background: var(--card);
+      padding: 24px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      margin-bottom: 24px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      border: 2px solid var(--line);
+      text-align: center;
+    }
+
+    .stat-card .label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--border);
+    }
+
+    .stat-card.winrate .value {
+      color: #4a7c59;
+    }
+
+    .history-section {
+      background: var(--card);
+      padding: 24px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .history-section h2 {
+      margin: 0 0 20px 0;
+      font-size: 20px;
+      color: var(--border);
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--line);
+    }
+
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .history-table thead {
+      background: var(--line);
+      color: white;
+    }
+
+    .history-table th {
+      padding: 10px 8px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .history-table tbody tr {
+      border-bottom: 1px solid #e0e0e0;
+      transition: background 0.2s;
+    }
+
+    .history-table tbody tr:hover {
+      background: rgba(212, 183, 129, 0.1);
+    }
+
+    .history-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .history-table td {
+      padding: 12px 8px;
+      text-align: center;
+    }
+
+    .history-table td.result-win {
+      font-weight: 700;
+      color: #4a7c59;
+    }
+
+    .history-table td.result-loss {
+      font-weight: 700;
+      color: #c44;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+      font-size: 16px;
+    }
+
+    .empty-state::before {
+      content: "●○";
+      display: block;
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+
+    /* 모바일 반응형 */
+    @media (max-width: 768px) {
+      .container {
+        padding: 12px;
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .header h1 {
+        font-size: 22px;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat-card .value {
+        font-size: 24px;
+      }
+
+      .history-table {
+        font-size: 12px;
+      }
+
+      .history-table th,
+      .history-table td {
+        padding: 8px 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>
+        {{ profile_user.first_name|default:profile_user.username }}님의 프로필
+      </h1>
+      <a href="{% url 'games:lobby' %}" class="btn">로비로 돌아가기</a>
+    </div>
+
+    <!-- 전적 통계 -->
+    <div class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="label">총 게임 수</div>
+          <div class="value">{{ stats.total_games }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">승리</div>
+          <div class="value">{{ stats.wins }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">패배</div>
+          <div class="value">{{ stats.losses }}</div>
+        </div>
+        <div class="stat-card winrate">
+          <div class="label">승률</div>
+          <div class="value">{{ stats.win_rate }}%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 최근 게임 기록 -->
+    <div class="history-section">
+      <h2>최근 게임 기록</h2>
+      {% if histories %}
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th style="width: 100px;">날짜</th>
+              <th style="text-align: left;">흑(●)</th>
+              <th style="text-align: left;">백(○)</th>
+              <th style="width: 80px;">승자</th>
+              <th style="width: 80px;">결과</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for history in histories %}
+            <tr>
+              <td>{{ history.finished_at|date:"m/d H:i" }}</td>
+              <td style="text-align: left;">
+                <a href="{% url 'accounts:profile' username=history.black.username %}" style="text-decoration: none; color: inherit; font-weight: 600;">
+                  {{ history.black.first_name|default:history.black.username }}
+                </a>
+              </td>
+              <td style="text-align: left;">
+                <a href="{% url 'accounts:profile' username=history.white.username %}" style="text-decoration: none; color: inherit; font-weight: 600;">
+                  {{ history.white.first_name|default:history.white.username }}
+                </a>
+              </td>
+              <td>
+                {% if history.winner == "black" %}
+                  흑(●)
+                {% else %}
+                  백(○)
+                {% endif %}
+              </td>
+              <td>
+                {% if history.black == profile_user %}
+                  {% if history.winner == "black" %}
+                    <span class="result-win">승리</span>
+                  {% else %}
+                    <span class="result-loss">패배</span>
+                  {% endif %}
+                {% elif history.white == profile_user %}
+                  {% if history.winner == "white" %}
+                    <span class="result-win">승리</span>
+                  {% else %}
+                    <span class="result-loss">패배</span>
+                  {% endif %}
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state">
+          아직 게임 기록이 없습니다.<br>
+          게임을 플레이하여 전적을 쌓아보세요!
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

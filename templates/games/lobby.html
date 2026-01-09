@@ -410,6 +410,64 @@
       font-size: 14px;
     }
 
+    /* 닉네임 링크 스타일 */
+    .nickname-link {
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .nickname-link:hover {
+      color: #4a7c59;
+      text-decoration: underline;
+    }
+
+    /* 툴팁 스타일 */
+    .nickname-link[data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      z-index: 1000;
+      margin-bottom: 8px;
+    }
+
+    .nickname-link[data-tooltip]:hover::after {
+      opacity: 1;
+    }
+
+    /* 툴팁 화살표 */
+    .nickname-link[data-tooltip]::before {
+      content: "";
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: rgba(0, 0, 0, 0.9);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      z-index: 1000;
+      margin-bottom: 3px;
+    }
+
+    .nickname-link[data-tooltip]:hover::before {
+      opacity: 1;
+    }
+
     /* 제목 입력 모달 */
     .modal-overlay {
       display: none;
@@ -855,16 +913,16 @@
       <div class="room-list">
         {% if waiting_games %}
           {% for game in waiting_games %}
-            <a href="{% url 'games:join' pk=game.pk %}" class="room-card" data-game-id="{{ game.pk }}" data-has-password="{% if game.password %}true{% else %}false{% endif %}">
+            <div class="room-card" data-game-id="{{ game.pk }}" data-has-password="{% if game.password %}true{% else %}false{% endif %}" data-game-url="{% url 'games:join' pk=game.pk %}">
               <div class="room-title">
                 {% if game.password %}🔒 {% endif %}{{ game.title }}
               </div>
               <div class="room-info">
-                <span>생성자: {{ game.black.first_name|default:game.black.username }}</span>
+                <span>생성자: <a href="{% url 'accounts:profile' username=game.black.username %}" class="nickname-link" data-tooltip="프로필 보기" onclick="event.stopPropagation();">{{ game.black.first_name|default:game.black.username }}</a></span>
                 <span>|</span>
                 <span>생성 시간: {{ game.created_at|date:"Y-m-d H:i" }}</span>
               </div>
-            </a>
+            </div>
           {% endfor %}
         {% else %}
           <div class="empty-state">
@@ -980,7 +1038,11 @@
             {% for item in ranking_by_winrate %}
             <tr>
               <td class="rank">{{ item.rank }}</td>
-              <td class="nickname">{{ item.nickname }}</td>
+              <td class="nickname">
+                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="승률: {{ item.win_rate }}% | {{ item.wins }}승 {{ item.losses }}패">
+                  {{ item.nickname }}
+                </a>
+              </td>
               <td class="winrate">{{ item.win_rate }}%</td>
               <td>{{ item.wins }}</td>
               <td>{{ item.losses }}</td>
@@ -1015,7 +1077,11 @@
             {% for item in ranking_by_games %}
             <tr>
               <td class="rank">{{ item.rank }}</td>
-              <td class="nickname">{{ item.nickname }}</td>
+              <td class="nickname">
+                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="승률: {{ item.win_rate }}% | {{ item.wins }}승 {{ item.losses }}패">
+                  {{ item.nickname }}
+                </a>
+              </td>
               <td class="total-games">{{ item.total_games }}</td>
               <td>{{ item.wins }}</td>
               <td>{{ item.losses }}</td>
@@ -1112,15 +1178,24 @@
         const badge = document.createElement("div");
         badge.className = "user-badge";
 
+        // 닉네임 링크 생성
+        const link = document.createElement("a");
+        link.href = `/accounts/profile/${user.username}/`;
+        link.className = "nickname-link";
+        link.dataset.tooltip = "프로필 보기";
+        link.textContent = user.nickname;
+
         // 사용자 상태에 따라 스타일 및 텍스트 적용
         if (user.status === "playing") {
           badge.classList.add("playing");
-          badge.textContent = `${user.nickname} - 게임중`;
+          link.textContent = `${user.nickname} - 게임중`;
+          badge.appendChild(link);
         } else if (user.status === "waiting") {
           badge.classList.add("waiting");
-          badge.textContent = `${user.nickname} - 게임룸 대기중`;
+          link.textContent = `${user.nickname} - 게임룸 대기중`;
+          badge.appendChild(link);
         } else {
-          badge.textContent = user.nickname;
+          badge.appendChild(link);
         }
 
         usersList.appendChild(badge);
@@ -1328,10 +1403,14 @@
     // 방 카드 클릭 이벤트
     roomCards.forEach(card => {
       card.addEventListener("click", (e) => {
-        e.preventDefault();
+        // 닉네임 링크 클릭 시 이벤트 전파 방지 확인
+        if (e.target.classList.contains('nickname-link')) {
+          return;
+        }
+
         const hasPassword = card.dataset.hasPassword === "true";
         selectedGameId = card.dataset.gameId;
-        selectedGameUrl = card.href;
+        selectedGameUrl = card.dataset.gameUrl;
 
         if (hasPassword) {
           // 비밀번호가 있으면 모달 표시

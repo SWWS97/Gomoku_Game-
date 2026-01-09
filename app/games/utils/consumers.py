@@ -1195,6 +1195,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
 
             self.user_id = user.id
             self.user_nickname = user.first_name or user.username
+            self.username = user.username
 
             # 그룹 추가
             await self.channel_layer.group_add(self.group_name, self.channel_name)
@@ -1204,6 +1205,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             LobbyConsumer.connected_users[self.channel_name] = {
                 "user_id": self.user_id,
                 "nickname": self.user_nickname,
+                "username": self.username,
             }
 
             # 현재 접속자 목록 전송
@@ -1336,6 +1338,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                 {
                     "user_id": user_info["user_id"],
                     "nickname": user_info["nickname"],
+                    "username": user_info.get("username", ""),
                     "status": status,
                 }
             )
@@ -1360,6 +1363,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                     {
                         "user_id": game.black.id,
                         "nickname": game.black.first_name or game.black.username,
+                        "username": game.black.username,
                     }
                 )
                 seen_user_ids.add(game.black.id)
@@ -1370,6 +1374,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                     {
                         "user_id": game.white.id,
                         "nickname": game.white.first_name or game.white.username,
+                        "username": game.white.username,
                     }
                 )
                 seen_user_ids.add(game.white.id)
