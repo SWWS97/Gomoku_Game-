@@ -4,10 +4,22 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth import get_user_model
+from django.http import JsonResponse
 
 from app.accounts.models import UserProfile
 
-from .models import BOARD_SIZE, Game, GameHistory, Move
+from .models import (
+    BOARD_SIZE,
+    DirectMessage,
+    Friend,
+    FriendRequest,
+    Game,
+    GameHistory,
+    Move,
+)
+
+User = get_user_model()
 
 
 @login_required
@@ -229,3 +241,236 @@ def game_history(request):
     }
 
     return render(request, "games/history.html", context)
+
+
+# ====== 친구 관련 뷰 ======
+
+
+@login_required
+def friends_list(request):
+    """친구 목록 페이지"""
+    # 양방향 친구 조회
+    friends_query = Friend.objects.filter(Q(user=request.user) | Q(friend=request.user))
+
+    # 친구 리스트 구성 (중복 제거)
+    friends_set = set()
+    for f in friends_query:
+        if f.user == request.user:
+            friends_set.add(f.friend)
+        else:
+            friends_set.add(f.user)
+
+    # 각 친구별 안 읽은 메시지 개수 추가
+    friends_data = []
+    for friend in friends_set:
+        unread_count = DirectMessage.objects.filter(
+            sender=friend, recipient=request.user, is_read=False
+        ).count()
+        friends_data.append(
+            {
+                "user": friend,
+                "unread_count": unread_count,
+            }
+        )
+
+    # 친구 요청 목록
+    friend_requests = FriendRequest.objects.filter(to_user=request.user)
+
+    context = {
+        "friends": friends_data,
+        "friend_requests": friend_requests,
+    }
+
+    return render(request, "games/friends.html", context)
+
+
+@login_required
+def send_friend_request(request, user_id):
+    """친구 요청 보내기"""
+    if request.method != "POST":
+        return redirect("games:friends")
+
+    target_user = get_object_or_404(User, id=user_id)
+
+    # 자기 자신에게 요청 불가
+    if target_user == request.user:
+        messages.error(request, "자기 자신에게 친구 요청을 보낼 수 없습니다.")
+        return redirect("games:friends")
+
+    # 이미 친구인지 확인
+    is_already_friend = Friend.objects.filter(
+        Q(user=request.user, friend=target_user)
+        | Q(user=target_user, friend=request.user)
+    ).exists()
+
+    if is_already_friend:
+        messages.info(request, "이미 친구입니다.")
+        return redirect("games:friends")
+
+    # 이미 요청이 있는지 확인
+    existing_request = FriendRequest.objects.filter(
+        from_user=request.user, to_user=target_user
+    ).exists()
+
+    if existing_request:
+        messages.info(request, "이미 친구 요청을 보냈습니다.")
+        return redirect("games:friends")
+
+    # 친구 요청 생성
+    FriendRequest.objects.create(from_user=request.user, to_user=target_user)
+    messages.success(
+        request,
+        f"{target_user.first_name or target_user.username}님에게 친구 요청을 보냈습니다.",
+    )
+
+    return redirect("games:friends")
+
+
+@login_required
+def accept_friend_request(request, request_id):
+    """친구 요청 수락"""
+    if request.method != "POST":
+        return redirect("games:friends")
+
+    friend_request = get_object_or_404(
+        FriendRequest, id=request_id, to_user=request.user
+    )
+
+    # 양방향 친구 관계 생성
+    Friend.objects.create(user=request.user, friend=friend_request.from_user)
+    Friend.objects.create(user=friend_request.from_user, friend=request.user)
+
+    # 요청 삭제
+    friend_request.delete()
+
+    messages.success(
+        request,
+        f"{friend_request.from_user.first_name or friend_request.from_user.username}님과 친구가 되었습니다.",
+    )
+
+    return redirect("games:friends")
+
+
+@login_required
+def decline_friend_request(request, request_id):
+    """친구 요청 거절"""
+    if request.method != "POST":
+        return redirect("games:friends")
+
+    friend_request = get_object_or_404(
+        FriendRequest, id=request_id, to_user=request.user
+    )
+    friend_request.delete()
+
+    messages.info(request, "친구 요청을 거절했습니다.")
+    return redirect("games:friends")
+
+
+@login_required
+def remove_friend(request, user_id):
+    """친구 삭제"""
+    if request.method != "POST":
+        return redirect("games:friends")
+
+    friend = get_object_or_404(User, id=user_id)
+
+    # 양방향 친구 관계 삭제
+    Friend.objects.filter(
+        Q(user=request.user, friend=friend) | Q(user=friend, friend=request.user)
+    ).delete()
+
+    messages.info(
+        request,
+        f"{friend.first_name or friend.username}님을 친구 목록에서 삭제했습니다.",
+    )
+    return redirect("games:friends")
+
+
+# ====== 메시지 관련 뷰 ======
+
+
+@login_required
+def message_room(request, user_id):
+    """특정 친구와의 채팅 페이지"""
+    friend = get_object_or_404(User, id=user_id)
+
+    # 친구 관계 확인
+    is_friend = Friend.objects.filter(
+        Q(user=request.user, friend=friend) | Q(user=friend, friend=request.user)
+    ).exists()
+
+    if not is_friend:
+        messages.error(request, "친구만 메시지를 보낼 수 있습니다.")
+        return redirect("games:friends")
+
+    # 메시지 이력 가져오기 (양방향)
+    message_history = DirectMessage.objects.filter(
+        Q(sender=request.user, recipient=friend)
+        | Q(sender=friend, recipient=request.user)
+    ).order_by("created_at")
+
+    # 받은 메시지 읽음 처리
+    DirectMessage.objects.filter(
+        sender=friend, recipient=request.user, is_read=False
+    ).update(is_read=True)
+
+    context = {
+        "friend": friend,
+        "messages": message_history,
+    }
+
+    return render(request, "games/message_room.html", context)
+
+
+@login_required
+def get_unread_message_count(request):
+    """읽지 않은 메시지 개수 조회 (AJAX)"""
+    unread_count = DirectMessage.objects.filter(
+        recipient=request.user, is_read=False
+    ).count()
+    return JsonResponse({"unread_count": unread_count})
+
+
+@login_required
+def search_users(request):
+    """사용자 검색 (AJAX)"""
+    query = request.GET.get("q", "").strip()
+
+    if not query or len(query) < 2:
+        return JsonResponse({"users": []})
+
+    # 사용자명 또는 닉네임으로 검색 (본인 제외)
+    users = User.objects.filter(
+        Q(username__icontains=query) | Q(first_name__icontains=query)
+    ).exclude(id=request.user.id)[:10]
+
+    # 각 사용자별 친구 상태 확인
+    results = []
+    for user in users:
+        # 이미 친구인지 확인
+        is_friend = Friend.objects.filter(
+            Q(user=request.user, friend=user) | Q(user=user, friend=request.user)
+        ).exists()
+
+        # 이미 친구 요청을 보냈는지 확인
+        request_sent = FriendRequest.objects.filter(
+            from_user=request.user, to_user=user
+        ).exists()
+
+        # 상대방이 나에게 친구 요청을 보냈는지 확인
+        request_received = FriendRequest.objects.filter(
+            from_user=user, to_user=request.user
+        ).exists()
+
+        results.append(
+            {
+                "id": user.id,
+                "username": user.username,
+                "display_name": user.first_name or user.username,
+                "is_friend": is_friend,
+                "request_sent": request_sent,
+                "request_received": request_received,
+            }
+        )
+
+    return JsonResponse({"users": results})

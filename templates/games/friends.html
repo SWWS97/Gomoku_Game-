@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>친구 목록 - Omok</title>
+  <style>
+    :root {
+      --wood: #d4b781;
+      --line: #7b5c3a;
+      --border: #3e2a1f;
+      --card: #fff9ee;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 36px 36px,
+                  linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 36px 36px,
+                  var(--wood);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Noto Sans KR, sans-serif;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card);
+      padding: 20px 24px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      margin-bottom: 24px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      color: var(--border);
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: var(--border);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      font-size: 14px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-small {
+      padding: 8px 16px;
+      font-size: 13px;
+    }
+
+    .btn-danger {
+      background: #c53030;
+    }
+
+    .btn-success {
+      background: #2f855a;
+    }
+
+    .section {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      margin-bottom: 20px;
+    }
+
+    .section h2 {
+      margin: 0 0 16px 0;
+      font-size: 20px;
+      color: var(--border);
+    }
+
+    .friend-list, .request-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .friend-item, .request-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid #e0d5c0;
+    }
+
+    .friend-item:last-child, .request-item:last-child {
+      border-bottom: none;
+    }
+
+    .friend-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .friend-name {
+      font-weight: 600;
+      color: var(--border);
+    }
+
+    .unread-badge {
+      background: #e53e3e;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .empty-message {
+      text-align: center;
+      padding: 24px;
+      color: #999;
+    }
+
+    .search-section {
+      margin-bottom: 20px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+      background: white;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--border);
+    }
+
+    .search-results {
+      margin-top: 12px;
+      display: none;
+    }
+
+    .search-results.active {
+      display: block;
+    }
+
+    .search-result-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid #e0d5c0;
+      background: white;
+    }
+
+    .search-result-item:first-child {
+      border-top: 2px solid var(--line);
+    }
+
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+
+    .status-text {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .messages {
+      margin-bottom: 20px;
+    }
+
+    .message {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .message.success {
+      background: #c6f6d5;
+      color: #2f855a;
+    }
+
+    .message.error {
+      background: #fed7d7;
+      color: #c53030;
+    }
+
+    .message.info {
+      background: #bee3f8;
+      color: #2c5282;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>친구 목록</h1>
+      <div>
+        <a href="{% url 'games:lobby' %}" class="btn">로비로 돌아가기</a>
+      </div>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="message {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- 사용자 검색 섹션 -->
+    <div class="section">
+      <h2>친구 추가</h2>
+      <div class="search-section">
+        <input
+          type="text"
+          id="search-input"
+          class="search-input"
+          placeholder="사용자명 또는 닉네임 검색..."
+          autocomplete="off"
+        />
+        <div id="search-results" class="search-results">
+          <!-- 검색 결과가 여기에 표시됩니다 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 친구 요청 섹션 -->
+    {% if friend_requests %}
+    <div class="section">
+      <h2>친구 요청 ({{ friend_requests|length }})</h2>
+      <ul class="request-list">
+        {% for request in friend_requests %}
+        <li class="request-item">
+          <div class="friend-info">
+            <span class="friend-name">{{ request.from_user.first_name|default:request.from_user.username }}</span>
+          </div>
+          <div class="button-group">
+            <form method="post" action="{% url 'games:accept_friend_request' request.id %}" style="display: inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-small btn-success">수락</button>
+            </form>
+            <form method="post" action="{% url 'games:decline_friend_request' request.id %}" style="display: inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-small btn-danger">거절</button>
+            </form>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <!-- 친구 목록 섹션 -->
+    <div class="section">
+      <h2>내 친구 ({{ friends|length }})</h2>
+      {% if friends %}
+      <ul class="friend-list">
+        {% for friend_data in friends %}
+        <li class="friend-item">
+          <div class="friend-info">
+            <span class="friend-name">{{ friend_data.user.first_name|default:friend_data.user.username }}</span>
+            {% if friend_data.unread_count > 0 %}
+            <span class="unread-badge">{{ friend_data.unread_count }}</span>
+            {% endif %}
+          </div>
+          <div class="button-group">
+            <a href="{% url 'games:message_room' friend_data.user.id %}" class="btn btn-small">메시지</a>
+            <form method="post" action="{% url 'games:remove_friend' friend_data.user.id %}" style="display: inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('정말로 친구를 삭제하시겠습니까?')">삭제</button>
+            </form>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-message">
+        아직 친구가 없습니다. 게임을 플레이하고 친구를 만들어보세요!
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
+    let searchTimeout = null;
+
+    searchInput.addEventListener('input', function() {
+      const query = this.value.trim();
+
+      // 기존 타임아웃 제거
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+
+      // 2글자 미만이면 검색 결과 숨김
+      if (query.length < 2) {
+        searchResults.classList.remove('active');
+        searchResults.innerHTML = '';
+        return;
+      }
+
+      // 300ms 딜레이 후 검색
+      searchTimeout = setTimeout(() => {
+        searchUsers(query);
+      }, 300);
+    });
+
+    async function searchUsers(query) {
+      try {
+        const response = await fetch(`{% url 'games:search_users' %}?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        if (data.users.length === 0) {
+          searchResults.innerHTML = '<div class="search-result-item"><div class="status-text">검색 결과가 없습니다</div></div>';
+          searchResults.classList.add('active');
+          return;
+        }
+
+        // 검색 결과 표시
+        searchResults.innerHTML = '';
+        data.users.forEach(user => {
+          const item = document.createElement('div');
+          item.className = 'search-result-item';
+
+          const userInfo = document.createElement('div');
+          userInfo.className = 'friend-info';
+
+          const userName = document.createElement('span');
+          userName.className = 'friend-name';
+          userName.textContent = user.display_name;
+          userInfo.appendChild(userName);
+
+          let statusOrButton;
+          if (user.is_friend) {
+            statusOrButton = document.createElement('span');
+            statusOrButton.className = 'status-text';
+            statusOrButton.textContent = '이미 친구입니다';
+          } else if (user.request_sent) {
+            statusOrButton = document.createElement('span');
+            statusOrButton.className = 'status-text';
+            statusOrButton.textContent = '친구 요청 보냄';
+          } else if (user.request_received) {
+            statusOrButton = document.createElement('span');
+            statusOrButton.className = 'status-text';
+            statusOrButton.textContent = '친구 요청 받음';
+          } else {
+            statusOrButton = document.createElement('form');
+            statusOrButton.method = 'post';
+            statusOrButton.action = `/games/friends/request/${user.id}/`;
+            statusOrButton.style.display = 'inline';
+            statusOrButton.innerHTML = `
+              {% csrf_token %}
+              <button type="submit" class="btn btn-small btn-success">친구 요청</button>
+            `;
+          }
+
+          item.appendChild(userInfo);
+          item.appendChild(statusOrButton);
+          searchResults.appendChild(item);
+        });
+
+        searchResults.classList.add('active');
+      } catch (err) {
+        console.error('사용자 검색 오류:', err);
+      }
+    }
+
+    // 검색창 외부 클릭 시 결과 숨김
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.classList.remove('active');
+      }
+    });
+
+    // 검색창 클릭 시 결과 다시 표시 (검색 결과가 있을 경우)
+    searchInput.addEventListener('focus', function() {
+      if (searchResults.innerHTML && searchInput.value.trim().length >= 2) {
+        searchResults.classList.add('active');
+      }
+    });
+  </script>
+</body>
+</html>
