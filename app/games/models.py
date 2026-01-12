@@ -135,3 +135,90 @@ class GameHistory(models.Model):
 
     def __str__(self):
         return f"Game #{self.game_id} - {self.winner} won"
+
+
+class Friend(models.Model):
+    """친구 관계 모델 (양방향)"""
+
+    user = models.ForeignKey(
+        User, related_name="friends", on_delete=models.CASCADE, help_text="사용자"
+    )
+    friend = models.ForeignKey(
+        User,
+        related_name="befriended_by",
+        on_delete=models.CASCADE,
+        help_text="친구",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="친구 관계 생성 시간"
+    )
+
+    class Meta:
+        unique_together = ["user", "friend"]
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} -> {self.friend.username}"
+
+
+class FriendRequest(models.Model):
+    """친구 요청 모델"""
+
+    from_user = models.ForeignKey(
+        User,
+        related_name="sent_friend_requests",
+        on_delete=models.CASCADE,
+        help_text="요청 보낸 사용자",
+    )
+    to_user = models.ForeignKey(
+        User,
+        related_name="received_friend_requests",
+        on_delete=models.CASCADE,
+        help_text="요청 받은 사용자",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, help_text="요청 생성 시간")
+
+    class Meta:
+        unique_together = ["from_user", "to_user"]
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["to_user", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.from_user.username} -> {self.to_user.username}"
+
+
+class DirectMessage(models.Model):
+    """1대1 메시지 모델"""
+
+    sender = models.ForeignKey(
+        User,
+        related_name="sent_direct_messages",
+        on_delete=models.CASCADE,
+        help_text="메시지 발신자",
+    )
+    recipient = models.ForeignKey(
+        User,
+        related_name="received_direct_messages",
+        on_delete=models.CASCADE,
+        help_text="메시지 수신자",
+    )
+    content = models.TextField(help_text="메시지 내용")
+    is_read = models.BooleanField(default=False, help_text="읽음 여부")
+    created_at = models.DateTimeField(auto_now_add=True, help_text="메시지 생성 시간")
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["recipient", "is_read", "-created_at"]),
+            models.Index(fields=["sender", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.sender.username} -> {self.recipient.username}: {self.content[:30]}"
+        )
