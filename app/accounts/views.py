@@ -126,3 +126,13 @@ def delete_account(request):
         return redirect("games:lobby")
 
     return render(request, "account/delete_account.html")
+
+
+def privacy_policy(request):
+    """개인정보처리방침 페이지"""
+    return render(request, "account/privacy_policy.html")
+
+
+def terms_of_service(request):
+    """서비스 약관 페이지"""
+    return render(request, "account/terms_of_service.html")
