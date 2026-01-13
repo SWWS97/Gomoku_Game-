@@ -176,7 +176,12 @@ def game_room(request, pk):
 @login_required
 def leave_game(request, pk):
     """게임 나가기"""
-    game = get_object_or_404(Game, pk=pk)
+    # 게임이 이미 삭제된 경우 로비로 리다이렉트
+    try:
+        game = Game.objects.get(pk=pk)
+    except Game.DoesNotExist:
+        messages.info(request, "게임이 이미 종료되었습니다.")
+        return redirect("games:lobby")
 
     # 게임이 이미 종료되었으면 로비로
     if game.winner:

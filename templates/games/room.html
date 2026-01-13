@@ -30,7 +30,7 @@
     /* ===== 타이머 (상단 중앙) ===== */
     .timer-container{
       position: absolute;
-      top: 70px;
+      top: 15px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -343,7 +343,7 @@
 
       /* 타이머 */
       .timer-container{
-        top: 10px;
+        top: 80px;
         gap: 20px;
         padding: 0.5rem 1rem;
       }
@@ -504,6 +504,20 @@
       max-width: 280px;
       word-wrap: break-word;
     }
+    /* 흑돌 플레이어 말풍선 */
+    .chat-bubble.black {
+      background: rgba(50, 50, 50, 0.95);
+      border: 3px solid #1a1a1a;
+      color: white;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    /* 백돌 플레이어 말풍선 */
+    .chat-bubble.white {
+      background: rgba(255, 255, 255, 0.98);
+      border: 3px solid #d4b781;
+      color: var(--border);
+      box-shadow: 0 8px 24px rgba(212, 183, 129, 0.5);
+    }
     @keyframes bubbleSlideIn {
       0% {
         opacity: 0;
@@ -622,7 +636,7 @@
       <a href="{% url 'games:leave' pk=game.pk %}" class="pill" id="leave-btn" style="display:none; background:#888; border-color:#666;">나가기</a>
       <button class="pill" id="surrender-btn" style="display:none; background:#c44; border-color:#a33;">항복</button>
       <button class="pill" id="rematch-btn" style="display:none; background:#4a7c59; border-color:#3a6c49;">리매치 요청</button>
-      <a href="{% url 'games:leave' pk=game.pk %}" class="pill" id="lobby-btn" style="display:none;">로비로 가기</a>
+      <a href="{% url 'games:lobby' %}" class="pill" id="lobby-btn" style="display:none;">로비로 가기</a>
     </div>
   </div>
 
@@ -752,6 +766,7 @@
   const gameId = {{ game.id }};
   const scheme = (location.protocol === "https:") ? "wss" : "ws";
   const wsURL  = `${scheme}://${location.host}/ws/games/${gameId}/`;
+  const currentUsername = "{{ user.username }}";  // 현재 로그인한 사용자 이름
 
   const gridEl       = document.getElementById("grid");
   const stonesEl     = document.getElementById("stones");
@@ -792,6 +807,9 @@
 
   /* ===== 착수 중복 방지 ===== */
   let isPlaying = false;
+
+  /* ===== 자신의 색상 정보 ===== */
+  let myColor = null;  // "black" or "white"
 
   // 타이머 포맷: 초 → MM:SS
   function formatTime(seconds) {
@@ -1498,8 +1516,8 @@
       rematchBtn.style.opacity = "0.5";
       rematchBtn.style.cursor = "not-allowed";
     } else if (m.type === "quick_chat") {
-      // 상대방이 보낸 빠른 채팅 메시지 표시
-      showChatBubble(m.message);
+      // 상대방이 보낸 빠른 채팅 메시지 표시 (색상 정보 포함)
+      showChatBubble(m.message, m.is_black);
     }
   });
 
@@ -1565,8 +1583,9 @@
     btn.addEventListener("click", () => {
       const message = btn.dataset.message;
       if (ws.readyState === WebSocket.OPEN) {
-        // 자기 자신에게도 말풍선 표시
-        showChatBubble(message);
+        // 자기 자신에게도 말풍선 표시 (자신의 색상으로)
+        const isBlack = myColor === "black";
+        showChatBubble(message, isBlack);
         // 서버로 전송
         ws.send(JSON.stringify({type: "quick_chat", message: message}));
       }
@@ -1574,7 +1593,7 @@
   });
 
   // 말풍선 표시 함수
-  function showChatBubble(message) {
+  function showChatBubble(message, isBlack) {
     // 기존 말풍선 제거
     const existingBubble = document.querySelector(".chat-bubble");
     if (existingBubble) {
@@ -1584,6 +1603,14 @@
     // 새 말풍선 생성
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble";
+
+    // 흑/백 색상 클래스 추가
+    if (isBlack) {
+      bubble.classList.add("black");
+    } else {
+      bubble.classList.add("white");
+    }
+
     bubble.textContent = message;
     document.body.appendChild(bubble);
 
@@ -1599,7 +1626,7 @@
   let lastStoneIndex = -1;  // 마지막 착수 위치 (전역으로 관리)
 
   function render(state){
-    const { board, turn, winner, black_player, white_player, black_time, white_time } = state;
+    const { board, turn, winner, black_player, white_player, black_username, white_username, black_time, white_time } = state;
 
     // 착수 완료, 플래그 해제
     isPlaying = false;
@@ -1610,6 +1637,15 @@
     // 플레이어 정보 업데이트
     blackPlayer.textContent = black_player || "대기중...";
     whitePlayer.textContent = white_player || "대기중...";
+
+    // 현재 사용자의 색상 결정 (빠른 채팅 말풍선 색상용)
+    if (black_username === currentUsername) {
+      myColor = "black";
+    } else if (white_username === currentUsername) {
+      myColor = "white";
+    } else {
+      myColor = null;  // 관전자 또는 미참여
+    }
 
     // 돌 렌더
     stonesEl.innerHTML = "";
