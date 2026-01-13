@@ -238,6 +238,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 message = content.get("message", "").strip()
                 user = self.scope.get("user")
                 if message and user and user.is_authenticated:
+                    # 게임 정보 가져와서 발신자 색상 확인
+                    is_black = await self.check_if_black_player(user.id)
+
                     # 상대방에게만 전송 (본인은 프론트엔드에서 이미 표시)
                     await self.channel_layer.group_send(
                         self.group,
@@ -245,6 +248,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                             "type": "broadcast_quick_chat",
                             "message": message,
                             "sender_id": user.id,
+                            "is_black": is_black,
                         },
                     )
         except Exception as e:
@@ -289,6 +293,15 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def get_game(self):
         return Game.objects.get(pk=self.game_id)
+
+    @database_sync_to_async
+    def check_if_black_player(self, user_id):
+        """사용자가 흑돌 플레이어인지 확인"""
+        try:
+            game = Game.objects.get(pk=self.game_id)
+            return game.black_id == user_id if game.black_id else False
+        except Game.DoesNotExist:
+            return False
 
     @database_sync_to_async
     def game_state(self, game: Game):
@@ -854,10 +867,15 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             user = self.scope.get("user")
             sender_id = event.get("sender_id")
             message = event.get("message")
+            is_black = event.get("is_black", False)
 
             # 발신자가 아닌 사람에게만 메시지 전송
             if user and user.is_authenticated and user.id != sender_id:
-                await self.send_json({"type": "quick_chat", "message": message})
+                await self.send_json({
+                    "type": "quick_chat",
+                    "message": message,
+                    "is_black": is_black
+                })
         except Exception as e:
             print("[WS][broadcast_quick_chat] ERROR:", repr(e))
 
