@@ -1511,5 +1511,14 @@
     setInterval(checkUnreadMessages, 30000);
   })();
   </script>
+
+  <!-- 푸터 -->
+  <footer style="margin-top: 3rem; padding: 2rem 0; text-align: center; border-top: 1px solid rgba(123, 92, 58, 0.3);">
+    <div style="display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+      <a href="{% url 'accounts:privacy_policy' %}" style="color: var(--border); text-decoration: none; font-size: 0.9rem; font-weight: 500;">개인정보처리방침</a>
+      <a href="{% url 'accounts:terms_of_service' %}" style="color: var(--border); text-decoration: none; font-size: 0.9rem; font-weight: 500;">서비스 이용약관</a>
+    </div>
+    <p style="margin: 0; color: #666; font-size: 0.85rem;">© 2026 Gomoku. All rights reserved.</p>
+  </footer>
 </body>
 </html>
