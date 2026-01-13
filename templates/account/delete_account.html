@@ -1,0 +1,142 @@
+{% extends "account/base_auth.html" %}
+{% block title %}계정 삭제 – Omok{% endblock %}
+{% block content %}
+<h1><span class="stone black"></span> 계정 삭제</h1>
+<p class="sub">계정을 삭제하면 모든 데이터가 영구적으로 삭제됩니다</p>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+
+<div class="warning-box">
+  <h3>⚠️ 주의사항</h3>
+  <p>계정을 삭제하면 다음 데이터가 <strong>영구적으로 삭제</strong>됩니다:</p>
+  <ul>
+    <li>사용자 계정 정보</li>
+    <li>프로필 및 전적 통계</li>
+    <li>친구 목록 및 친구 요청</li>
+    <li>모든 메시지</li>
+  </ul>
+  <p class="note">※ 게임 전적 기록은 통계 목적으로 익명화되어 보존됩니다.</p>
+</div>
+
+<form method="post" id="deleteForm" onsubmit="return confirmDelete()">
+  {% csrf_token %}
+
+  <div class="row">
+    <label for="password">비밀번호 확인</label>
+    <input
+      type="password"
+      id="password"
+      name="password"
+      placeholder="현재 비밀번호를 입력하세요"
+      required
+      autocomplete="current-password"
+    >
+    <p class="muted">본인 확인을 위해 비밀번호를 입력해주세요</p>
+  </div>
+
+  <div class="row">
+    <label for="confirm">삭제 확인</label>
+    <input
+      type="text"
+      id="confirm"
+      name="confirm"
+      placeholder='정확히 "계정삭제"를 입력하세요'
+      required
+      autocomplete="off"
+    >
+    <p class="muted">계속하려면 <strong>계정삭제</strong>를 정확히 입력해주세요</p>
+  </div>
+
+  <button class="btn btn-danger" type="submit">계정 삭제</button>
+  <div class="links">
+    <a href="{% url 'accounts:profile_edit' %}">취소하고 프로필로 돌아가기</a>
+  </div>
+</form>
+
+<style>
+  .alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+  }
+  .alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+  .alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+
+  .warning-box {
+    background-color: #fff3cd;
+    border: 2px solid #ffc107;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .warning-box h3 {
+    margin: 0 0 1rem 0;
+    color: #856404;
+    font-size: 1.2rem;
+  }
+
+  .warning-box p {
+    margin: 0.5rem 0;
+    color: #856404;
+  }
+
+  .warning-box ul {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+    color: #856404;
+  }
+
+  .warning-box li {
+    margin: 0.5rem 0;
+  }
+
+  .warning-box .note {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    font-style: italic;
+  }
+
+  .btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+  }
+
+  .btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+  }
+
+  .error-message {
+    margin-top: 0.5rem;
+    color: #dc3545;
+    font-size: 0.9rem;
+  }
+</style>
+
+<script>
+function confirmDelete() {
+  const confirmText = document.getElementById('confirm').value;
+
+  if (confirmText !== 'DELETE') {
+    alert('"계정삭제"를 정확히 입력해주세요.');
+    return false;
+  }
+
+  return confirm('정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.');
+}
+</script>
+{% endblock %}

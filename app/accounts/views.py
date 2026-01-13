@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import get_user_model, update_session_auth_hash
+from django.contrib.auth import authenticate, get_user_model, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -80,3 +80,44 @@ def user_profile(request, username):
     }
 
     return render(request, "account/profile.html", context)
+
+
+@login_required
+def delete_account(request):
+    """계정 삭제 (탈퇴) 뷰"""
+    if request.method == "POST":
+        # 비밀번호 확인
+        password = request.POST.get("password", "")
+        user = authenticate(username=request.user.username, password=password)
+
+        if user is None:
+            messages.error(request, "비밀번호가 올바르지 않습니다.")
+            return redirect("accounts:delete_account")
+
+        # 최종 확인
+        confirm = request.POST.get("confirm", "")
+        if confirm != "계정삭제":
+            messages.error(request, '"계정삭제"를 정확히 입력해주세요.')
+            return redirect("accounts:delete_account")
+
+        # 계정 삭제
+        # CASCADE 설정으로 인해 관련 데이터가 자동으로 삭제
+        # - UserProfile (CASCADE)
+        # - NicknameChangeLog (CASCADE)
+        # - Friend (CASCADE)
+        # - FriendRequest (CASCADE)
+        # - DirectMessage (CASCADE)
+        # - Move (CASCADE)
+        # Game의 black/white는 SET_NULL이므로 전적은 유지
+        # GameHistory의 black/white도 SET_NULL이므로 전적 기록은 유지
+
+        username = request.user.username
+        request.user.delete()
+
+        # 로그아웃
+        logout(request)
+
+        messages.success(request, f"{username}님의 계정이 성공적으로 삭제되었습니다.")
+        return redirect("games:lobby")
+
+    return render(request, "account/delete_account.html")
