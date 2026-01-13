@@ -78,6 +78,7 @@
   <button class="btn" type="submit">저장하기</button>
   <div class="links">
     <a href="{% url 'games:lobby' %}">취소하고 로비로 돌아가기</a>
+    <a href="{% url 'accounts:delete_account' %}" class="danger-link">계정 삭제</a>
   </div>
 </form>
 
@@ -105,6 +106,14 @@
   }
   .error-message p {
     margin: 0.25rem 0;
+  }
+  .danger-link {
+    color: #dc3545 !important;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .danger-link:hover {
+    text-decoration: underline;
   }
 </style>
 {% endblock %}
