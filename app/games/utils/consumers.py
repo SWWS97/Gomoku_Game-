@@ -871,11 +871,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
             # 발신자가 아닌 사람에게만 메시지 전송
             if user and user.is_authenticated and user.id != sender_id:
-                await self.send_json({
-                    "type": "quick_chat",
-                    "message": message,
-                    "is_black": is_black
-                })
+                await self.send_json(
+                    {"type": "quick_chat", "message": message, "is_black": is_black}
+                )
         except Exception as e:
             print("[WS][broadcast_quick_chat] ERROR:", repr(e))
 
