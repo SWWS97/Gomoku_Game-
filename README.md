@@ -1,4 +1,4 @@
-# 🎲 Gomoku Game (오목 게임) 🎲
+# 🎲 오목조목 (Omok Game) 🎲
 
 Django 기반 실시간 오목 게임 (렌주 규칙 적용)
 
