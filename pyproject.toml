@@ -1,7 +1,7 @@
 [project]
 name = "gomoku-game"
 version = "0.1.0"
-description = "Gomoku (Omok) with Django Channels + Daphne"
+description = "오목조목 (Omok Game) with Django Channels + Daphne"
 readme = "README.md"
 requires-python = ">=3.12"
 
