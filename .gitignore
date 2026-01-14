@@ -45,3 +45,7 @@ docker-compose.override.yml
 # ---- db 체크 스크립트
 check_data.py
 check_db.py
+
+# ---- 아이콘 생성 스크립트
+generate_icons.py
+generate_icons_v2.py

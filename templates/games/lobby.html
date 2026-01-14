@@ -1,9 +1,28 @@
+{% load static %}
 <!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Gomoku 로비 – Omok</title>
+  <title>오목조목 로비 – Omok</title>
+
+  <!-- PWA Meta Tags -->
+  <meta name="description" content="온라인 실시간 오목 게임 - 친구와 함께 플레이하세요!" />
+  <meta name="theme-color" content="#3e2a1f" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="오목조목" />
+
+  <!-- Manifest -->
+  <link rel="manifest" href="{% static 'manifest.json' %}" />
+
+  <!-- Icons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="{% static 'icons/icon-192x192.png' %}" />
+  <link rel="icon" type="image/png" sizes="512x512" href="{% static 'icons/icon-512x512.png' %}" />
+  <link rel="apple-touch-icon" href="{% static 'icons/icon-192x192.png' %}" />
+
+
   <style>
     :root {
       --wood: #d4b781;
@@ -883,7 +902,7 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>Gomoku 로비</h1>
+      <h1>오목조목 로비</h1>
       <div class="top-actions">
         <span class="user-info">{{ user.first_name|default:user.username }}</span>
         <a href="{% url 'games:friends' %}" class="btn" style="background: #4a7c89; font-size: 14px; padding: 8px 16px; position: relative;">
@@ -891,7 +910,7 @@
           <span id="friendNotificationBadge" style="display: none; position: absolute; top: -4px; right: -4px; background: #e53e3e; color: white; border-radius: 10px; padding: 2px 6px; font-size: 11px; font-weight: 700;"></span>
         </a>
         <a href="{% url 'games:history' %}" class="btn" style="background: #5a4a3a; font-size: 14px; padding: 8px 16px;">내 전적</a>
-        <button class="btn" id="ranking-btn" style="background: #4a7c59; font-size: 14px; padding: 8px 16px;">Gomoku 랭킹</button>
+        <button class="btn" id="ranking-btn" style="background: #4a7c59; font-size: 14px; padding: 8px 16px;">오목조목 랭킹</button>
         <a href="{% url 'accounts:profile_edit' %}" class="btn" style="background: #6a5d4a; font-size: 14px; padding: 8px 16px;">프로필 수정</a>
         <a href="{% url 'account_logout' %}" class="btn logout-btn" style="font-size: 14px; padding: 8px 16px;">로그아웃</a>
       </div>
@@ -948,7 +967,7 @@
   <!-- 채팅창 -->
   <div class="chat-container hidden" id="chat-container">
     <div class="chat-header">
-      <span>Gomoku 채팅</span>
+      <span>오목조목 채팅</span>
       <button class="chat-close-btn" id="chat-close-btn" aria-label="채팅 닫기">×</button>
     </div>
     <div class="chat-messages" id="chat-messages">
@@ -1020,7 +1039,7 @@
   <!-- 랭킹 모달 -->
   <div class="modal-overlay" id="ranking-modal">
     <div class="modal-content" style="max-width: 600px;">
-      <h2>Gomoku 랭킹</h2>
+      <h2>오목조목 랭킹</h2>
 
       <!-- 랭킹 탭 -->
       <div class="ranking-tabs">
@@ -1512,13 +1531,26 @@
   })();
   </script>
 
+  <!-- Service Worker 등록 -->
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js')
+      .then(reg => {
+        console.log('[SW] Service Worker 등록 성공:', reg.scope);
+      })
+      .catch(err => {
+        console.log('[SW] Service Worker 등록 실패:', err);
+      });
+  }
+  </script>
+
   <!-- 푸터 -->
   <footer style="margin-top: 3rem; padding: 2rem 0; text-align: center; border-top: 1px solid rgba(123, 92, 58, 0.3);">
     <div style="display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
       <a href="{% url 'accounts:privacy_policy' %}" style="color: var(--border); text-decoration: none; font-size: 0.9rem; font-weight: 500;">개인정보처리방침</a>
       <a href="{% url 'accounts:terms_of_service' %}" style="color: var(--border); text-decoration: none; font-size: 0.9rem; font-weight: 500;">서비스 이용약관</a>
     </div>
-    <p style="margin: 0; color: #666; font-size: 0.85rem;">© 2026 Gomoku. All rights reserved.</p>
+    <p style="margin: 0; color: #666; font-size: 0.85rem;">© 2026 오목조목. All rights reserved.</p>
   </footer>
 </body>
 </html>
