@@ -49,7 +49,6 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "channels",
-    "whitenoise.runserver_nostatic",  # runserver 때도 whitenoise로 일관
     # django-allauth
     "django.contrib.sites",
     "allauth",
@@ -72,7 +71,6 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + OWN_APPS
 # ──────────────────────────────────────────────────────────────────────
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # 정적파일 서빙 (nginx 없이 운영 가능)
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -165,12 +163,14 @@ USE_I18N = True
 USE_TZ = True
 
 # ──────────────────────────────────────────────────────────────────────
-# 정적 파일 (whitenoise)
+# 정적 파일 (Nginx가 직접 서빙)
 #   collectstatic 시 STATIC_ROOT 로 수집
 # ──────────────────────────────────────────────────────────────────────
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # 프로젝트 루트의 static 폴더
+]
 
 # ──────────────────────────────────────────────────────────────────────
 # 기타
