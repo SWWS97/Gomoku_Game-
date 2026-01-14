@@ -2,7 +2,11 @@ services:
   web:
     image: swws97/gomoku_game-web:latest   # ← 서버에서 build 안 함, Hub에서 pull
     env_file: ./envs/.env.prod
-    # prod에서는 코드 볼륨 마운트 금지(베이스에 volumes가 없어야 안전)
+    # prod에서 필요한 볼륨만 명시적으로 마운트
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - ./static:/app/static:ro  # PWA 파일을 위해 필요
 
   nginx:
     image: swws97/gomoku_game-nginx:latest  # Nginx도 Hub에서 pull
