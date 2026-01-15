@@ -690,10 +690,10 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 # 리매치 플래그 리셋
                 game.rematch_black = False
                 game.rematch_white = False
-                # 준비 상태 리셋
-                game.black_ready = False
-                game.white_ready = False
-                game.game_started = False
+                # 리매치 수락 = 자동 준비 완료 (바로 게임 시작)
+                game.black_ready = True
+                game.white_ready = True
+                game.game_started = True
 
                 game.save(
                     update_fields=[
@@ -770,10 +770,10 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 # 리매치 플래그 리셋
                 game.rematch_black = False
                 game.rematch_white = False
-                # 준비 상태 리셋
-                game.black_ready = False
-                game.white_ready = False
-                game.game_started = False
+                # 리매치 수락 = 자동 준비 완료 (바로 게임 시작)
+                game.black_ready = True
+                game.white_ready = True
+                game.game_started = True
 
                 game.save(
                     update_fields=[
