@@ -1024,6 +1024,9 @@
     // 양쪽 모두 준비 완료 && 방장이면 게임 시작 버튼 표시
     if (data.black_ready && data.white_ready && data.is_room_creator) {
       startGameBtn.style.display = "inline-block";
+    } else {
+      // 조건이 맞지 않으면 버튼 숨김
+      startGameBtn.style.display = "none";
     }
   }
 

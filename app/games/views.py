@@ -29,9 +29,11 @@ def lobby(request):
     waiting_games = Game.objects.filter(white__isnull=True).order_by("-created_at")
 
     # 현재 사용자가 참여 중인 진행 중인 게임이 있는지 확인
-    has_active_game = Game.objects.filter(
+    active_game = Game.objects.filter(
         Q(black=request.user) | Q(white=request.user), winner__isnull=True
-    ).exists()
+    ).first()
+    has_active_game = active_game is not None
+    active_game_id = active_game.id if active_game else None
 
     # 랭킹 데이터 - 승률 기준 (최소 5판 이상)
     # 승률은 property라서 DB에서 정렬 불가 -> Python에서 정렬
@@ -96,6 +98,7 @@ def lobby(request):
         {
             "waiting_games": waiting_games,
             "has_active_game": has_active_game,
+            "active_game_id": active_game_id,
             "ranking_by_winrate": ranking_by_winrate,
             "ranking_by_games": ranking_by_games,
         },
