@@ -288,6 +288,68 @@
       background: #fffbf0;
     }
 
+    /* 진행 중인 게임 배너 */
+    .active-game-banner {
+      background: linear-gradient(135deg, #4a7c59 0%, #5a8c69 100%);
+      padding: 20px 24px;
+      border-radius: 12px;
+      border: 2px solid #3e6b4f;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .banner-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .banner-icon {
+      font-size: 32px;
+      animation: bounce 1s ease-in-out infinite;
+    }
+
+    .banner-text strong {
+      display: block;
+      color: white;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .banner-text p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 14px;
+    }
+
+    .btn-rejoin {
+      background: white;
+      color: #4a7c59;
+      font-weight: 700;
+      padding: 12px 24px;
+      white-space: nowrap;
+    }
+
+    .btn-rejoin:hover {
+      background: #f0f0f0;
+      transform: translateY(-2px);
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 4px 12px rgba(74, 124, 89, 0.3); }
+      50% { box-shadow: 0 4px 20px rgba(74, 124, 89, 0.5); }
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+
     .ws-status {
       font-size: 12px;
       color: #999;
@@ -783,6 +845,30 @@
         font-size: 13px;
       }
 
+      /* 모바일 진행 중인 게임 배너 */
+      .active-game-banner {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 16px;
+      }
+
+      .banner-content {
+        gap: 12px;
+      }
+
+      .banner-icon {
+        font-size: 24px;
+      }
+
+      .banner-text strong {
+        font-size: 16px;
+      }
+
+      .btn-rejoin {
+        width: 100%;
+        text-align: center;
+      }
+
       .rooms-section {
         padding: 16px;
       }
@@ -864,6 +950,45 @@
       .chat-message .text {
         max-width: calc(100vw - 80px);
       }
+
+      /* 모바일 랭킹 테이블 스타일 */
+      .ranking-table {
+        font-size: 12px;
+      }
+
+      .ranking-table th {
+        padding: 8px 4px;
+        font-size: 11px;
+      }
+
+      .ranking-table td {
+        padding: 10px 4px;
+      }
+
+      .ranking-table td.rank {
+        font-size: 13px;
+      }
+
+      .ranking-table td.nickname {
+        font-size: 12px;
+      }
+
+      /* 모바일에서 승/패 컬럼 숨기기 (공간 절약) */
+      .ranking-table th:nth-child(4),
+      .ranking-table th:nth-child(5),
+      .ranking-table td:nth-child(4),
+      .ranking-table td:nth-child(5) {
+        display: none;
+      }
+
+      .ranking-tabs {
+        gap: 4px;
+      }
+
+      .ranking-tab {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
     }
 
     /* 초소형 모바일 */
@@ -926,6 +1051,19 @@
         <span class="ws-status" id="ws-status">연결 중...</span>
       </div>
     </div>
+
+    {% if active_game_id %}
+    <div class="active-game-banner">
+      <div class="banner-content">
+        <span class="banner-icon">🎮</span>
+        <div class="banner-text">
+          <strong>진행 중인 게임이 있습니다</strong>
+          <p>게임을 계속하시려면 재입장하세요</p>
+        </div>
+      </div>
+      <a href="{% url 'games:room' pk=active_game_id %}" class="btn btn-rejoin">게임 재입장</a>
+    </div>
+    {% endif %}
 
     <div class="rooms-section">
       <div class="rooms-header">

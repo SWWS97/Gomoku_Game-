@@ -83,6 +83,7 @@ class Game(models.Model):
         """새 라운드를 위해 게임판, 타이머, 턴을 초기화"""
         self.board = "." * (BOARD_SIZE * BOARD_SIZE)
         self.turn = "black"
+        self.winner = None  # 승자 리셋
         self.black_time_remaining = 900
         self.white_time_remaining = 900
         self.last_move_time = None

@@ -325,6 +325,9 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             **game.get_both_player_names(),
             "black_time": black_time,
             "white_time": white_time,
+            "black_ready": game.black_ready,
+            "white_ready": game.white_ready,
+            "game_started": game.game_started,
         }
 
     @database_sync_to_async
@@ -690,7 +693,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 # 리매치 플래그 리셋
                 game.rematch_black = False
                 game.rematch_white = False
-                # 준비 상태 리셋
+                # 준비 상태 초기화 (다시 준비완료 필요)
                 game.black_ready = False
                 game.white_ready = False
                 game.game_started = False
@@ -770,7 +773,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 # 리매치 플래그 리셋
                 game.rematch_black = False
                 game.rematch_white = False
-                # 준비 상태 리셋
+                # 준비 상태 초기화 (다시 준비완료 필요)
                 game.black_ready = False
                 game.white_ready = False
                 game.game_started = False
@@ -1033,13 +1036,21 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
                 # 케이스 2: 게임이 시작되지 않은 경우
                 if not game.game_started:
-                    # 방장(흑)이 나간 경우 → 방 삭제
+                    # 방장(흑)이 나간 경우
                     if is_black:
-                        print(
-                            f"[CLEANUP] 방장이 게임 시작 전 나감 - 방 삭제: game_id={game.id}"
-                        )
-                        game.delete()
-                        return
+                        # 백 플레이어가 있으면 방 삭제 (빈 방은 의미 없음)
+                        if game.white:
+                            print(
+                                f"[CLEANUP] 방장이 게임 시작 전 나감 (백 있음) - 방 삭제: game_id={game.id}"
+                            )
+                            game.delete()
+                            return
+                        else:
+                            # 백 플레이어가 없으면 방 유지 (방장 혼자 대기 중, 새로고침 대응)
+                            print(
+                                f"[CLEANUP] 방장이 게임 시작 전 나감 (백 없음) - 방 유지: game_id={game.id}"
+                            )
+                            return
 
                     # 백플레이어가 나간 경우 → 백플레이어만 제거
                     if is_white:
