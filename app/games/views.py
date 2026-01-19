@@ -35,15 +35,34 @@ def lobby(request):
     has_active_game = active_game is not None
     active_game_id = active_game.id if active_game else None
 
-    # 랭킹 데이터 - 승률 기준 (최소 5판 이상)
-    # 승률은 property라서 DB에서 정렬 불가 -> Python에서 정렬
-    ranking_by_winrate_raw = (
-        UserProfile.objects.filter(wins__gt=0).select_related("user").all()
-    )
+    # 모든 프로필 데이터 (랭킹용)
+    all_profiles = UserProfile.objects.filter(wins__gt=0).select_related("user").all()
 
-    # 최소 5판 이상인 프로필만 필터링하고 승률로 정렬
+    # 랭킹 데이터 - 레이팅 기준 (최소 5판 이상)
+    ranking_by_rating = []
+    for profile in all_profiles:
+        if profile.total_games >= 5:
+            ranking_by_rating.append(
+                {
+                    "username": profile.user.username,
+                    "nickname": profile.user.first_name or profile.user.username,
+                    "wins": profile.wins,
+                    "losses": profile.losses,
+                    "total_games": profile.total_games,
+                    "win_rate": profile.win_rate,
+                    "rating": profile.rating,
+                }
+            )
+
+    # 레이팅 내림차순 정렬
+    ranking_by_rating.sort(key=lambda x: (-x["rating"], -x["total_games"]))
+    ranking_by_rating = ranking_by_rating[:10]
+    for idx, item in enumerate(ranking_by_rating, 1):
+        item["rank"] = idx
+
+    # 랭킹 데이터 - 승률 기준 (최소 5판 이상)
     ranking_by_winrate = []
-    for profile in ranking_by_winrate_raw:
+    for profile in all_profiles:
         if profile.total_games >= 5:
             ranking_by_winrate.append(
                 {
@@ -53,42 +72,34 @@ def lobby(request):
                     "losses": profile.losses,
                     "total_games": profile.total_games,
                     "win_rate": profile.win_rate,
+                    "rating": profile.rating,
                 }
             )
 
     # 승률 내림차순 정렬 (승률 같으면 총 게임 수 많은 순)
     ranking_by_winrate.sort(key=lambda x: (-x["win_rate"], -x["total_games"]))
-
-    # 상위 10명만 선택하고 순위 부여
     ranking_by_winrate = ranking_by_winrate[:10]
     for idx, item in enumerate(ranking_by_winrate, 1):
         item["rank"] = idx
 
     # 랭킹 데이터 - 판수 기준
-    ranking_by_games_raw = (
-        UserProfile.objects.filter(wins__gt=0)
-        .select_related("user")
-        .order_by("-wins", "-losses")[:10]
-    )
-
-    # 판수 순위 데이터 포맷팅
     ranking_by_games = []
-    for idx, profile in enumerate(ranking_by_games_raw, 1):
+    for profile in all_profiles:
         ranking_by_games.append(
             {
-                "rank": idx,
                 "username": profile.user.username,
                 "nickname": profile.user.first_name or profile.user.username,
                 "wins": profile.wins,
                 "losses": profile.losses,
                 "total_games": profile.total_games,
                 "win_rate": profile.win_rate,
+                "rating": profile.rating,
             }
         )
 
-    # 실제 판수 기준으로 정렬
+    # 판수 기준으로 정렬
     ranking_by_games.sort(key=lambda x: (-x["total_games"], -x["wins"]))
-    # 순위 재조정
+    ranking_by_games = ranking_by_games[:10]
     for idx, item in enumerate(ranking_by_games, 1):
         item["rank"] = idx
 
@@ -99,6 +110,7 @@ def lobby(request):
             "waiting_games": waiting_games,
             "has_active_game": has_active_game,
             "active_game_id": active_game_id,
+            "ranking_by_rating": ranking_by_rating,
             "ranking_by_winrate": ranking_by_winrate,
             "ranking_by_games": ranking_by_games,
         },
