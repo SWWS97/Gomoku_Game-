@@ -2,6 +2,31 @@ from django.conf import settings
 from django.db import models
 
 
+# 레이팅 시스템 상수
+INITIAL_RATING = 1000  # 초기 레이팅
+MIN_RATING = 800  # 최소 레이팅
+K_FACTOR = 32  # K-factor (레이팅 변동폭)
+
+
+def calculate_elo(winner_rating, loser_rating, k=K_FACTOR):
+    """
+    Elo 레이팅 계산
+    Returns: (new_winner_rating, new_loser_rating, winner_change, loser_change)
+    """
+    # 예상 승률 계산
+    expected_winner = 1 / (1 + 10 ** ((loser_rating - winner_rating) / 400))
+    expected_loser = 1 - expected_winner
+
+    # 새 레이팅 계산
+    winner_change = round(k * (1 - expected_winner))
+    loser_change = round(k * (0 - expected_loser))
+
+    new_winner_rating = winner_rating + winner_change
+    new_loser_rating = max(MIN_RATING, loser_rating + loser_change)  # 최소 레이팅 보장
+
+    return new_winner_rating, new_loser_rating, winner_change, loser_change
+
+
 class UserProfile(models.Model):
     """사용자 전적 프로필"""
 
@@ -12,13 +37,14 @@ class UserProfile(models.Model):
     )
     wins = models.IntegerField(default=0, verbose_name="승리")
     losses = models.IntegerField(default=0, verbose_name="패배")
+    rating = models.IntegerField(default=INITIAL_RATING, verbose_name="레이팅")
 
     class Meta:
         verbose_name = "사용자 프로필"
         verbose_name_plural = "사용자 프로필"
 
     def __str__(self):
-        return f"{self.user.username} - {self.wins}승 {self.losses}패"
+        return f"{self.user.username} - {self.rating}점 ({self.wins}승 {self.losses}패)"
 
     @property
     def total_games(self):

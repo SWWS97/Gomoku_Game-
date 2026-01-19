@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db.models import Q
 
 from ..models import BOARD_SIZE, Game, GameHistory, Move
-from app.accounts.models import UserProfile
+from app.accounts.models import UserProfile, calculate_elo, INITIAL_RATING
 from .omok import (
     BLACK,
     WHITE,
@@ -65,25 +65,61 @@ def filter_profanity(text):
 
 
 def update_user_stats(black_user, white_user, winner):
-    """게임 종료 시 사용자 전적 업데이트"""
-    # 프로필이 없으면 생성
-    black_profile, _ = UserProfile.objects.get_or_create(user=black_user)
-    white_profile, _ = UserProfile.objects.get_or_create(user=white_user)
+    """
+    게임 종료 시 사용자 전적 및 레이팅 업데이트
+    Returns: dict with rating changes
+    """
+    # 프로필이 없으면 생성 (초기 레이팅 1000점)
+    black_profile, _ = UserProfile.objects.get_or_create(
+        user=black_user,
+        defaults={"rating": INITIAL_RATING}
+    )
+    white_profile, _ = UserProfile.objects.get_or_create(
+        user=white_user,
+        defaults={"rating": INITIAL_RATING}
+    )
 
-    # 승패 업데이트
+    # 현재 레이팅 저장 (변동 계산용)
+    old_black_rating = black_profile.rating
+    old_white_rating = white_profile.rating
+
+    # 승패 및 레이팅 업데이트
     if winner == "black":
         black_profile.wins += 1
         white_profile.losses += 1
+        # 레이팅 계산: 흑 승리
+        new_black, new_white, black_change, white_change = calculate_elo(
+            black_profile.rating, white_profile.rating
+        )
+        black_profile.rating = new_black
+        white_profile.rating = new_white
     else:  # winner == "white"
         white_profile.wins += 1
         black_profile.losses += 1
+        # 레이팅 계산: 백 승리
+        new_white, new_black, white_change, black_change = calculate_elo(
+            white_profile.rating, black_profile.rating
+        )
+        black_profile.rating = new_black
+        white_profile.rating = new_white
 
-    black_profile.save(update_fields=["wins", "losses"])
-    white_profile.save(update_fields=["wins", "losses"])
+    black_profile.save(update_fields=["wins", "losses", "rating"])
+    white_profile.save(update_fields=["wins", "losses", "rating"])
+
+    # 레이팅 변동 정보 반환
+    return {
+        "black_rating": black_profile.rating,
+        "white_rating": white_profile.rating,
+        "black_rating_change": black_profile.rating - old_black_rating,
+        "white_rating_change": white_profile.rating - old_white_rating,
+    }
 
 
 def record_game_result(game):
-    """게임 종료 시 전적 기록 및 통계 업데이트"""
+    """
+    게임 종료 시 전적 기록 및 통계 업데이트
+    Returns: dict with rating changes
+    """
     total_moves = game.moves.count()
     GameHistory.objects.create(
         game_id=game.id,
@@ -93,7 +129,7 @@ def record_game_result(game):
         created_at=game.created_at,
         total_moves=total_moves,
     )
-    update_user_stats(game.black, game.white, game.winner)
+    return update_user_stats(game.black, game.white, game.winner)
 
 
 class GameConsumer(AsyncJsonWebsocketConsumer):
@@ -317,6 +353,18 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             else:
                 white_time = max(0, white_time - int(elapsed))
 
+        # 플레이어 레이팅 조회
+        black_rating = INITIAL_RATING
+        white_rating = INITIAL_RATING
+        if game.black:
+            black_profile = UserProfile.objects.filter(user=game.black).first()
+            if black_profile:
+                black_rating = black_profile.rating
+        if game.white:
+            white_profile = UserProfile.objects.filter(user=game.white).first()
+            if white_profile:
+                white_rating = white_profile.rating
+
         return {
             "board": game.board,
             "turn": game.turn,
@@ -328,6 +376,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             "black_ready": game.black_ready,
             "white_ready": game.white_ready,
             "game_started": game.game_started,
+            "black_rating": black_rating,
+            "white_rating": white_rating,
         }
 
     @database_sync_to_async
@@ -483,7 +533,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
                 # 양쪽 플레이어가 모두 있는 경우만 전적 기록
                 if game.black and game.white:
-                    record_game_result(game)
+                    rating_info = record_game_result(game)
+                    final_state.update(rating_info)
                     # 게임 저장 (리매치를 위해 삭제하지 않음)
                     game.save(
                         update_fields=[
@@ -643,8 +694,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             else:
                 return None  # 게임 참가자가 아님
 
-            # 전적 기록 생성
-            record_game_result(game)
+            # 전적 기록 생성 및 레이팅 변동 정보 가져오기
+            rating_info = record_game_result(game)
 
             # 최종 상태 저장 (broadcast용)
             final_state = {
@@ -653,6 +704,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 "winner": game.winner,
                 "size": BOARD_SIZE,
                 **game.get_both_player_names(),
+                **rating_info,
             }
 
             # 게임 저장 (리매치를 위해 삭제하지 않음)
@@ -840,8 +892,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             else:
                 return None  # 잘못된 타임아웃 플레이어
 
-            # 전적 기록 생성
-            record_game_result(game)
+            # 전적 기록 생성 및 레이팅 변동 정보 가져오기
+            rating_info = record_game_result(game)
 
             # 최종 상태 저장 (broadcast용)
             final_state = {
@@ -852,6 +904,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 **game.get_both_player_names(),
                 "black_time": game.black_time_remaining,
                 "white_time": game.white_time_remaining,
+                **rating_info,
             }
 
             # 게임 저장 (리매치를 위해 삭제하지 않음)

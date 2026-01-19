@@ -853,6 +853,7 @@
       <div class="winner-stone" id="modalStone"></div>
       <div class="winner-name" id="modalWinnerName"></div>
       <p style="font-size:1.1rem; color:#666;">승리하셨습니다!</p>
+      <div id="ratingChange"></div>
       <button class="modal-btn" onclick="closeModal()">확인</button>
     </div>
   </div>
@@ -1248,6 +1249,40 @@
     modalShown = true;
     modalStone.textContent = winner === "black" ? "●" : "○";
     modalWinnerName.textContent = winnerName || (winner === "black" ? "흑" : "백");
+
+    // 레이팅 변동 표시 (대전 모드일 때만)
+    const ratingDisplay = document.getElementById("ratingChange");
+    if (ratingDisplay && lastRatingInfo && !isSoloPlay) {
+      const blackChange = lastRatingInfo.black_rating_change;
+      const whiteChange = lastRatingInfo.white_rating_change;
+      const blackRating = lastRatingInfo.black_rating;
+      const whiteRating = lastRatingInfo.white_rating;
+
+      ratingDisplay.innerHTML = `
+        <div style="margin-top:1rem; padding:0.8rem; background:#f8f9fa; border-radius:8px; font-size:0.95rem;">
+          <div style="font-weight:700; margin-bottom:0.5rem; color:#666;">레이팅 변동</div>
+          <div style="display:flex; justify-content:center; gap:2rem;">
+            <div>
+              <span style="font-weight:600;">흑(●)</span>
+              <span style="color:${blackChange >= 0 ? '#4a7c59' : '#c53030'}; font-weight:700; margin-left:0.3rem;">
+                ${blackChange >= 0 ? '+' : ''}${blackChange}
+              </span>
+              <span style="color:#888; margin-left:0.3rem;">(${blackRating})</span>
+            </div>
+            <div>
+              <span style="font-weight:600;">백(○)</span>
+              <span style="color:${whiteChange >= 0 ? '#4a7c59' : '#c53030'}; font-weight:700; margin-left:0.3rem;">
+                ${whiteChange >= 0 ? '+' : ''}${whiteChange}
+              </span>
+              <span style="color:#888; margin-left:0.3rem;">(${whiteRating})</span>
+            </div>
+          </div>
+        </div>
+      `;
+      ratingDisplay.style.display = "block";
+    } else if (ratingDisplay) {
+      ratingDisplay.style.display = "none";
+    }
 
     // 혼자 플레이면 3초 후 자동으로 게임판 리셋
     if (isSoloPlay) {
@@ -1808,8 +1843,11 @@
   let prevBoard = "";  // 이전 보드 상태 (마지막 착수 찾기용)
   let lastStoneIndex = -1;  // 마지막 착수 위치 (전역으로 관리)
 
+  // 레이팅 변동 정보 저장용
+  let lastRatingInfo = null;
+
   function render(state){
-    const { board, turn, winner, black_player, white_player, black_username, white_username, black_time, white_time } = state;
+    const { board, turn, winner, black_player, white_player, black_username, white_username, black_time, white_time, black_rating, white_rating, black_rating_change, white_rating_change } = state;
 
     // 착수 완료, 플래그 해제
     isPlaying = false;
@@ -1817,9 +1855,24 @@
     // 연습 모드 감지 (양쪽 플레이어가 모두 없으면 연습 모드)
     isPracticeMode = !black_player || !white_player;
 
-    // 플레이어 정보 업데이트
-    blackPlayer.textContent = black_player || "대기중...";
-    whitePlayer.textContent = white_player || "대기중...";
+    // 레이팅 변동 정보 저장 (게임 종료 시)
+    if (black_rating_change !== undefined || white_rating_change !== undefined) {
+      lastRatingInfo = { black_rating, white_rating, black_rating_change, white_rating_change };
+    }
+
+    // 플레이어 정보 업데이트 (레이팅 포함)
+    if (black_player) {
+      const ratingText = black_rating ? ` (${black_rating})` : '';
+      blackPlayer.textContent = black_player + ratingText;
+    } else {
+      blackPlayer.textContent = "대기중...";
+    }
+    if (white_player) {
+      const ratingText = white_rating ? ` (${white_rating})` : '';
+      whitePlayer.textContent = white_player + ratingText;
+    } else {
+      whitePlayer.textContent = "대기중...";
+    }
 
     // 현재 사용자의 색상 결정 (빠른 채팅 말풍선 색상용)
     if (black_username === currentUsername) {
