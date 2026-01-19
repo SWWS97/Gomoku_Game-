@@ -206,7 +206,6 @@ def leave_game(request, pk):
         # WebSocket으로 백돌 플레이어에게 알림 (게임 삭제됨)
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(f"game_{pk}", {"type": "game_deleted"})
-        messages.info(request, "게임방을 나갔습니다.")
         return redirect("games:lobby")
 
     # 백돌 플레이어가 나가면 백돌만 제거
@@ -218,7 +217,6 @@ def leave_game(request, pk):
         async_to_sync(channel_layer.group_send)(
             f"game_{pk}", {"type": "broadcast_state"}
         )
-        messages.info(request, "게임방을 나갔습니다.")
         return redirect("games:lobby")
 
     # 참가하지 않은 유저면 그냥 로비로

@@ -350,6 +350,121 @@
       50% { transform: translateY(-5px); }
     }
 
+    /* 토스트 알림 스타일 */
+    .toast-container {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 400px;
+    }
+
+    .toast {
+      background: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+      border-left: 4px solid;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideIn 0.3s ease-out;
+      min-width: 300px;
+    }
+
+    .toast.success {
+      border-left-color: #4a7c59;
+      background: linear-gradient(135deg, #f0f9f4 0%, #ffffff 100%);
+    }
+
+    .toast.error {
+      border-left-color: #c53030;
+      background: linear-gradient(135deg, #fef5f5 0%, #ffffff 100%);
+    }
+
+    .toast.info {
+      border-left-color: #4a7c89;
+      background: linear-gradient(135deg, #f0f7f9 0%, #ffffff 100%);
+    }
+
+    .toast-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .toast.success .toast-icon {
+      color: #4a7c59;
+    }
+
+    .toast.error .toast-icon {
+      color: #c53030;
+    }
+
+    .toast.info .toast-icon {
+      color: #4a7c89;
+    }
+
+    .toast-content {
+      flex: 1;
+    }
+
+    .toast-message {
+      color: #333;
+      font-size: 14px;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    .toast-close {
+      background: none;
+      border: none;
+      color: #999;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+
+    .toast-close:hover {
+      background: rgba(0, 0, 0, 0.05);
+      color: #333;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+    }
+
+    .toast.slide-out {
+      animation: slideOut 0.3s ease-out forwards;
+    }
+
     .ws-status {
       font-size: 12px;
       color: #999;
@@ -953,24 +1068,43 @@
 
       /* 모바일 랭킹 테이블 스타일 */
       .ranking-table {
-        font-size: 12px;
+        font-size: 11px;
+        table-layout: fixed;
+        width: 100%;
       }
 
       .ranking-table th {
-        padding: 8px 4px;
-        font-size: 11px;
+        padding: 8px 2px;
+        font-size: 10px;
+        white-space: nowrap;
       }
 
       .ranking-table td {
-        padding: 10px 4px;
+        padding: 8px 2px;
+        white-space: nowrap;
       }
 
       .ranking-table td.rank {
-        font-size: 13px;
+        font-size: 12px;
+        width: 35px;
       }
 
       .ranking-table td.nickname {
-        font-size: 12px;
+        font-size: 11px;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ranking-table td.winrate {
+        font-size: 11px;
+        width: 50px;
+      }
+
+      .ranking-table td.total-games {
+        font-size: 11px;
+        width: 50px;
       }
 
       /* 모바일에서 승/패 컬럼 숨기기 (공간 절약) */
@@ -988,6 +1122,37 @@
       .ranking-tab {
         padding: 8px 12px;
         font-size: 12px;
+      }
+
+      /* 모바일 토스트 알림 */
+      .toast-container {
+        top: 60px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+      }
+
+      .toast {
+        min-width: auto;
+        width: 100%;
+        padding: 12px 16px;
+      }
+
+      .toast-icon {
+        font-size: 20px;
+      }
+
+      .toast-message {
+        font-size: 13px;
+      }
+
+      .modal-content {
+        max-width: 95%;
+        padding: 20px 12px;
+      }
+
+      .modal-content h2 {
+        font-size: 18px;
       }
     }
 
@@ -1666,6 +1831,70 @@
     // 초기 체크 및 30초마다 체크
     checkUnreadMessages();
     setInterval(checkUnreadMessages, 30000);
+  })();
+  </script>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Toast Notification Script -->
+  <script>
+  (function(){
+    {% if messages %}
+      const toastContainer = document.getElementById('toast-container');
+      const messages = [
+        {% for message in messages %}
+          {
+            type: '{{ message.tags }}',
+            text: '{{ message|escapejs }}'
+          },
+        {% endfor %}
+      ];
+
+      messages.forEach((msg, index) => {
+        setTimeout(() => showToast(msg.text, msg.type), index * 300);
+      });
+    {% endif %}
+
+    function showToast(message, type = 'info') {
+      const toastContainer = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+
+      const icons = {
+        success: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" fill="#4a7c59"/>
+          <path d="M7 12l3 3 7-7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`,
+        error: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" fill="#c53030"/>
+          <path d="M8 8l8 8M16 8l-8 8" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>`,
+        info: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" fill="#4a7c89"/>
+          <path d="M12 11v6M12 7v1" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>`
+      };
+
+      toast.innerHTML = `
+        <span class="toast-icon">${icons[type] || icons.info}</span>
+        <div class="toast-content">
+          <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+      `;
+
+      toastContainer.appendChild(toast);
+
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        toast.classList.add('slide-out');
+        setTimeout(() => toast.remove(), 300);
+      }, 5000);
+    }
+
+    // Make showToast globally available for WebSocket messages
+    window.showToast = showToast;
   })();
   </script>
 
