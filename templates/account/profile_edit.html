@@ -10,6 +10,19 @@
   {% endfor %}
 {% endif %}
 
+{% if not user.email %}
+<div class="email-warning">
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink: 0;">
+    <circle cx="10" cy="10" r="9" stroke="#d97706" stroke-width="2"/>
+    <path d="M10 6v5M10 13v1" stroke="#d97706" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <div>
+    <strong>이메일 미등록</strong>
+    <p>비밀번호를 분실하면 재설정할 수 없습니다. 아래에서 이메일을 등록해주세요.</p>
+  </div>
+</div>
+{% endif %}
+
 <form method="post" action="{% url 'accounts:profile_edit' %}">
   {% csrf_token %}
 
@@ -33,6 +46,19 @@
       </div>
     {% endif %}
     <p class="muted">닉네임은 하루에 한번만 변경할 수 있습니다</p>
+  </div>
+
+  <div class="row">
+    <label for="id_email">이메일 {% if not user.email %}<span style="color: #d97706;">(필수)</span>{% endif %}</label>
+    {{ form.email }}
+    {% if form.email.errors %}
+      <div class="error-message">
+        {% for error in form.email.errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+    <p class="muted">비밀번호 재설정에 사용됩니다</p>
   </div>
 
   <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
@@ -83,6 +109,27 @@
 </form>
 
 <style>
+  .email-warning {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: #fffbeb;
+    border: 1px solid #fbbf24;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+  .email-warning strong {
+    color: #b45309;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .email-warning p {
+    margin: 0;
+    font-size: 13px;
+    color: #92400e;
+    line-height: 1.4;
+  }
   .alert {
     padding: 1rem;
     margin-bottom: 1rem;

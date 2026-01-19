@@ -11,10 +11,10 @@ User = get_user_model()
 class SignUpForm(UserCreationForm):
     # EmailField 대신 CharField 사용 + EmailValidator로 검증
     email = forms.CharField(
-        required=False,  # 선택 사항
+        required=True,  # 필수 (비밀번호 재설정용)
         max_length=254,
-        help_text="선택 (비밀번호 찾기 등에 사용)",
-        widget=forms.TextInput(attrs={"placeholder": "이메일 주소 (선택사항)"}),
+        help_text="비밀번호 재설정에 사용됩니다",
+        widget=forms.TextInput(attrs={"placeholder": "이메일 주소"}),
     )
 
     class Meta(UserCreationForm.Meta):
@@ -22,20 +22,25 @@ class SignUpForm(UserCreationForm):
         fields = ("username",)
 
     def clean_email(self):
-        """이메일 형식 검증 (값이 있을 때만)"""
+        """이메일 형식 검증"""
         email = self.cleaned_data.get("email", "").strip()
 
-        # 빈 값은 허용
+        # 빈 값 체크 (필수)
         if not email:
-            return ""
+            raise forms.ValidationError("이메일 주소를 입력하세요.")
 
         # 이메일 형식 검증
         validator = EmailValidator()
         try:
             validator(email)
-            return email
         except forms.ValidationError:
             raise forms.ValidationError("올바른 이메일 주소를 입력하세요.")
+
+        # 이메일 중복 체크
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("이미 사용 중인 이메일 주소입니다.")
+
+        return email
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -113,7 +118,7 @@ class SocialSignupForm(forms.Form):
 
 class ProfileEditForm(forms.Form):
     """
-    프로필 수정 폼 (닉네임 + 비밀번호)
+    프로필 수정 폼 (닉네임 + 이메일 + 비밀번호)
     닉네임은 하루에 한번만 변경 가능
     """
 
@@ -123,6 +128,14 @@ class ProfileEditForm(forms.Form):
         label="닉네임",
         help_text="닉네임을 변경하려면 입력하세요 (하루에 한번만 가능)",
         widget=forms.TextInput(attrs={"placeholder": "새로운 닉네임"}),
+    )
+
+    # 이메일 (기존 유저가 이메일을 추가할 수 있도록)
+    email = forms.CharField(
+        max_length=254,
+        required=False,
+        label="이메일",
+        widget=forms.TextInput(attrs={"placeholder": "이메일 주소"}),
     )
 
     # 비밀번호 변경 (선택 사항)
@@ -149,6 +162,29 @@ class ProfileEditForm(forms.Form):
         # 초기값 설정
         if self.user:
             self.fields["nickname"].initial = self.user.first_name
+            self.fields["email"].initial = self.user.email
+
+    def clean_email(self):
+        """이메일 형식 검증 및 중복 체크"""
+        email = self.cleaned_data.get("email", "").strip()
+
+        # 빈 값은 허용 (기존 값 유지)
+        if not email:
+            return ""
+
+        # 이메일 형식 검증
+        validator = EmailValidator()
+        try:
+            validator(email)
+        except forms.ValidationError:
+            raise forms.ValidationError("올바른 이메일 주소를 입력하세요.")
+
+        # 이메일 변경 시에만 중복 체크
+        if email != self.user.email:
+            if User.objects.filter(email=email).exclude(pk=self.user.pk).exists():
+                raise forms.ValidationError("이미 사용 중인 이메일 주소입니다.")
+
+        return email
 
     def clean_nickname(self):
         """닉네임 중복 검사 (현재 사용자 제외)"""
@@ -215,6 +251,7 @@ class ProfileEditForm(forms.Form):
         from .models import NicknameChangeLog
 
         nickname = self.cleaned_data.get("nickname", "").strip()
+        email = self.cleaned_data.get("email", "").strip()
         new_password1 = self.cleaned_data.get("new_password1")
 
         # 닉네임 변경
@@ -227,6 +264,11 @@ class ProfileEditForm(forms.Form):
             NicknameChangeLog.objects.create(
                 user=self.user, old_nickname=old_nickname, new_nickname=nickname
             )
+
+        # 이메일 변경
+        if email and email != self.user.email:
+            self.user.email = email
+            self.user.save()
 
         # 비밀번호 변경
         if new_password1:
