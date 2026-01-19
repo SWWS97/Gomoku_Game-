@@ -71,12 +71,10 @@ def update_user_stats(black_user, white_user, winner):
     """
     # 프로필이 없으면 생성 (초기 레이팅 1000점)
     black_profile, _ = UserProfile.objects.get_or_create(
-        user=black_user,
-        defaults={"rating": INITIAL_RATING}
+        user=black_user, defaults={"rating": INITIAL_RATING}
     )
     white_profile, _ = UserProfile.objects.get_or_create(
-        user=white_user,
-        defaults={"rating": INITIAL_RATING}
+        user=white_user, defaults={"rating": INITIAL_RATING}
     )
 
     # 현재 레이팅 저장 (변동 계산용)
