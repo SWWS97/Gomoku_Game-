@@ -1346,37 +1346,38 @@
 
       <!-- 랭킹 탭 -->
       <div class="ranking-tabs">
-        <button class="ranking-tab active" data-tab="winrate">승률 순위</button>
+        <button class="ranking-tab active" data-tab="rating">레이팅 순위</button>
+        <button class="ranking-tab" data-tab="winrate">승률 순위</button>
         <button class="ranking-tab" data-tab="games">판수 순위</button>
       </div>
 
-      <!-- 승률 순위 -->
-      <div id="ranking-winrate" class="ranking-content">
-        {% if ranking_by_winrate %}
+      <!-- 레이팅 순위 -->
+      <div id="ranking-rating" class="ranking-content">
+        {% if ranking_by_rating %}
         <table class="ranking-table">
           <thead>
             <tr>
-              <th style="width: 60px;">순위</th>
+              <th style="width: 50px;">순위</th>
               <th style="text-align: left;">닉네임</th>
-              <th style="width: 80px;">승률</th>
+              <th style="width: 70px;">레이팅</th>
               <th style="width: 60px;">승</th>
               <th style="width: 60px;">패</th>
-              <th style="width: 80px;">총 판수</th>
+              <th style="width: 70px;">승률</th>
             </tr>
           </thead>
           <tbody>
-            {% for item in ranking_by_winrate %}
+            {% for item in ranking_by_rating %}
             <tr>
               <td class="rank">{{ item.rank }}</td>
               <td class="nickname">
-                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="승률: {{ item.win_rate }}% | {{ item.wins }}승 {{ item.losses }}패">
+                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="레이팅: {{ item.rating }} | {{ item.wins }}승 {{ item.losses }}패">
                   {{ item.nickname }}
                 </a>
               </td>
-              <td class="winrate">{{ item.win_rate }}%</td>
+              <td class="rating" style="font-weight: 700; color: #8b5cf6;">{{ item.rating }}</td>
               <td>{{ item.wins }}</td>
               <td>{{ item.losses }}</td>
-              <td class="total-games">{{ item.total_games }}</td>
+              <td class="winrate">{{ item.win_rate }}%</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -1384,7 +1385,46 @@
         {% else %}
         <div class="empty-ranking">
           아직 랭킹 데이터가 없습니다.<br>
-          게임을 플레이하여 랭킹에 도전하세요!
+          5판 이상 플레이하면 순위에 등록됩니다!
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- 승률 순위 -->
+      <div id="ranking-winrate" class="ranking-content hidden">
+        {% if ranking_by_winrate %}
+        <table class="ranking-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">순위</th>
+              <th style="text-align: left;">닉네임</th>
+              <th style="width: 70px;">승률</th>
+              <th style="width: 60px;">승</th>
+              <th style="width: 60px;">패</th>
+              <th style="width: 70px;">레이팅</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in ranking_by_winrate %}
+            <tr>
+              <td class="rank">{{ item.rank }}</td>
+              <td class="nickname">
+                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="레이팅: {{ item.rating }} | {{ item.wins }}승 {{ item.losses }}패">
+                  {{ item.nickname }}
+                </a>
+              </td>
+              <td class="winrate">{{ item.win_rate }}%</td>
+              <td>{{ item.wins }}</td>
+              <td>{{ item.losses }}</td>
+              <td class="rating" style="font-weight: 700; color: #8b5cf6;">{{ item.rating }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-ranking">
+          아직 랭킹 데이터가 없습니다.<br>
+          5판 이상 플레이하면 순위에 등록됩니다!
         </div>
         {% endif %}
       </div>
@@ -1395,12 +1435,12 @@
         <table class="ranking-table">
           <thead>
             <tr>
-              <th style="width: 60px;">순위</th>
+              <th style="width: 50px;">순위</th>
               <th style="text-align: left;">닉네임</th>
-              <th style="width: 80px;">총 판수</th>
+              <th style="width: 70px;">총 판수</th>
               <th style="width: 60px;">승</th>
               <th style="width: 60px;">패</th>
-              <th style="width: 80px;">승률</th>
+              <th style="width: 70px;">레이팅</th>
             </tr>
           </thead>
           <tbody>
@@ -1408,14 +1448,14 @@
             <tr>
               <td class="rank">{{ item.rank }}</td>
               <td class="nickname">
-                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="승률: {{ item.win_rate }}% | {{ item.wins }}승 {{ item.losses }}패">
+                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="레이팅: {{ item.rating }} | {{ item.wins }}승 {{ item.losses }}패">
                   {{ item.nickname }}
                 </a>
               </td>
               <td class="total-games">{{ item.total_games }}</td>
               <td>{{ item.wins }}</td>
               <td>{{ item.losses }}</td>
-              <td class="winrate">{{ item.win_rate }}%</td>
+              <td class="rating" style="font-weight: 700; color: #8b5cf6;">{{ item.rating }}</td>
             </tr>
             {% endfor %}
           </tbody>
