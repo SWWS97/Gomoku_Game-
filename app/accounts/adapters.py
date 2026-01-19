@@ -37,7 +37,12 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
     ):
         """
         메시지 추가 시 username 대신 닉네임 표시
+        로그인 성공 메시지는 표시하지 않음
         """
+        # 로그인 성공 메시지는 무시 (불필요)
+        if "로그인" in message_template or "logged in" in message_template.lower():
+            return
+
         # 원본 메시지 생성
         message_context = message_context or {}
 
@@ -75,7 +80,12 @@ class CustomAccountAdapter(DefaultAccountAdapter):
     ):
         """
         메시지 추가 시 username 대신 닉네임 표시
+        로그인 성공 메시지는 표시하지 않음
         """
+        # 로그인 성공 메시지는 무시 (불필요)
+        if "로그인" in message_template or "logged in" in message_template.lower():
+            return
+
         message_context = message_context or {}
 
         # user가 있고 first_name이 있으면 닉네임으로 대체
