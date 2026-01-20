@@ -4,6 +4,7 @@ from .views import (
     ProfileEditView,
     SignUpView,
     delete_account,
+    heartbeat,
     privacy_policy,
     terms_of_service,
     user_profile,
@@ -17,4 +18,5 @@ urlpatterns = [
     path("delete/", delete_account, name="delete_account"),  # 계정 삭제
     path("privacy-policy/", privacy_policy, name="privacy_policy"),  # 개인정보처리방침
     path("terms-of-service/", terms_of_service, name="terms_of_service"),  # 서비스 약관
+    path("heartbeat/", heartbeat, name="heartbeat"),  # 온라인 상태 갱신
 ]
