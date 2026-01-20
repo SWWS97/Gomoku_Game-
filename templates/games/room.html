@@ -176,7 +176,7 @@
     }
 
     .stone{
-      position:absolute; width:24px; height:24px; transform:translate(-50%,-50%); border-radius:50%;
+      position:absolute; width:5.1%; height:5.1%; transform:translate(-50%,-50%); border-radius:50%;
       pointer-events:none; filter: drop-shadow(0 3px 3px rgba(0,0,0,.35));
     }
     .stone.black{
@@ -396,12 +396,6 @@
         min-width: 44px;
         min-height: 44px;
       }
-
-      /* 돌 크기 약간 축소 */
-      .stone{
-        width: 21px;
-        height: 21px;
-      }
     }
 
     /* 초소형 모바일 (아이폰 SE 등) */
@@ -428,10 +422,6 @@
       .modal-content .winner-name{
         font-size: 1.5rem;
       }
-      .stone{
-        width: 18px;
-        height: 18px;
-      }
     }
 
     /* 폴더블 폰 접힌 화면 (갤럭시 폴드 등 ~320px) */
@@ -451,10 +441,6 @@
         height: calc(98vw - 16px);
         margin-top: 45px;
         border: 3px solid var(--border);
-      }
-      .stone{
-        width: 14px;
-        height: 14px;
       }
       .pt{
         width: calc(var(--cell) * 1.2);
