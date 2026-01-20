@@ -3,12 +3,15 @@
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 from django.db.models import Q
+import time
 
 from ..models import BOARD_SIZE, Game, GameHistory, Move
 from app.accounts.models import UserProfile, calculate_elo, INITIAL_RATING
+from app.accounts.views import ONLINE_USERS_KEY, ONLINE_TIMEOUT
 from .omok import (
     BLACK,
     WHITE,
@@ -1270,14 +1273,27 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
 
     async def get_online_users(self):
         """현재 접속 중인 사용자 목록 반환 (중복 제거) + 게임 상태"""
-        # 1. 로비에 연결된 사용자
         unique_users = {}
+
+        # 1. 캐시에서 하트비트 온라인 유저 (다른 페이지에 있는 유저)
+        current_time = time.time()
+        heartbeat_users = cache.get(ONLINE_USERS_KEY, {})
+        for user_id, info in heartbeat_users.items():
+            # 만료되지 않은 유저만 추가
+            if current_time - info.get("last_seen", 0) < ONLINE_TIMEOUT:
+                unique_users[user_id] = {
+                    "user_id": info["user_id"],
+                    "nickname": info["nickname"],
+                    "username": info.get("username", ""),
+                }
+
+        # 2. 로비에 연결된 사용자 (WebSocket)
         for user_info in LobbyConsumer.connected_users.values():
             user_id = user_info["user_id"]
             if user_id not in unique_users:
                 unique_users[user_id] = user_info
 
-        # 2. 게임 중인 사용자 추가 (로비에 없는 사람)
+        # 3. 게임 중인 사용자 추가 (DB)
         game_users = await self.get_users_in_games()
         for user_info in game_users:
             user_id = user_info["user_id"]
