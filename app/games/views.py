@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 
 from app.accounts.models import UserProfile
+from app.accounts.views import get_online_users
 
 from .models import (
     BOARD_SIZE,
@@ -25,8 +26,30 @@ User = get_user_model()
 @login_required
 def lobby(request):
     """게임 로비 - 대기 중인 방 목록 표시"""
-    # white가 null인 게임 = 대기 중인 방 (승자 여부 무관 - 게임 종료 후 상대방 나가면 다시 대기 방으로 전환)
-    waiting_games = Game.objects.filter(white__isnull=True).order_by("-created_at")
+    # 온라인 유저 목록 가져오기 (하트비트 캐시 기반)
+    online_users = get_online_users()
+    online_user_ids = set(online_users.keys())
+
+    # white가 null인 게임 = 대기 중인 방
+    all_waiting_games = Game.objects.filter(white__isnull=True).order_by("-created_at")
+
+    # 방장이 오프라인인 방 정리 (본인 방 제외)
+    games_to_delete = []
+    waiting_games = []
+    for game in all_waiting_games:
+        # 본인 방은 유지
+        if game.black == request.user:
+            waiting_games.append(game)
+        # 방장이 온라인이면 유지
+        elif game.black_id in online_user_ids:
+            waiting_games.append(game)
+        # 방장이 오프라인이면 삭제 대상
+        else:
+            games_to_delete.append(game.id)
+
+    # 오프라인 방장의 빈 방 삭제
+    if games_to_delete:
+        Game.objects.filter(id__in=games_to_delete).delete()
 
     # 현재 사용자가 참여 중인 진행 중인 게임이 있는지 확인
     active_game = Game.objects.filter(

@@ -1,3 +1,5 @@
+import time
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import (
@@ -7,12 +9,20 @@ from django.contrib.auth import (
     update_session_auth_hash,
 )
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from .forms import ProfileEditForm, SignUpForm
 from .models import UserProfile
 from app.games.models import GameHistory
+
+
+# 온라인 상태 관련 상수
+ONLINE_TIMEOUT = 60  # 60초 내 활동이 있으면 온라인
+ONLINE_USERS_KEY = "online_users"  # 캐시 키
 
 User = get_user_model()
 
@@ -136,3 +146,61 @@ def privacy_policy(request):
 def terms_of_service(request):
     """서비스 약관 페이지"""
     return render(request, "account/terms_of_service.html")
+
+
+# ──────────────────────────────────────────────────────────────────────
+# 온라인 상태 관리 (하트비트)
+# ──────────────────────────────────────────────────────────────────────
+@login_required
+@require_POST
+def heartbeat(request):
+    """
+    하트비트 API - 유저 온라인 상태 갱신
+    모든 페이지에서 30초마다 호출됨
+    """
+    user = request.user
+    current_time = time.time()
+
+    # 현재 온라인 유저 목록 가져오기
+    online_users = cache.get(ONLINE_USERS_KEY, {})
+
+    # 유저 정보 업데이트
+    online_users[user.id] = {
+        "user_id": user.id,
+        "username": user.username,
+        "nickname": user.first_name or user.username,
+        "last_seen": current_time,
+    }
+
+    # 만료된 유저 정리 (60초 이상 활동 없는 유저)
+    online_users = {
+        uid: info
+        for uid, info in online_users.items()
+        if current_time - info["last_seen"] < ONLINE_TIMEOUT
+    }
+
+    # 캐시 저장 (2분 TTL)
+    cache.set(ONLINE_USERS_KEY, online_users, timeout=120)
+
+    return JsonResponse({"status": "ok", "online_count": len(online_users)})
+
+
+def get_online_users():
+    """온라인 유저 목록 반환 (다른 모듈에서 사용)"""
+    current_time = time.time()
+    online_users = cache.get(ONLINE_USERS_KEY, {})
+
+    # 만료된 유저 필터링
+    return {
+        uid: info
+        for uid, info in online_users.items()
+        if current_time - info["last_seen"] < ONLINE_TIMEOUT
+    }
+
+
+def set_user_offline(user_id):
+    """유저를 오프라인으로 설정 (로그아웃 시 등)"""
+    online_users = cache.get(ONLINE_USERS_KEY, {})
+    if user_id in online_users:
+        del online_users[user_id]
+        cache.set(ONLINE_USERS_KEY, online_users, timeout=120)

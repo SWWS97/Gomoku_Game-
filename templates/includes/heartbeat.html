@@ -1,0 +1,39 @@
+<!-- 온라인 상태 하트비트 스크립트 -->
+<script>
+(function() {
+  // 로그인한 사용자만 하트비트 전송
+  {% if user.is_authenticated %}
+  const HEARTBEAT_INTERVAL = 30000; // 30초
+  const HEARTBEAT_URL = '{% url "accounts:heartbeat" %}';
+  const CSRF_TOKEN = '{{ csrf_token }}';
+
+  function sendHeartbeat() {
+    fetch(HEARTBEAT_URL, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN,
+        'Content-Type': 'application/json',
+      },
+      credentials: 'same-origin'
+    }).catch(err => {
+      // 네트워크 오류 시 무시 (다음 하트비트에서 재시도)
+      console.debug('Heartbeat failed:', err);
+    });
+  }
+
+  // 페이지 로드 시 즉시 하트비트 전송
+  sendHeartbeat();
+
+  // 30초마다 하트비트 전송
+  setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+
+  // 페이지 이탈 시에도 하트비트 전송 시도 (선택적)
+  window.addEventListener('beforeunload', function() {
+    // navigator.sendBeacon을 사용하면 페이지 이탈 시에도 전송 가능
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', CSRF_TOKEN);
+    navigator.sendBeacon(HEARTBEAT_URL, formData);
+  });
+  {% endif %}
+})();
+</script>
