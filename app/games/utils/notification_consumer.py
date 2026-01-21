@@ -20,9 +20,7 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         self.notification_group = f"notifications_{self.user.id}"
 
         # 그룹에 추가
-        await self.channel_layer.group_add(
-            self.notification_group, self.channel_name
-        )
+        await self.channel_layer.group_add(self.notification_group, self.channel_name)
 
         await self.accept()
 
@@ -39,16 +37,20 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
 
     async def dm_notification(self, event):
         """DM 알림을 클라이언트에 전송"""
-        await self.send_json({
-            "type": "dm_notification",
-            "sender_id": event["sender_id"],
-            "sender_name": event["sender_name"],
-            "message_preview": event["message_preview"],
-        })
+        await self.send_json(
+            {
+                "type": "dm_notification",
+                "sender_id": event["sender_id"],
+                "sender_name": event["sender_name"],
+                "message_preview": event["message_preview"],
+            }
+        )
 
     async def friend_request_notification(self, event):
         """친구 요청 알림 (향후 확장용)"""
-        await self.send_json({
-            "type": "friend_request",
-            "from_user": event["from_user"],
-        })
+        await self.send_json(
+            {
+                "type": "friend_request",
+                "from_user": event["from_user"],
+            }
+        )

@@ -91,7 +91,9 @@ class DirectMessageConsumer(AsyncJsonWebsocketConsumer):
         sender_display_name = self.user.first_name or self.user.username
         # 메시지 미리보기 (30자 제한)
         message_preview = (
-            message_content[:30] + "..." if len(message_content) > 30 else message_content
+            message_content[:30] + "..."
+            if len(message_content) > 30
+            else message_content
         )
 
         await self.channel_layer.group_send(
