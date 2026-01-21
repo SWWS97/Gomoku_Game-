@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
+from django.core.paginator import Paginator
 
 from app.accounts.models import UserProfile
 from app.accounts.views import get_online_users
@@ -262,16 +263,21 @@ def leave_game(request, pk):
 def game_history(request):
     """사용자의 게임 전적 조회"""
     # 내가 참여한 게임 전적 (흑 또는 백으로 참여)
-    histories = GameHistory.objects.filter(
+    all_histories = GameHistory.objects.filter(
         Q(black=request.user) | Q(white=request.user)
     ).order_by("-finished_at")
 
-    # 승/패/전체 통계 계산
-    total_games = histories.count()
-    wins = histories.filter(
+    # 승/패/전체 통계 계산 (페이지네이션 전에)
+    total_games = all_histories.count()
+    wins = all_histories.filter(
         Q(winner="black", black=request.user) | Q(winner="white", white=request.user)
     ).count()
     losses = total_games - wins
+
+    # 페이지네이션 (15개씩)
+    paginator = Paginator(all_histories, 15)
+    page_number = request.GET.get("page", 1)
+    histories = paginator.get_page(page_number)
 
     context = {
         "histories": histories,
