@@ -243,13 +243,14 @@
 
       .header {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
         gap: 12px;
         padding: 16px;
       }
 
       .header h1 {
         font-size: 22px;
+        text-align: center;
       }
 
       .btn {
@@ -320,6 +321,25 @@
 
       .empty-state::before {
         font-size: 48px;
+      }
+
+      /* 페이지네이션 모바일 */
+      .pagination {
+        gap: 4px;
+        flex-wrap: nowrap;
+      }
+
+      .pagination a,
+      .pagination span {
+        min-width: auto;
+        height: 36px;
+        padding: 0 8px;
+        font-size: 12px;
+      }
+
+      .pagination .page-info {
+        font-size: 11px;
+        margin: 0 4px;
       }
     }
 
