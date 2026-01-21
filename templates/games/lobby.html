@@ -610,6 +610,26 @@
       font-size: 14px;
     }
 
+    /* 3열 랭킹 테이블 (Rating, 판수) - 컴팩트 레이아웃 */
+    .ranking-table-compact {
+      table-layout: fixed;
+    }
+
+    .ranking-table-compact th:first-child,
+    .ranking-table-compact td:first-child {
+      width: 15%;
+    }
+
+    .ranking-table-compact th:nth-child(2),
+    .ranking-table-compact td:nth-child(2) {
+      width: 55%;
+    }
+
+    .ranking-table-compact th:last-child,
+    .ranking-table-compact td:last-child {
+      width: 30%;
+    }
+
     /* 닉네임 링크 스타일 */
     .nickname-link {
       text-decoration: none;
@@ -1346,23 +1366,20 @@
 
       <!-- 랭킹 탭 -->
       <div class="ranking-tabs">
-        <button class="ranking-tab active" data-tab="rating">레이팅 순위</button>
-        <button class="ranking-tab" data-tab="winrate">승률 순위</button>
-        <button class="ranking-tab" data-tab="games">판수 순위</button>
+        <button class="ranking-tab active" data-tab="rating">Rating</button>
+        <button class="ranking-tab" data-tab="winrate">승률</button>
+        <button class="ranking-tab" data-tab="games">판수</button>
       </div>
 
-      <!-- 레이팅 순위 -->
+      <!-- Rating 순위 -->
       <div id="ranking-rating" class="ranking-content">
         {% if ranking_by_rating %}
-        <table class="ranking-table">
+        <table class="ranking-table ranking-table-compact">
           <thead>
             <tr>
               <th style="width: 50px;">순위</th>
               <th style="text-align: left;">닉네임</th>
-              <th style="width: 70px;">레이팅</th>
-              <th style="width: 60px;">승</th>
-              <th style="width: 60px;">패</th>
-              <th style="width: 70px;">승률</th>
+              <th style="width: 80px;">Rating</th>
             </tr>
           </thead>
           <tbody>
@@ -1370,14 +1387,11 @@
             <tr>
               <td class="rank">{{ item.rank }}</td>
               <td class="nickname">
-                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="레이팅: {{ item.rating }} | {{ item.wins }}승 {{ item.losses }}패">
+                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="{{ item.wins }}승 {{ item.losses }}패 ({{ item.win_rate }}%)">
                   {{ item.nickname }}
                 </a>
               </td>
               <td class="rating" style="font-weight: 700; color: #8b5cf6;">{{ item.rating }}</td>
-              <td>{{ item.wins }}</td>
-              <td>{{ item.losses }}</td>
-              <td class="winrate">{{ item.win_rate }}%</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -1401,7 +1415,7 @@
               <th style="width: 70px;">승률</th>
               <th style="width: 60px;">승</th>
               <th style="width: 60px;">패</th>
-              <th style="width: 70px;">레이팅</th>
+              <th style="width: 70px;">Rating</th>
             </tr>
           </thead>
           <tbody>
@@ -1409,7 +1423,7 @@
             <tr>
               <td class="rank">{{ item.rank }}</td>
               <td class="nickname">
-                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="레이팅: {{ item.rating }} | {{ item.wins }}승 {{ item.losses }}패">
+                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="Rating: {{ item.rating }} | {{ item.wins }}승 {{ item.losses }}패">
                   {{ item.nickname }}
                 </a>
               </td>
@@ -1432,15 +1446,12 @@
       <!-- 판수 순위 -->
       <div id="ranking-games" class="ranking-content hidden">
         {% if ranking_by_games %}
-        <table class="ranking-table">
+        <table class="ranking-table ranking-table-compact">
           <thead>
             <tr>
               <th style="width: 50px;">순위</th>
               <th style="text-align: left;">닉네임</th>
-              <th style="width: 70px;">총 판수</th>
-              <th style="width: 60px;">승</th>
-              <th style="width: 60px;">패</th>
-              <th style="width: 70px;">레이팅</th>
+              <th style="width: 80px;">총 판수</th>
             </tr>
           </thead>
           <tbody>
@@ -1448,14 +1459,11 @@
             <tr>
               <td class="rank">{{ item.rank }}</td>
               <td class="nickname">
-                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="레이팅: {{ item.rating }} | {{ item.wins }}승 {{ item.losses }}패">
+                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="{{ item.wins }}승 {{ item.losses }}패 ({{ item.win_rate }}%)">
                   {{ item.nickname }}
                 </a>
               </td>
               <td class="total-games">{{ item.total_games }}</td>
-              <td>{{ item.wins }}</td>
-              <td>{{ item.losses }}</td>
-              <td class="rating" style="font-weight: 700; color: #8b5cf6;">{{ item.rating }}</td>
             </tr>
             {% endfor %}
           </tbody>

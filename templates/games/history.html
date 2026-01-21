@@ -123,19 +123,13 @@
 
     .history-item {
       display: grid;
-      grid-template-columns: 80px 1fr 120px 100px;
+      grid-template-columns: 1fr 120px 100px;
       gap: 16px;
       padding: 16px 20px;
       background: white;
       border: 2px solid var(--line);
       border-radius: 10px;
       align-items: center;
-    }
-
-    .history-item .game-id {
-      font-weight: 700;
-      color: #666;
-      font-size: 14px;
     }
 
     .history-item .players {
@@ -184,6 +178,61 @@
       font-size: 64px;
       margin-bottom: 16px;
       opacity: 0.3;
+    }
+
+    /* 페이지네이션 */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+
+    .pagination a,
+    .pagination span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 40px;
+      height: 40px;
+      padding: 0 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .pagination a {
+      background: white;
+      border: 2px solid var(--line);
+      color: var(--border);
+    }
+
+    .pagination a:hover {
+      background: var(--line);
+      color: white;
+    }
+
+    .pagination span.current {
+      background: var(--border);
+      border: 2px solid var(--border);
+      color: white;
+    }
+
+    .pagination span.disabled {
+      background: #f0f0f0;
+      border: 2px solid #ddd;
+      color: #999;
+      cursor: not-allowed;
+    }
+
+    .pagination .page-info {
+      font-size: 13px;
+      color: #666;
+      margin: 0 8px;
     }
 
     /* ===== 모바일 반응형 ===== */
@@ -243,12 +292,6 @@
         grid-template-columns: 1fr;
         gap: 10px;
         padding: 14px 16px;
-      }
-
-      .history-item .game-id {
-        font-size: 13px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #eee;
       }
 
       .history-item .players {
@@ -319,10 +362,6 @@
         padding: 12px;
       }
 
-      .history-item .game-id {
-        font-size: 12px;
-      }
-
       .history-item .players {
         font-size: 12px;
       }
@@ -371,7 +410,6 @@
         {% if histories %}
           {% for history in histories %}
             <div class="history-item">
-              <div class="game-id">Game #{{ history.game_id }}</div>
               <div class="players">
                 <span>
                   {% if history.black %}
@@ -407,6 +445,28 @@
           </div>
         {% endif %}
       </div>
+
+      {% if histories.has_other_pages %}
+      <div class="pagination">
+        {% if histories.has_previous %}
+          <a href="?page=1">처음</a>
+          <a href="?page={{ histories.previous_page_number }}">이전</a>
+        {% else %}
+          <span class="disabled">처음</span>
+          <span class="disabled">이전</span>
+        {% endif %}
+
+        <span class="page-info">{{ histories.number }} / {{ histories.paginator.num_pages }}</span>
+
+        {% if histories.has_next %}
+          <a href="?page={{ histories.next_page_number }}">다음</a>
+          <a href="?page={{ histories.paginator.num_pages }}">마지막</a>
+        {% else %}
+          <span class="disabled">다음</span>
+          <span class="disabled">마지막</span>
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
   </div>
 {% include "includes/heartbeat.html" %}
