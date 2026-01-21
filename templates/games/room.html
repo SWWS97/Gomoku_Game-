@@ -1233,6 +1233,11 @@
     if (modalShown) return;  // 이미 표시되었으면 중복 방지
 
     modalShown = true;
+
+    // 게임 결과 알림음 재생
+    const isWinner = myColor === winner;
+    playGameOverSound(isWinner);
+
     modalStone.textContent = winner === "black" ? "●" : "○";
     modalWinnerName.textContent = winnerName || (winner === "black" ? "흑" : "백");
 
@@ -1475,6 +1480,81 @@
       osc2.stop(now + 0.5);
     } catch(e) {
       console.error('벨 소리 생성 실패:', e);
+    }
+  }
+
+  // 게임 결과 알림음
+  function playGameOverSound(isWinner) {
+    try {
+      if (!audioCtx) {
+        initAudio();
+      }
+
+      if (!audioCtx) return;
+
+      // suspended 상태면 resume 후 재생
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().then(() => {
+          actuallyPlayGameOver(isWinner);
+        });
+        return;
+      }
+
+      actuallyPlayGameOver(isWinner);
+    } catch(e) {
+      console.error('게임 결과 알림음 재생 실패:', e);
+    }
+  }
+
+  function actuallyPlayGameOver(isWinner) {
+    try {
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended' || audioCtx.state === 'closed') return;
+
+      const now = audioCtx.currentTime;
+
+      if (isWinner) {
+        // 승리 사운드: 밝고 상승하는 3음 화음 (도-미-솔-도)
+        const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6
+        notes.forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + i * 0.12);
+
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0, now + i * 0.12);
+          gain.gain.linearRampToValueAtTime(0.25, now + i * 0.12 + 0.05);
+          gain.gain.linearRampToValueAtTime(0.15, now + i * 0.12 + 0.2);
+          gain.gain.linearRampToValueAtTime(0, now + i * 0.12 + 0.4);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.start(now + i * 0.12);
+          osc.stop(now + i * 0.12 + 0.4);
+        });
+      } else {
+        // 패배 사운드: 하강하는 2음 (솔-미)
+        const notes = [392, 330]; // G4, E4
+        notes.forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + i * 0.2);
+
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0, now + i * 0.2);
+          gain.gain.linearRampToValueAtTime(0.2, now + i * 0.2 + 0.05);
+          gain.gain.linearRampToValueAtTime(0, now + i * 0.2 + 0.4);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.start(now + i * 0.2);
+          osc.stop(now + i * 0.2 + 0.4);
+        });
+      }
+    } catch(e) {
+      console.error('게임 결과 알림음 생성 실패:', e);
     }
   }
 
