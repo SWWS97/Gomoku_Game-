@@ -86,6 +86,26 @@ class DirectMessageConsumer(AsyncJsonWebsocketConsumer):
             },
         )
 
+        # 수신자의 알림 채널에도 알림 전송 (로비 등에서 토스트 알림용)
+        recipient_notification_group = f"notifications_{self.friend_id}"
+        sender_display_name = self.user.first_name or self.user.username
+        # 메시지 미리보기 (30자 제한)
+        message_preview = (
+            message_content[:30] + "..."
+            if len(message_content) > 30
+            else message_content
+        )
+
+        await self.channel_layer.group_send(
+            recipient_notification_group,
+            {
+                "type": "dm_notification",
+                "sender_id": self.user.id,
+                "sender_name": sender_display_name,
+                "message_preview": message_preview,
+            },
+        )
+
     async def handle_mark_read(self, content):
         """메시지 읽음 처리"""
         message_ids = content.get("message_ids", [])

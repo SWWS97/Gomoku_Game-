@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>오목조목 로비 – Omok</title>
+  <title>오목조목 로비 – 오목조목</title>
 
   <!-- PWA Meta Tags -->
   <meta name="description" content="온라인 실시간 오목 게임 - 친구와 함께 플레이하세요!" />
@@ -608,6 +608,26 @@
       padding: 40px 20px;
       color: #999;
       font-size: 14px;
+    }
+
+    /* 3열 랭킹 테이블 (Rating, 판수) - 컴팩트 레이아웃 */
+    .ranking-table-compact {
+      table-layout: fixed;
+    }
+
+    .ranking-table-compact th:first-child,
+    .ranking-table-compact td:first-child {
+      width: 15%;
+    }
+
+    .ranking-table-compact th:nth-child(2),
+    .ranking-table-compact td:nth-child(2) {
+      width: 55%;
+    }
+
+    .ranking-table-compact th:last-child,
+    .ranking-table-compact td:last-child {
+      width: 30%;
     }
 
     /* 닉네임 링크 스타일 */
@@ -1346,23 +1366,20 @@
 
       <!-- 랭킹 탭 -->
       <div class="ranking-tabs">
-        <button class="ranking-tab active" data-tab="rating">레이팅 순위</button>
-        <button class="ranking-tab" data-tab="winrate">승률 순위</button>
-        <button class="ranking-tab" data-tab="games">판수 순위</button>
+        <button class="ranking-tab active" data-tab="rating">Rating</button>
+        <button class="ranking-tab" data-tab="winrate">승률</button>
+        <button class="ranking-tab" data-tab="games">판수</button>
       </div>
 
-      <!-- 레이팅 순위 -->
+      <!-- Rating 순위 -->
       <div id="ranking-rating" class="ranking-content">
         {% if ranking_by_rating %}
-        <table class="ranking-table">
+        <table class="ranking-table ranking-table-compact">
           <thead>
             <tr>
               <th style="width: 50px;">순위</th>
               <th style="text-align: left;">닉네임</th>
-              <th style="width: 70px;">레이팅</th>
-              <th style="width: 60px;">승</th>
-              <th style="width: 60px;">패</th>
-              <th style="width: 70px;">승률</th>
+              <th style="width: 80px;">Rating</th>
             </tr>
           </thead>
           <tbody>
@@ -1370,14 +1387,11 @@
             <tr>
               <td class="rank">{{ item.rank }}</td>
               <td class="nickname">
-                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="레이팅: {{ item.rating }} | {{ item.wins }}승 {{ item.losses }}패">
+                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="{{ item.wins }}승 {{ item.losses }}패 ({{ item.win_rate }}%)">
                   {{ item.nickname }}
                 </a>
               </td>
               <td class="rating" style="font-weight: 700; color: #8b5cf6;">{{ item.rating }}</td>
-              <td>{{ item.wins }}</td>
-              <td>{{ item.losses }}</td>
-              <td class="winrate">{{ item.win_rate }}%</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -1401,7 +1415,7 @@
               <th style="width: 70px;">승률</th>
               <th style="width: 60px;">승</th>
               <th style="width: 60px;">패</th>
-              <th style="width: 70px;">레이팅</th>
+              <th style="width: 70px;">Rating</th>
             </tr>
           </thead>
           <tbody>
@@ -1409,7 +1423,7 @@
             <tr>
               <td class="rank">{{ item.rank }}</td>
               <td class="nickname">
-                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="레이팅: {{ item.rating }} | {{ item.wins }}승 {{ item.losses }}패">
+                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="Rating: {{ item.rating }} | {{ item.wins }}승 {{ item.losses }}패">
                   {{ item.nickname }}
                 </a>
               </td>
@@ -1432,15 +1446,12 @@
       <!-- 판수 순위 -->
       <div id="ranking-games" class="ranking-content hidden">
         {% if ranking_by_games %}
-        <table class="ranking-table">
+        <table class="ranking-table ranking-table-compact">
           <thead>
             <tr>
               <th style="width: 50px;">순위</th>
               <th style="text-align: left;">닉네임</th>
-              <th style="width: 70px;">총 판수</th>
-              <th style="width: 60px;">승</th>
-              <th style="width: 60px;">패</th>
-              <th style="width: 70px;">레이팅</th>
+              <th style="width: 80px;">총 판수</th>
             </tr>
           </thead>
           <tbody>
@@ -1448,14 +1459,11 @@
             <tr>
               <td class="rank">{{ item.rank }}</td>
               <td class="nickname">
-                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="레이팅: {{ item.rating }} | {{ item.wins }}승 {{ item.losses }}패">
+                <a href="{% url 'accounts:profile' username=item.username %}" class="nickname-link" data-tooltip="{{ item.wins }}승 {{ item.losses }}패 ({{ item.win_rate }}%)">
                   {{ item.nickname }}
                 </a>
               </td>
               <td class="total-games">{{ item.total_games }}</td>
-              <td>{{ item.wins }}</td>
-              <td>{{ item.losses }}</td>
-              <td class="rating" style="font-weight: 700; color: #8b5cf6;">{{ item.rating }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -1685,6 +1693,88 @@
       }
     });
   })();
+
+  // 알림 WebSocket (DM 등 실시간 알림 수신)
+  {% if user.is_authenticated %}
+  (function(){
+    const scheme = (location.protocol === "https:") ? "wss" : "ws";
+    const notificationWsURL = `${scheme}://${location.host}/ws/notifications/`;
+
+    let notificationWs = null;
+
+    function connectNotification() {
+      notificationWs = new WebSocket(notificationWsURL);
+
+      notificationWs.addEventListener("open", () => {
+        console.log("[Notification] WebSocket connected");
+      });
+
+      notificationWs.addEventListener("close", (e) => {
+        console.log("[Notification] WebSocket closed:", e.code);
+        // 5초 후 재연결
+        setTimeout(connectNotification, 5000);
+      });
+
+      notificationWs.addEventListener("error", (e) => {
+        console.error("[Notification] WebSocket error:", e);
+      });
+
+      // 알림음 재생 함수
+      function playNotificationSound() {
+        try {
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+
+          // 부드러운 알림음 설정
+          oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+          oscillator.frequency.setValueAtTime(1100, audioContext.currentTime + 0.1); // C#6
+          oscillator.type = "sine";
+
+          // 볼륨 페이드 인/아웃
+          gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+          gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.05);
+          gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.3);
+
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.3);
+        } catch (err) {
+          console.debug("알림음 재생 실패:", err);
+        }
+      }
+
+      notificationWs.addEventListener("message", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.type === "dm_notification") {
+            // DM 알림 토스트 표시
+            const senderName = data.sender_name || "알 수 없음";
+            const preview = data.message_preview || "";
+            window.showToast(`${senderName}: ${preview}`, "info");
+
+            // 알림음 재생
+            playNotificationSound();
+
+            // 친구 목록 뱃지 업데이트
+            const friendBadge = document.getElementById("friendNotificationBadge");
+            if (friendBadge) {
+              const currentCount = parseInt(friendBadge.textContent) || 0;
+              friendBadge.textContent = currentCount + 1;
+              friendBadge.style.display = "inline";
+            }
+          }
+        } catch (err) {
+          console.error("[Notification] Message parse error:", err);
+        }
+      });
+    }
+
+    connectNotification();
+  })();
+  {% endif %}
 
   // 채팅 토글 관리 (모바일용)
   (function(){
