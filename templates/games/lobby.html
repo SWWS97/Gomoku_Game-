@@ -1159,6 +1159,34 @@
         min-width: auto;
         width: 100%;
         padding: 12px 16px;
+        box-sizing: border-box;
+        animation: slideInMobile 0.3s ease-out;
+      }
+
+      .toast.slide-out {
+        animation: slideOutMobile 0.3s ease-out forwards;
+      }
+
+      @keyframes slideInMobile {
+        from {
+          transform: translateY(-100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideOutMobile {
+        from {
+          transform: translateY(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateY(-100%);
+          opacity: 0;
+        }
       }
 
       .toast-icon {
