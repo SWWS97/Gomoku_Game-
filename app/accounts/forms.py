@@ -1,9 +1,13 @@
+import uuid
+from datetime import timedelta
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.core.validators import EmailValidator
 from django.utils import timezone
-from datetime import timedelta
+
+from .models import NicknameChangeLog
 
 User = get_user_model()
 
@@ -95,8 +99,6 @@ class SocialSignupForm(forms.Form):
 
         # username 설정 (adapter에서 이미 설정되었지만 확인)
         if not user.username:
-            import uuid
-
             email = user.email
             if email:
                 base_username = email.split("@")[0]
@@ -199,8 +201,6 @@ class ProfileEditForm(forms.Form):
             raise forms.ValidationError("이미 사용 중인 닉네임입니다.")
 
         # 24시간 제한 체크
-        from .models import NicknameChangeLog
-
         last_change = (
             NicknameChangeLog.objects.filter(user=self.user)
             .order_by("-changed_at")
@@ -248,8 +248,6 @@ class ProfileEditForm(forms.Form):
 
     def save(self):
         """프로필 수정 저장"""
-        from .models import NicknameChangeLog
-
         nickname = self.cleaned_data.get("nickname", "").strip()
         email = self.cleaned_data.get("email", "").strip()
         new_password1 = self.cleaned_data.get("new_password1")

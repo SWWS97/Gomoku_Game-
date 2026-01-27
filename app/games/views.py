@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth import get_user_model
-from django.http import JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse
 from django.core.paginator import Paginator
 
 from app.accounts.models import UserProfile
@@ -181,8 +181,6 @@ def join_game(request, pk):
         input_password = request.POST.get("password", "")
         # 비밀번호가 설정된 방인데 비밀번호가 틀리면 403 반환
         if game.password and game.password != input_password:
-            from django.http import HttpResponseForbidden
-
             return HttpResponseForbidden("비밀번호가 틀렸습니다.")
         # 비밀번호가 맞으면 계속 진행 (아래 코드 실행)
 
