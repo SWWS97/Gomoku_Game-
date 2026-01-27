@@ -1559,6 +1559,11 @@
           const data = JSON.parse(e.data);
           if (data.type === "users") {
             renderUsers(data.users);
+          } else if (data.type === "chat_history") {
+            // 최근 24시간 채팅 기록 로드
+            data.messages.forEach(msg => {
+              addChatMessage(msg.sender, msg.message, msg.is_mine);
+            });
           } else if (data.type === "chat_message") {
             addChatMessage(data.sender, data.message, data.is_mine);
           }

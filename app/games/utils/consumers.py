@@ -1,5 +1,6 @@
 # app/games/utils/consumers.py
 
+import time
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth import get_user_model
@@ -7,8 +8,9 @@ from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 from django.db.models import Q
-import time
+from datetime import timedelta
 
+from app.games.models import LobbyMessage
 from ..models import BOARD_SIZE, Game, GameHistory, Move
 from app.accounts.models import UserProfile, calculate_elo, INITIAL_RATING
 from app.accounts.views import ONLINE_USERS_KEY, ONLINE_TIMEOUT
@@ -1169,6 +1171,11 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             users = await self.get_online_users()
             await self.send_json({"type": "users", "users": users})
 
+            # 최근 24시간 로비 메시지 전송
+            recent_messages = await self.get_recent_lobby_messages()
+            if recent_messages:
+                await self.send_json({"type": "chat_history", "messages": recent_messages})
+
             # 다른 사용자들에게 새 접속자 알림
             await self.channel_layer.group_send(
                 self.group_name,
@@ -1243,6 +1250,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                 if message:
                     # 욕설 필터링 적용
                     filtered_message = filter_profanity(message)
+
+                    # DB에 메시지 저장
+                    await self.save_lobby_message(filtered_message)
 
                     # 채팅 메시지 브로드캐스트
                     await self.channel_layer.group_send(
@@ -1368,3 +1378,25 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
 
         # 한쪽만 있으면 "게임룸 대기중"
         return "waiting"
+
+    @database_sync_to_async
+    def get_recent_lobby_messages(self):
+        """최근 24시간 로비 메시지 조회"""
+        cutoff_time = timezone.now() - timedelta(hours=24)
+        messages = LobbyMessage.objects.filter(created_at__gte=cutoff_time).select_related("user")[:100]
+
+        return [
+            {
+                "sender": msg.user.first_name or msg.user.username,
+                "message": msg.content,
+                "is_mine": msg.user_id == self.user_id,
+            }
+            for msg in messages
+        ]
+
+    @database_sync_to_async
+    def save_lobby_message(self, content):
+        """로비 메시지 저장"""
+        from app.games.models import LobbyMessage
+
+        LobbyMessage.objects.create(user_id=self.user_id, content=content)

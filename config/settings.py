@@ -269,8 +269,8 @@ CELERY_TIMEZONE = TIME_ZONE
 
 # Celery Beat 스케줄 설정
 CELERY_BEAT_SCHEDULE = {
-    "delete-old-messages-every-hour": {
-        "task": "app.games.tasks.delete_old_messages",
+    "delete-old-lobby-messages-every-hour": {
+        "task": "app.games.tasks.delete_old_lobby_messages",
         "schedule": 60 * 60,  # 매 시간 (3600초)
     },
 }
