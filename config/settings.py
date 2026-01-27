@@ -256,3 +256,21 @@ if DEBUG:
 else:
     # 프로덕션에서도 이메일 인증을 사용하지 않으므로 콘솔로 설정
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# ──────────────────────────────────────────────────────────────────────
+# Celery 설정
+# ──────────────────────────────────────────────────────────────────────
+CELERY_BROKER_URL = REDIS_URL or "redis://localhost:6379/0"
+CELERY_RESULT_BACKEND = REDIS_URL or "redis://localhost:6379/0"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+
+# Celery Beat 스케줄 설정
+CELERY_BEAT_SCHEDULE = {
+    "delete-old-messages-every-hour": {
+        "task": "app.games.tasks.delete_old_messages",
+        "schedule": 60 * 60,  # 매 시간 (3600초)
+    },
+}
