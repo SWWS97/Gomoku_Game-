@@ -19,3 +19,19 @@ services:
 
   redis:
     image: redis:7
+
+  celery-worker:
+    image: swws97/gomoku_game-web:latest
+    env_file: ./envs/.env.prod
+    command: celery -A config worker --loglevel=info
+    depends_on:
+      - db
+      - redis
+
+  celery-beat:
+    image: swws97/gomoku_game-web:latest
+    env_file: ./envs/.env.prod
+    command: celery -A config beat --loglevel=info
+    depends_on:
+      - db
+      - redis
