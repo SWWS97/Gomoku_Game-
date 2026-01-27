@@ -1174,7 +1174,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             # 최근 24시간 로비 메시지 전송
             recent_messages = await self.get_recent_lobby_messages()
             if recent_messages:
-                await self.send_json({"type": "chat_history", "messages": recent_messages})
+                await self.send_json(
+                    {"type": "chat_history", "messages": recent_messages}
+                )
 
             # 다른 사용자들에게 새 접속자 알림
             await self.channel_layer.group_send(
@@ -1383,7 +1385,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
     def get_recent_lobby_messages(self):
         """최근 24시간 로비 메시지 조회"""
         cutoff_time = timezone.now() - timedelta(hours=24)
-        messages = LobbyMessage.objects.filter(created_at__gte=cutoff_time).select_related("user")[:100]
+        messages = LobbyMessage.objects.filter(
+            created_at__gte=cutoff_time
+        ).select_related("user")[:100]
 
         return [
             {
