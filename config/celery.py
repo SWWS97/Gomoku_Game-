@@ -5,7 +5,7 @@ from celery import Celery
 # Django 설정 모듈 지정
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
-app = Celery("gomoku")
+app = Celery("omokjomok")
 
 # Django settings에서 CELERY_ 접두사로 시작하는 설정 읽기
 app.config_from_object("django.conf:settings", namespace="CELERY")
