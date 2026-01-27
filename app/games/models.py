@@ -225,3 +225,25 @@ class DirectMessage(models.Model):
         return (
             f"{self.sender.username} -> {self.recipient.username}: {self.content[:30]}"
         )
+
+
+class LobbyMessage(models.Model):
+    """로비 전체 채팅 메시지 모델"""
+
+    user = models.ForeignKey(
+        User,
+        related_name="lobby_messages",
+        on_delete=models.CASCADE,
+        help_text="메시지 작성자",
+    )
+    content = models.TextField(help_text="메시지 내용")
+    created_at = models.DateTimeField(auto_now_add=True, help_text="메시지 생성 시간")
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username}: {self.content[:30]}"

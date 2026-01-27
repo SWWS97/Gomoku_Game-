@@ -22,10 +22,8 @@ services:
 
   redis:
     image: redis:7
-    env_file: ./envs/.env.dev
-    # 필요시:
-    # ports:
-    #   - "6379:6379"
+    ports:
+      - "6379:6379"
 
 volumes:
   pgdata_dev:
