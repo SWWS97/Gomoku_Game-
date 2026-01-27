@@ -1401,6 +1401,5 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def save_lobby_message(self, content):
         """로비 메시지 저장"""
-        from app.games.models import LobbyMessage
 
         LobbyMessage.objects.create(user_id=self.user_id, content=content)
