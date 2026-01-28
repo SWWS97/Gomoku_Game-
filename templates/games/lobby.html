@@ -1207,6 +1207,217 @@
       }
     }
 
+    /* ===== 매칭 모달 스타일 ===== */
+    .matchmaking-modal .modal-content {
+      text-align: center;
+    }
+
+    .matchmaking-timer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 1.5rem 0;
+    }
+
+    .matchmaking-timer .timer-label {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    .matchmaking-timer .timer-value {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--border);
+      font-family: 'Courier New', monospace;
+    }
+
+    .rating-range-info {
+      font-size: 1rem;
+      color: #666;
+      margin-bottom: 1rem;
+    }
+
+    .rating-range-info span:last-child {
+      font-weight: 700;
+      color: #8b5cf6;
+    }
+
+    .status-text {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #333;
+      margin: 1rem 0;
+    }
+
+    /* 로딩 스피너 */
+    .loading-spinner {
+      width: 70px;
+      height: 70px;
+      position: relative;
+      margin: 1.5rem auto;
+    }
+
+    .loading-spinner::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 5px solid #e0e0e0;
+      border-radius: 50%;
+      border-top-color: #4a7c59;
+      border-right-color: #4a7c59;
+      animation: spin 1.2s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 대기 점 애니메이션 */
+    .dots::after {
+      content: '';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+
+    @keyframes dots {
+      0%, 25% { content: '.'; }
+      26%, 50% { content: '..'; }
+      51%, 75% { content: '...'; }
+      76%, 100% { content: ''; }
+    }
+
+    /* 매칭 아이콘 (회전 화살표) */
+    .match-icon {
+      width: 80px;
+      height: 80px;
+      position: relative;
+      margin: 1rem auto;
+    }
+
+    .match-icon .circle-arrow {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 4px solid #4a7c59;
+      border-radius: 50%;
+      border-top-color: transparent;
+      border-right-color: transparent;
+      animation: rotateArrow 1.5s ease-in-out infinite;
+    }
+
+    .match-icon .circle-arrow:nth-child(2) {
+      transform: rotate(180deg);
+      animation-delay: -0.75s;
+    }
+
+    @keyframes rotateArrow {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 상대방 정보 */
+    .opponent-info {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: #f8f8f8;
+      border-radius: 12px;
+    }
+
+    .opponent-info .opponent-nickname {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--border);
+      margin: 0.5rem 0;
+    }
+
+    .opponent-info .opponent-rating {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #8b5cf6;
+    }
+
+    /* 수락 카운트다운 바 */
+    .accept-countdown {
+      margin: 1.5rem 0;
+    }
+
+    .countdown-bar-container {
+      width: 100%;
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+
+    .countdown-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4a7c59, #5a9c69);
+      border-radius: 4px;
+      transition: width 0.1s linear;
+    }
+
+    .countdown-text {
+      font-size: 1rem;
+      color: #666;
+    }
+
+    .countdown-text span {
+      font-weight: 700;
+      color: #d84315;
+    }
+
+    /* 모달 버튼 스타일 */
+    .modal-btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .modal-btn.accept {
+      background: #4a7c59;
+      color: white;
+    }
+
+    .modal-btn.accept:hover {
+      background: #3a6c49;
+    }
+
+    .modal-btn.decline,
+    .modal-btn.cancel {
+      background: #999;
+      color: white;
+    }
+
+    .modal-btn.decline:hover,
+    .modal-btn.cancel:hover {
+      background: #777;
+    }
+
+    /* 게임 찾기 버튼 */
+    .btn-matchmaking {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c4dff 100%);
+      color: white;
+      font-weight: 700;
+    }
+
+    .btn-matchmaking:hover {
+      background: linear-gradient(135deg, #7c4dff 0%, #6c3de6 100%);
+    }
+
+    .btn-matchmaking:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
     /* 초소형 모바일 */
     @media (max-width: 375px) {
       .header {
@@ -1284,11 +1495,15 @@
     <div class="rooms-section">
       <div class="rooms-header">
         <h2>대기 중인 게임 방</h2>
-        {% if has_active_game %}
-          <button class="btn" disabled title="진행 중인 게임이 있습니다">새 방 만들기</button>
-        {% else %}
-          <button class="btn" id="new-room-btn">새 방 만들기</button>
-        {% endif %}
+        <div style="display: flex; gap: 8px;">
+          {% if has_active_game %}
+            <button class="btn btn-matchmaking" disabled title="진행 중인 게임이 있습니다">게임 찾기</button>
+            <button class="btn" disabled title="진행 중인 게임이 있습니다">공개 방 만들기</button>
+          {% else %}
+            <button class="btn btn-matchmaking" id="matchmaking-btn">게임 찾기</button>
+            <button class="btn" id="new-room-btn">공개 방 만들기</button>
+          {% endif %}
+        </div>
       </div>
 
       <div class="room-list">
@@ -1510,6 +1725,76 @@
       <div class="modal-buttons" style="margin-top: 20px;">
         <button type="button" class="btn" id="ranking-close-btn" style="width: 100%;">닫기</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 매칭 검색 모달 -->
+  <div class="modal-overlay matchmaking-modal" id="matchmaking-search-modal">
+    <div class="modal-content">
+      <h2 style="color:#4a7c59;">게임 찾기</h2>
+
+      <div class="loading-spinner"></div>
+
+      <div class="matchmaking-timer">
+        <span class="timer-label">검색 시간</span>
+        <span id="matchmaking-timer" class="timer-value">00:00</span>
+      </div>
+
+      <div class="rating-range-info">
+        <span>검색 범위: </span>
+        <span id="rating-range">±50</span>
+      </div>
+
+      <p class="status-text">
+        상대를 찾는중<span class="dots"></span>
+      </p>
+
+      <button class="modal-btn cancel" id="matchmaking-cancel-btn">취소</button>
+    </div>
+  </div>
+
+  <!-- 매칭 성공 모달 -->
+  <div class="modal-overlay matchmaking-modal" id="match-found-modal">
+    <div class="modal-content">
+      <h2 style="color:#4a7c59;">매칭 성공!</h2>
+
+      <div class="match-icon">
+        <div class="circle-arrow"></div>
+        <div class="circle-arrow"></div>
+      </div>
+
+      <div class="opponent-info">
+        <p style="font-size: 0.9rem; color: #666; margin: 0;">상대방</p>
+        <p class="opponent-nickname" id="opponent-nickname">Player123</p>
+        <p class="opponent-rating">Rating: <span id="opponent-rating">1050</span></p>
+      </div>
+
+      <div class="accept-countdown">
+        <div class="countdown-bar-container">
+          <div class="countdown-bar" id="countdown-bar" style="width: 100%;"></div>
+        </div>
+        <p class="countdown-text"><span id="accept-countdown">10</span>초 안에 수락하세요</p>
+      </div>
+
+      <div class="modal-buttons">
+        <button class="modal-btn accept" id="match-accept-btn">수락</button>
+        <button class="modal-btn decline" id="match-decline-btn">거절</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상대방 수락 대기 모달 -->
+  <div class="modal-overlay matchmaking-modal" id="waiting-accept-modal">
+    <div class="modal-content">
+      <h2 style="color:#4a7c59;">매칭 성공!</h2>
+
+      <div class="loading-spinner"></div>
+
+      <p class="status-text">
+        상대방 수락 대기중<span class="dots"></span>
+      </p>
+
+      <button class="modal-btn cancel" id="waiting-cancel-btn">취소</button>
     </div>
   </div>
 
@@ -1811,6 +2096,257 @@
     connectNotification();
   })();
   {% endif %}
+
+  // 매칭 시스템 관리
+  (function(){
+    const matchmakingBtn = document.getElementById("matchmaking-btn");
+    const searchModal = document.getElementById("matchmaking-search-modal");
+    const matchFoundModal = document.getElementById("match-found-modal");
+    const waitingAcceptModal = document.getElementById("waiting-accept-modal");
+
+    const matchmakingTimer = document.getElementById("matchmaking-timer");
+    const ratingRange = document.getElementById("rating-range");
+    const matchmakingCancelBtn = document.getElementById("matchmaking-cancel-btn");
+
+    const opponentNickname = document.getElementById("opponent-nickname");
+    const opponentRating = document.getElementById("opponent-rating");
+    const countdownBar = document.getElementById("countdown-bar");
+    const acceptCountdown = document.getElementById("accept-countdown");
+    const matchAcceptBtn = document.getElementById("match-accept-btn");
+    const matchDeclineBtn = document.getElementById("match-decline-btn");
+
+    const waitingCancelBtn = document.getElementById("waiting-cancel-btn");
+
+    let matchmakingWs = null;
+    let currentMatchId = null;
+    let acceptCountdownInterval = null;
+    let acceptTimeLeft = 10;
+
+    if (!matchmakingBtn) return;
+
+    // 매칭 WebSocket 연결
+    function connectMatchmaking() {
+      const scheme = (location.protocol === "https:") ? "wss" : "ws";
+      const wsURL = `${scheme}://${location.host}/ws/matchmaking/`;
+
+      matchmakingWs = new WebSocket(wsURL);
+
+      matchmakingWs.addEventListener("open", () => {
+        console.log("[Matchmaking] WebSocket connected");
+        // 큐에 참가
+        matchmakingWs.send(JSON.stringify({ type: "join_queue" }));
+      });
+
+      matchmakingWs.addEventListener("close", (e) => {
+        console.log("[Matchmaking] WebSocket closed:", e.code);
+        hideAllModals();
+      });
+
+      matchmakingWs.addEventListener("error", (e) => {
+        console.error("[Matchmaking] WebSocket error:", e);
+        hideAllModals();
+        window.showToast("매칭 서버 연결에 실패했습니다.", "error");
+      });
+
+      matchmakingWs.addEventListener("message", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          handleMatchmakingMessage(data);
+        } catch (err) {
+          console.error("[Matchmaking] Message parse error:", err);
+        }
+      });
+    }
+
+    // 메시지 핸들러
+    function handleMatchmakingMessage(data) {
+      console.log("[Matchmaking] Received:", data);
+
+      switch (data.type) {
+        case "queue_joined":
+          // 큐 진입 성공
+          searchModal.classList.add("active");
+          break;
+
+        case "queue_update":
+          // 타이머 업데이트
+          updateTimer(data.elapsed_seconds);
+          ratingRange.textContent = `±${data.current_range}`;
+          break;
+
+        case "match_found":
+          // 매칭 성공!
+          currentMatchId = data.match_id;
+          showMatchFound(data.opponent, data.accept_timeout);
+          break;
+
+        case "match_status":
+          // 상대방 수락 대기
+          if (data.status === "waiting") {
+            matchFoundModal.classList.remove("active");
+            waitingAcceptModal.classList.add("active");
+          }
+          break;
+
+        case "match_confirmed":
+          // 양쪽 수락 - 게임 시작
+          hideAllModals();
+          window.showToast("매칭 성공! 게임을 시작합니다.", "success");
+          // 게임 페이지로 이동
+          setTimeout(() => {
+            window.location.href = `/games/${data.game_id}/`;
+          }, 500);
+          break;
+
+        case "match_declined":
+          // 매칭 거절됨
+          hideAllModals();
+          if (data.reason === "opponent_declined") {
+            window.showToast("상대방이 매칭을 거절했습니다. 다시 검색합니다.", "info");
+            // 다시 검색 모달 표시
+            searchModal.classList.add("active");
+          } else {
+            window.showToast("매칭을 취소했습니다.", "info");
+          }
+          break;
+
+        case "match_timeout":
+          // 수락 시간 초과
+          hideAllModals();
+          window.showToast("수락 시간이 초과되었습니다.", "error");
+          break;
+
+        case "queue_left":
+          // 큐 이탈
+          hideAllModals();
+          break;
+
+        case "error":
+          // 에러
+          hideAllModals();
+          window.showToast(data.message || "오류가 발생했습니다.", "error");
+          break;
+      }
+    }
+
+    // 타이머 업데이트
+    function updateTimer(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      matchmakingTimer.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    // 매칭 성공 표시
+    function showMatchFound(opponent, timeout) {
+      searchModal.classList.remove("active");
+      matchFoundModal.classList.add("active");
+
+      opponentNickname.textContent = opponent.nickname;
+      opponentRating.textContent = opponent.rating;
+
+      // 수락 카운트다운 시작
+      acceptTimeLeft = timeout;
+      acceptCountdown.textContent = acceptTimeLeft;
+      countdownBar.style.width = "100%";
+
+      if (acceptCountdownInterval) {
+        clearInterval(acceptCountdownInterval);
+      }
+
+      acceptCountdownInterval = setInterval(() => {
+        acceptTimeLeft--;
+        acceptCountdown.textContent = acceptTimeLeft;
+        countdownBar.style.width = `${(acceptTimeLeft / timeout) * 100}%`;
+
+        if (acceptTimeLeft <= 0) {
+          clearInterval(acceptCountdownInterval);
+          // 시간 초과 - 자동 거절
+          if (matchmakingWs && matchmakingWs.readyState === WebSocket.OPEN) {
+            matchmakingWs.send(JSON.stringify({
+              type: "decline_match",
+              match_id: currentMatchId
+            }));
+          }
+        }
+      }, 1000);
+    }
+
+    // 모든 모달 숨기기
+    function hideAllModals() {
+      searchModal.classList.remove("active");
+      matchFoundModal.classList.remove("active");
+      waitingAcceptModal.classList.remove("active");
+
+      if (acceptCountdownInterval) {
+        clearInterval(acceptCountdownInterval);
+        acceptCountdownInterval = null;
+      }
+
+      currentMatchId = null;
+    }
+
+    // 매칭 종료
+    function endMatchmaking() {
+      if (matchmakingWs) {
+        if (matchmakingWs.readyState === WebSocket.OPEN) {
+          matchmakingWs.send(JSON.stringify({ type: "leave_queue" }));
+        }
+        matchmakingWs.close();
+        matchmakingWs = null;
+      }
+      hideAllModals();
+    }
+
+    // 이벤트 리스너
+    matchmakingBtn.addEventListener("click", () => {
+      connectMatchmaking();
+    });
+
+    matchmakingCancelBtn.addEventListener("click", () => {
+      endMatchmaking();
+    });
+
+    matchAcceptBtn.addEventListener("click", () => {
+      if (matchmakingWs && matchmakingWs.readyState === WebSocket.OPEN && currentMatchId) {
+        matchmakingWs.send(JSON.stringify({
+          type: "accept_match",
+          match_id: currentMatchId
+        }));
+
+        // 수락 후 대기 모달 표시
+        if (acceptCountdownInterval) {
+          clearInterval(acceptCountdownInterval);
+        }
+        matchFoundModal.classList.remove("active");
+        waitingAcceptModal.classList.add("active");
+      }
+    });
+
+    matchDeclineBtn.addEventListener("click", () => {
+      if (matchmakingWs && matchmakingWs.readyState === WebSocket.OPEN && currentMatchId) {
+        matchmakingWs.send(JSON.stringify({
+          type: "decline_match",
+          match_id: currentMatchId
+        }));
+      }
+    });
+
+    waitingCancelBtn.addEventListener("click", () => {
+      if (matchmakingWs && matchmakingWs.readyState === WebSocket.OPEN && currentMatchId) {
+        matchmakingWs.send(JSON.stringify({
+          type: "decline_match",
+          match_id: currentMatchId
+        }));
+      }
+    });
+
+    // 모달 외부 클릭 시 닫기 (검색 모달만)
+    searchModal.addEventListener("click", (e) => {
+      if (e.target === searchModal) {
+        endMatchmaking();
+      }
+    });
+  })();
 
   // 채팅 토글 관리 (모바일용)
   (function(){
