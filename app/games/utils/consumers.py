@@ -1,5 +1,3 @@
-# app/games/utils/consumers.py
-
 import time
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -69,10 +67,35 @@ def filter_profanity(text):
     return filtered_text
 
 
+def get_tier_from_rating(rating):
+    """레이팅으로 티어 계산 (JavaScript TIERS와 동일)"""
+    tiers = [
+        (2200, "무신"),  # 2200+
+        (2100, "투신"),  # 2100 ~ 2199
+        (2000, "패왕"),  # 2000 ~ 2099
+        (1900, "지존"),  # 1900 ~ 1999
+        (1800, "명인"),  # 1800 ~ 1899
+        (1700, "달인"),  # 1700 ~ 1799
+        (1600, "낭인"),  # 1600 ~ 1699
+        (1500, "3단"),  # 1500 ~ 1599
+        (1400, "2단"),  # 1400 ~ 1499
+        (1300, "1단"),  # 1300 ~ 1399
+        (1200, "1급"),  # 1200 ~ 1299
+        (1100, "2급"),  # 1100 ~ 1199
+        (1000, "3급"),  # 1000 ~ 1099
+        (900, "4급"),  # 900 ~ 999
+        (0, "5급"),  # 0 ~ 899
+    ]
+    for min_rp, name in tiers:
+        if rating >= min_rp:
+            return name
+    return "5급"
+
+
 def update_user_stats(black_user, white_user, winner):
     """
     게임 종료 시 사용자 전적 및 레이팅 업데이트
-    Returns: dict with rating changes
+    Returns: dict with rating changes, tier changes, and placement completion
     """
     # 프로필이 없으면 생성 (초기 레이팅 1000점)
     black_profile, _ = UserProfile.objects.get_or_create(
@@ -82,9 +105,13 @@ def update_user_stats(black_user, white_user, winner):
         user=white_user, defaults={"rating": INITIAL_RATING}
     )
 
-    # 현재 레이팅 저장 (변동 계산용)
+    # 현재 레이팅 및 총 게임 수 저장 (변동 계산용)
     old_black_rating = black_profile.rating
     old_white_rating = white_profile.rating
+    old_black_total = black_profile.total_games
+    old_white_total = white_profile.total_games
+    old_black_tier = get_tier_from_rating(old_black_rating)
+    old_white_tier = get_tier_from_rating(old_white_rating)
 
     # 승패 및 레이팅 업데이트
     if winner == "black":
@@ -109,12 +136,30 @@ def update_user_stats(black_user, white_user, winner):
     black_profile.save(update_fields=["wins", "losses", "rating"])
     white_profile.save(update_fields=["wins", "losses", "rating"])
 
-    # 레이팅 변동 정보 반환
+    # 새 티어 계산
+    new_black_tier = get_tier_from_rating(black_profile.rating)
+    new_white_tier = get_tier_from_rating(white_profile.rating)
+    new_black_total = black_profile.total_games
+    new_white_total = white_profile.total_games
+
+    # 레이팅 변동 정보 반환 (티어 변동 및 배치 완료 정보 포함)
     return {
         "black_rating": black_profile.rating,
         "white_rating": white_profile.rating,
         "black_rating_change": black_profile.rating - old_black_rating,
         "white_rating_change": white_profile.rating - old_white_rating,
+        # 티어 변동 정보
+        "black_old_tier": old_black_tier,
+        "black_new_tier": new_black_tier,
+        "black_tier_changed": old_black_tier != new_black_tier,
+        "white_old_tier": old_white_tier,
+        "white_new_tier": new_white_tier,
+        "white_tier_changed": old_white_tier != new_white_tier,
+        # 배치 완료 정보 (이전 총 게임 수 < 5 이고 현재 >= 5이면 배치 완료)
+        "black_placement_complete": old_black_total < 5 and new_black_total >= 5,
+        "white_placement_complete": old_white_total < 5 and new_white_total >= 5,
+        "black_total_games": new_black_total,
+        "white_total_games": new_white_total,
     }
 
 
@@ -356,17 +401,21 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             else:
                 white_time = max(0, white_time - int(elapsed))
 
-        # 플레이어 레이팅 조회
+        # 플레이어 레이팅 및 총 게임 수 조회
         black_rating = INITIAL_RATING
         white_rating = INITIAL_RATING
+        black_total_games = 0
+        white_total_games = 0
         if game.black:
             black_profile = UserProfile.objects.filter(user=game.black).first()
             if black_profile:
                 black_rating = black_profile.rating
+                black_total_games = black_profile.total_games
         if game.white:
             white_profile = UserProfile.objects.filter(user=game.white).first()
             if white_profile:
                 white_rating = white_profile.rating
+                white_total_games = white_profile.total_games
 
         return {
             "board": game.board,
@@ -381,6 +430,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             "game_started": game.game_started,
             "black_rating": black_rating,
             "white_rating": white_rating,
+            "black_total_games": black_total_games,
+            "white_total_games": white_total_games,
         }
 
     @database_sync_to_async
@@ -1256,6 +1307,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                     # DB에 메시지 저장
                     await self.save_lobby_message(filtered_message)
 
+                    # 사용자 RP 및 총 게임 수 조회
+                    profile_data = await self.get_user_rating(self.user_id)
+
                     # 채팅 메시지 브로드캐스트
                     await self.channel_layer.group_send(
                         self.group_name,
@@ -1264,6 +1318,8 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                             "sender_id": self.user_id,
                             "sender": self.user_nickname,
                             "message": filtered_message,
+                            "rating": profile_data["rating"],
+                            "total_games": profile_data["total_games"],
                         },
                     )
         except Exception as e:
@@ -1278,13 +1334,15 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                     "sender": event["sender"],
                     "message": event["message"],
                     "is_mine": event["sender_id"] == self.user_id,
+                    "rating": event.get("rating", INITIAL_RATING),
+                    "total_games": event.get("total_games", 0),
                 }
             )
         except Exception as e:
             print("[LobbyWS][broadcast_chat_message] ERROR:", repr(e))
 
     async def get_online_users(self):
-        """현재 접속 중인 사용자 목록 반환 (중복 제거) + 게임 상태"""
+        """현재 접속 중인 사용자 목록 반환 (중복 제거) + 게임 상태 + RP"""
         unique_users = {}
 
         # 1. 캐시에서 하트비트 온라인 유저 (다른 페이지에 있는 유저)
@@ -1312,20 +1370,39 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             if user_id not in unique_users:
                 unique_users[user_id] = user_info
 
-        # 각 사용자의 게임 상태 확인
+        # 각 사용자의 게임 상태 및 RP 확인
+        user_ids = [info["user_id"] for info in unique_users.values()]
+        profiles = await self.get_users_ratings(user_ids)
+
         users_with_status = []
         for user_info in unique_users.values():
-            status = await self.get_user_game_status(user_info["user_id"])
+            user_id = user_info["user_id"]
+            status = await self.get_user_game_status(user_id)
+            profile_data = profiles.get(user_id, {})
             users_with_status.append(
                 {
-                    "user_id": user_info["user_id"],
+                    "user_id": user_id,
                     "nickname": user_info["nickname"],
                     "username": user_info.get("username", ""),
                     "status": status,
+                    "rating": profile_data.get("rating", INITIAL_RATING),
+                    "total_games": profile_data.get("total_games", 0),
                 }
             )
 
         return users_with_status
+
+    @database_sync_to_async
+    def get_users_ratings(self, user_ids: list[int]) -> dict[int, dict]:
+        """여러 사용자의 RP 및 총 게임 수 조회"""
+        result = {}
+        profiles = UserProfile.objects.filter(user_id__in=user_ids)
+        for profile in profiles:
+            result[profile.user_id] = {
+                "rating": profile.rating,
+                "total_games": profile.total_games,
+            }
+        return result
 
     @database_sync_to_async
     def get_users_in_games(self):
@@ -1389,11 +1466,26 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             created_at__gte=cutoff_time
         ).select_related("user")[:100]
 
+        # 메시지 작성자들의 RP 및 총 게임 수 조회
+        user_ids = list(set(msg.user_id for msg in messages))
+        profiles_data = {}
+        if user_ids:
+            profiles = UserProfile.objects.filter(user_id__in=user_ids)
+            for profile in profiles:
+                profiles_data[profile.user_id] = {
+                    "rating": profile.rating,
+                    "total_games": profile.total_games,
+                }
+
         return [
             {
                 "sender": msg.user.first_name or msg.user.username,
                 "message": msg.content,
                 "is_mine": msg.user_id == self.user_id,
+                "rating": profiles_data.get(msg.user_id, {}).get(
+                    "rating", INITIAL_RATING
+                ),
+                "total_games": profiles_data.get(msg.user_id, {}).get("total_games", 0),
             }
             for msg in messages
         ]
@@ -1401,5 +1493,13 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def save_lobby_message(self, content):
         """로비 메시지 저장"""
-
         LobbyMessage.objects.create(user_id=self.user_id, content=content)
+
+    @database_sync_to_async
+    def get_user_rating(self, user_id: int) -> dict:
+        """사용자 RP 및 총 게임 수 조회"""
+        try:
+            profile = UserProfile.objects.get(user_id=user_id)
+            return {"rating": profile.rating, "total_games": profile.total_games}
+        except UserProfile.DoesNotExist:
+            return {"rating": INITIAL_RATING, "total_games": 0}

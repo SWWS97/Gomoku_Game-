@@ -59,6 +59,15 @@ def lobby(request):
     has_active_game = active_game is not None
     active_game_id = active_game.id if active_game else None
 
+    # 현재 사용자의 RP 및 총 게임 수 조회
+    try:
+        my_profile = UserProfile.objects.get(user=request.user)
+        my_rating = my_profile.rating
+        my_total_games = my_profile.total_games
+    except UserProfile.DoesNotExist:
+        my_rating = 1000  # 기본 RP
+        my_total_games = 0
+
     # 모든 프로필 데이터 (랭킹용)
     all_profiles = UserProfile.objects.filter(wins__gt=0).select_related("user").all()
 
@@ -137,6 +146,8 @@ def lobby(request):
             "ranking_by_rating": ranking_by_rating,
             "ranking_by_winrate": ranking_by_winrate,
             "ranking_by_games": ranking_by_games,
+            "my_rating": my_rating,
+            "my_total_games": my_total_games,
         },
     )
 
