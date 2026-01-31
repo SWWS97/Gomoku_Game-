@@ -19,6 +19,7 @@ from app.games.models import Game
 
 User = get_user_model()
 
+
 class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
     """매칭 WebSocket 컨슈머"""
 
@@ -79,10 +80,12 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
         # 이미 진행 중인 게임이 있는지 확인
         has_active = await self.check_active_game()
         if has_active:
-            await self.send_json({
-                "type": "error",
-                "message": "진행 중인 게임이 있습니다.",
-            })
+            await self.send_json(
+                {
+                    "type": "error",
+                    "message": "진행 중인 게임이 있습니다.",
+                }
+            )
             return
 
         # Rating 및 총 게임 수 조회
@@ -102,20 +105,24 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
         )
 
         if not success:
-            await self.send_json({
-                "type": "error",
-                "message": "이미 매칭 중입니다.",
-            })
+            await self.send_json(
+                {
+                    "type": "error",
+                    "message": "이미 매칭 중입니다.",
+                }
+            )
             return
 
         self.in_queue = True
 
         # 큐 진입 확인
-        await self.send_json({
-            "type": "queue_joined",
-            "rating": rating,
-            "queue_size": matchmaking_service.get_queue_size(),
-        })
+        await self.send_json(
+            {
+                "type": "queue_joined",
+                "rating": rating,
+                "queue_size": matchmaking_service.get_queue_size(),
+            }
+        )
 
         # 주기적 업데이트 및 매칭 체크 시작
         self.queue_task = asyncio.create_task(self.queue_update_loop())
@@ -153,12 +160,14 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
                 seconds = matchmaking_service.get_seconds_in_queue(self.user_id)
                 current_range = get_current_range(seconds)
 
-                await self.send_json({
-                    "type": "queue_update",
-                    "elapsed_seconds": seconds,
-                    "current_range": current_range,
-                    "queue_size": matchmaking_service.get_queue_size(),
-                })
+                await self.send_json(
+                    {
+                        "type": "queue_update",
+                        "elapsed_seconds": seconds,
+                        "current_range": current_range,
+                        "queue_size": matchmaking_service.get_queue_size(),
+                    }
+                )
 
                 await asyncio.sleep(1)
 
@@ -178,39 +187,47 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
         # Player1에게 전송
         p1_channel = MatchmakingConsumer.user_channels.get(player1.user_id)
         if p1_channel:
-            await self.channel_layer.send(p1_channel, {
-                "type": "send_match_found",
-                "match_id": match_id,
-                "opponent_nickname": player2.nickname,
-                "opponent_rating": player2.rating,
-                "opponent_total_games": player2.total_games,
-                "accept_timeout": ACCEPT_TIMEOUT,
-            })
+            await self.channel_layer.send(
+                p1_channel,
+                {
+                    "type": "send_match_found",
+                    "match_id": match_id,
+                    "opponent_nickname": player2.nickname,
+                    "opponent_rating": player2.rating,
+                    "opponent_total_games": player2.total_games,
+                    "accept_timeout": ACCEPT_TIMEOUT,
+                },
+            )
 
         # Player2에게 전송
         p2_channel = MatchmakingConsumer.user_channels.get(player2.user_id)
         if p2_channel:
-            await self.channel_layer.send(p2_channel, {
-                "type": "send_match_found",
-                "match_id": match_id,
-                "opponent_nickname": player1.nickname,
-                "opponent_rating": player1.rating,
-                "opponent_total_games": player1.total_games,
-                "accept_timeout": ACCEPT_TIMEOUT,
-            })
+            await self.channel_layer.send(
+                p2_channel,
+                {
+                    "type": "send_match_found",
+                    "match_id": match_id,
+                    "opponent_nickname": player1.nickname,
+                    "opponent_rating": player1.rating,
+                    "opponent_total_games": player1.total_games,
+                    "accept_timeout": ACCEPT_TIMEOUT,
+                },
+            )
 
     async def send_match_found(self, event):
         """매칭 성공 메시지 전송 핸들러"""
-        await self.send_json({
-            "type": "match_found",
-            "match_id": event["match_id"],
-            "opponent": {
-                "nickname": event["opponent_nickname"],
-                "rating": event["opponent_rating"],
-                "total_games": event.get("opponent_total_games", 0),
-            },
-            "accept_timeout": event["accept_timeout"],
-        })
+        await self.send_json(
+            {
+                "type": "match_found",
+                "match_id": event["match_id"],
+                "opponent": {
+                    "nickname": event["opponent_nickname"],
+                    "rating": event["opponent_rating"],
+                    "total_games": event.get("opponent_total_games", 0),
+                },
+                "accept_timeout": event["accept_timeout"],
+            }
+        )
 
     async def handle_accept_match(self, match_id: str):
         """매칭 수락 처리"""
@@ -234,17 +251,21 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
 
         elif status == MatchStatus.WAITING:
             # 상대방 수락 대기
-            await self.send_json({
-                "type": "match_status",
-                "match_id": match_id,
-                "status": "waiting",
-            })
+            await self.send_json(
+                {
+                    "type": "match_status",
+                    "match_id": match_id,
+                    "status": "waiting",
+                }
+            )
 
         elif status == MatchStatus.TIMEOUT:
-            await self.send_json({
-                "type": "match_timeout",
-                "message": "수락 시간이 초과되었습니다.",
-            })
+            await self.send_json(
+                {
+                    "type": "match_timeout",
+                    "message": "수락 시간이 초과되었습니다.",
+                }
+            )
 
     async def handle_decline_match(self, match_id: str):
         """매칭 거절 처리"""
@@ -254,10 +275,12 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
         status, other_player = matchmaking_service.decline_match(match_id, self.user_id)
 
         # 본인에게 거절 확인
-        await self.send_json({
-            "type": "match_declined",
-            "reason": "self_declined",
-        })
+        await self.send_json(
+            {
+                "type": "match_declined",
+                "reason": "self_declined",
+            }
+        )
 
         # 상대방에게 알림 + 다시 큐에 넣기
         if other_player:
@@ -273,17 +296,22 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
 
             other_channel = MatchmakingConsumer.user_channels.get(other_player.user_id)
             if other_channel:
-                await self.channel_layer.send(other_channel, {
-                    "type": "send_match_declined",
-                    "reason": "opponent_declined",
-                })
+                await self.channel_layer.send(
+                    other_channel,
+                    {
+                        "type": "send_match_declined",
+                        "reason": "opponent_declined",
+                    },
+                )
 
     async def send_match_declined(self, event):
         """매칭 거절 메시지 전송 핸들러 - 다시 큐 루프 시작"""
-        await self.send_json({
-            "type": "match_declined",
-            "reason": event["reason"],
-        })
+        await self.send_json(
+            {
+                "type": "match_declined",
+                "reason": event["reason"],
+            }
+        )
 
         # 다시 큐 업데이트 루프 시작 (상대방이 거절한 경우)
         # 이미 큐에 다시 등록되어 있음
@@ -293,22 +321,29 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
                 self.queue_task.cancel()
             self.queue_task = asyncio.create_task(self.queue_update_loop())
 
-    async def notify_match_confirmed(self, player1_id: int, player2_id: int, game_id: int):
+    async def notify_match_confirmed(
+        self, player1_id: int, player2_id: int, game_id: int
+    ):
         """매칭 확정 알림"""
         for player_id in [player1_id, player2_id]:
             channel = MatchmakingConsumer.user_channels.get(player_id)
             if channel:
-                await self.channel_layer.send(channel, {
-                    "type": "send_match_confirmed",
-                    "game_id": game_id,
-                })
+                await self.channel_layer.send(
+                    channel,
+                    {
+                        "type": "send_match_confirmed",
+                        "game_id": game_id,
+                    },
+                )
 
     async def send_match_confirmed(self, event):
         """매칭 확정 메시지 전송 핸들러"""
-        await self.send_json({
-            "type": "match_confirmed",
-            "game_id": event["game_id"],
-        })
+        await self.send_json(
+            {
+                "type": "match_confirmed",
+                "game_id": event["game_id"],
+            }
+        )
 
     @database_sync_to_async
     def get_user_rating(self) -> dict:

@@ -143,9 +143,7 @@ class MatchmakingService:
 
         return None
 
-    def create_pending_match(
-        self, player1: QueueEntry, player2: QueueEntry
-    ) -> str:
+    def create_pending_match(self, player1: QueueEntry, player2: QueueEntry) -> str:
         """매칭 성공 - 대기 상태 생성"""
         match_id = str(uuid.uuid4())
 
@@ -203,7 +201,9 @@ class MatchmakingService:
 
         return MatchStatus.WAITING
 
-    def decline_match(self, match_id: str, user_id: int) -> tuple[MatchStatus, Optional[QueueEntry]]:
+    def decline_match(
+        self, match_id: str, user_id: int
+    ) -> tuple[MatchStatus, Optional[QueueEntry]]:
         """매칭 거절 - 상대방을 다시 큐에 넣음"""
         match = self.pending_matches.get(match_id)
         if not match:
@@ -211,9 +211,7 @@ class MatchmakingService:
 
         # 상대방 정보
         other_player = (
-            match.player2
-            if match.player1.user_id == user_id
-            else match.player1
+            match.player2 if match.player1.user_id == user_id else match.player1
         )
 
         # 매치 정리

@@ -72,21 +72,21 @@ def filter_profanity(text):
 def get_tier_from_rating(rating):
     """레이팅으로 티어 계산 (JavaScript TIERS와 동일)"""
     tiers = [
-        (2200, "무신"),   # 2200+
-        (2100, "투신"),   # 2100 ~ 2199
-        (2000, "패왕"),   # 2000 ~ 2099
-        (1900, "지존"),   # 1900 ~ 1999
-        (1800, "명인"),   # 1800 ~ 1899
-        (1700, "달인"),   # 1700 ~ 1799
-        (1600, "낭인"),   # 1600 ~ 1699
-        (1500, "3단"),    # 1500 ~ 1599
-        (1400, "2단"),    # 1400 ~ 1499
-        (1300, "1단"),    # 1300 ~ 1399
-        (1200, "1급"),    # 1200 ~ 1299
-        (1100, "2급"),    # 1100 ~ 1199
-        (1000, "3급"),    # 1000 ~ 1099
-        (900, "4급"),     # 900 ~ 999
-        (0, "5급"),       # 0 ~ 899
+        (2200, "무신"),  # 2200+
+        (2100, "투신"),  # 2100 ~ 2199
+        (2000, "패왕"),  # 2000 ~ 2099
+        (1900, "지존"),  # 1900 ~ 1999
+        (1800, "명인"),  # 1800 ~ 1899
+        (1700, "달인"),  # 1700 ~ 1799
+        (1600, "낭인"),  # 1600 ~ 1699
+        (1500, "3단"),  # 1500 ~ 1599
+        (1400, "2단"),  # 1400 ~ 1499
+        (1300, "1단"),  # 1300 ~ 1399
+        (1200, "1급"),  # 1200 ~ 1299
+        (1100, "2급"),  # 1100 ~ 1199
+        (1000, "3급"),  # 1000 ~ 1099
+        (900, "4급"),  # 900 ~ 999
+        (0, "5급"),  # 0 ~ 899
     ]
     for min_rp, name in tiers:
         if rating >= min_rp:
@@ -1484,7 +1484,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                 "sender": msg.user.first_name or msg.user.username,
                 "message": msg.content,
                 "is_mine": msg.user_id == self.user_id,
-                "rating": profiles_data.get(msg.user_id, {}).get("rating", INITIAL_RATING),
+                "rating": profiles_data.get(msg.user_id, {}).get(
+                    "rating", INITIAL_RATING
+                ),
                 "total_games": profiles_data.get(msg.user_id, {}).get("total_games", 0),
             }
             for msg in messages

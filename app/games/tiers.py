@@ -100,7 +100,6 @@ TIER_ICONS = {
         <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="currentColor" opacity="0.7"/>
         <text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="white">1</text>
     </svg>""",
-
     # 단 (1단~3단) - 검은 바둑돌 + 별
     "dan-1": """<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="12" cy="12" r="9" fill="currentColor"/>
@@ -117,7 +116,6 @@ TIER_ICONS = {
         <path d="M7 11l.6 1.4 1.5.2-1.1 1 .2 1.5-1.2-.7-1.3.7.2-1.5-1-1 1.5-.2z" fill="white"/>
         <path d="M17 11l.6 1.4 1.5.2-1.1 1 .2 1.5-1.2-.7-1.3.7.2-1.5-1-1 1.5-.2z" fill="white"/>
     </svg>""",
-
     # 낭인 - 검
     "ronin": """<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M19 3L5 17l2 2L21 5l-2-2z" fill="currentColor"/>
@@ -125,7 +123,6 @@ TIER_ICONS = {
         <path d="M14.5 9.5l-5 5" stroke="white" stroke-width="1"/>
         <circle cx="18" cy="6" r="2" fill="currentColor" stroke="white" stroke-width="0.5"/>
     </svg>""",
-
     # 달인 - 쌍검
     "master": """<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M7 2L3 18l1.5 1.5L18 6 7 2z" fill="currentColor" opacity="0.8"/>
@@ -133,13 +130,11 @@ TIER_ICONS = {
         <path d="M3 18l2 3 2-1" fill="currentColor"/>
         <path d="M21 18l-2 3-2-1" fill="currentColor"/>
     </svg>""",
-
     # 명인 - 불꽃
     "expert": """<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 2C12 2 8 6 8 11c0 2 1 4 2.5 5C9 14 9 12 10 10c1 3 2 5 2 7 0-2 1-4 2-7 1 2 1 4-.5 6 1.5-1 2.5-3 2.5-5 0-5-4-9-4-9z" fill="currentColor"/>
         <path d="M12 14c-1 0-2 1-2 2.5S11 19 12 20c1-1 2-2 2-3.5S13 14 12 14z" fill="white" opacity="0.6"/>
     </svg>""",
-
     # 지존 - 왕관
     "supreme": """<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M3 18h18v3H3z" fill="currentColor"/>
@@ -149,7 +144,6 @@ TIER_ICONS = {
         <circle cx="20" cy="7" r="2" fill="currentColor"/>
         <path d="M8 14h8v2H8z" fill="white" opacity="0.3"/>
     </svg>""",
-
     # 패왕 - 번개 왕관
     "conqueror": """<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M3 18h18v3H3z" fill="currentColor"/>
@@ -159,7 +153,6 @@ TIER_ICONS = {
         <circle cx="20" cy="7" r="2" fill="currentColor"/>
         <path d="M13 1l-2 4h3l-3 5 1-3H9l3-6z" fill="white"/>
     </svg>""",
-
     # 투신 - 불타는 해골
     "wargod": """<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 2C8 2 5 5 5 9c0 2 1 4 2 5v4h10v-4c1-1 2-3 2-5 0-4-3-7-7-7z" fill="currentColor"/>
@@ -172,7 +165,6 @@ TIER_ICONS = {
         <path d="M6 3c0-1 2-2 3-1-1 0-2 1-2 2" fill="currentColor" opacity="0.6"/>
         <path d="M18 3c0-1-2-2-3-1 1 0 2 1 2 2" fill="currentColor" opacity="0.6"/>
     </svg>""",
-
     # 무신 - 용
     "divine": """<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M4 8c0-2 2-4 4-4 1 0 2 .5 3 1.5C12 4.5 13 4 14 4c2 0 4 2 4 4" stroke="currentColor" stroke-width="2" fill="none"/>
