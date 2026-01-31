@@ -1,6 +1,12 @@
 <!doctype html>
 <html>
 <head>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Omok {{ game.id }}</title>
@@ -11,21 +17,58 @@
       --wood: #d4b781;
       --line: #7b5c3a;
       --border: #3e2a1f;
+      --bg: #faf7f2;
+      --topbar-bg: #fff;
+      --topbar-border: #b08f66;
+      --player-bg: #fff;
+      --player-border: #ccc;
+      --text: #333;
+      --text-secondary: #666;
+      --modal-bg: #fff;
+      --timer-bg: rgba(255,255,255,0.95);
+      --timer-border: #d4b781;
+      --quick-chat-bg: white;
+      --quick-chat-border: var(--line);
+      --toast-bg: white;
     }
 
-    html, body { height:100%; margin:0; background:#faf7f2;
+    /* 다크모드 */
+    [data-theme="dark"] {
+      --wood: #2a2520;
+      --line: #4a4035;
+      --border: #4ade80;
+      --bg: #0f0f1a;
+      --topbar-bg: #16213e;
+      --topbar-border: #4ade80;
+      --player-bg: #1e293b;
+      --player-border: #374151;
+      --text: #e5e7eb;
+      --text-secondary: #9ca3af;
+      --modal-bg: #16213e;
+      --timer-bg: rgba(22, 33, 62, 0.95);
+      --timer-border: #4ade80;
+      --quick-chat-bg: #1e293b;
+      --quick-chat-border: #374151;
+      --toast-bg: #1e293b;
+    }
+
+    html, body { height:100%; margin:0; background:var(--bg);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Noto Sans KR, sans-serif; }
 
     /* ===== Top bar ===== */
     .topbar{
       display:flex; align-items:center; gap:14px;
       padding:12px 16px 6px; font-weight:700;
+      color: var(--text);
+      transition: color 0.3s ease;
     }
     .topbar .right{ margin-left:auto; display:flex; gap:14px; align-items:center; }
-    .pill{ padding:.35rem .6rem; border:1px solid #b08f66; border-radius:.5rem; background:#fff; cursor:pointer; }
+    .pill{ padding:.35rem .6rem; border:1px solid var(--topbar-border); border-radius:.5rem; background:var(--topbar-bg); cursor:pointer; color:var(--text); transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease; }
+    .pill.theme-toggle{ background: linear-gradient(135deg, #374151, #1f2937); color: #fff; border-color: #374151; }
+    [data-theme="dark"] .pill.theme-toggle{ background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1f2937; border-color: #fbbf24; }
     .players{ display:flex; gap:16px; }
-    .player-info{ padding:.4rem .7rem; border:1px solid #ccc; border-radius:.4rem; background:#fff; font-size:.9rem; }
-    .player-info .label{ color:#666; font-size:.8rem; }
+    .player-info{ padding:.4rem .7rem; border:1px solid var(--player-border); border-radius:.4rem; background:var(--player-bg); font-size:.9rem; color:var(--text); transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease; }
+    .player-info .label{ color:var(--text-secondary); font-size:.8rem; }
 
     /* ===== 타이머 (상단 중앙) ===== */
     .timer-container{
@@ -35,12 +78,13 @@
       transform: translateX(-50%);
       display: flex;
       gap: 40px;
-      background: rgba(255,255,255,0.95);
+      background: var(--timer-bg);
       padding: 1rem 2rem;
       border-radius: 0.8rem;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      border: 2px solid #d4b781;
+      border: 2px solid var(--timer-border);
       z-index: 10;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
     .timer-item{
       display: flex;
@@ -50,7 +94,7 @@
     }
     .timer-label{
       font-size: 0.85rem;
-      color: #666;
+      color: var(--text-secondary);
       font-weight: 600;
     }
     .timer-value{
@@ -97,13 +141,27 @@
       justify-content:center;
     }
     .modal-content{
-      background:#fff;
+      background:var(--modal-bg);
       padding:2.5rem 3rem;
       border-radius:1rem;
       box-shadow:0 10px 40px rgba(0,0,0,0.3);
       text-align:center;
       max-width:400px;
       animation: modalFadeIn 0.3s ease;
+      color: var(--text);
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    [data-theme="dark"] .modal-content {
+      border: 2px solid #374151;
+    }
+
+    [data-theme="dark"] .modal-content h2 {
+      color: #4ade80;
+    }
+
+    [data-theme="dark"] .modal-content p {
+      color: var(--text-secondary) !important;
     }
     @keyframes modalFadeIn {
       from { opacity:0; transform:translateY(-20px); }
@@ -225,53 +283,37 @@
       76%, 100% { content: ''; }
     }
 
-    /* ===== 리매치 아이콘 디자인 ===== */
-    /* 회전하는 원형 화살표 (리매치 요청) */
+    /* ===== 리매치 아이콘 디자인 (loading-spinner와 동일) ===== */
     .rematch-icon {
-      width: 80px;
-      height: 80px;
+      width: 70px;
+      height: 70px;
       position: relative;
       margin: 1rem auto;
+      animation: spin 1.2s linear infinite;
     }
-    .rematch-icon .circle-arrow {
+    .rematch-icon::before {
+      content: '';
       position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      border: 4px solid #4a7c59;
+      border: 5px solid #e0e0e0;
       border-radius: 50%;
-      border-top-color: transparent;
-      border-right-color: transparent;
-      animation: rotateArrow 1.5s ease-in-out infinite;
+      border-top-color: #4a7c59;
+      border-right-color: #4a7c59;
     }
-    .rematch-icon .circle-arrow:nth-child(2) {
-      transform: rotate(180deg);
-      animation-delay: -0.75s;
-    }
-    .rematch-icon::before,
     .rematch-icon::after {
       content: '';
       position: absolute;
+      top: -3px;
+      left: 50%;
+      transform: translateX(-50%);
       width: 0;
       height: 0;
-      border-style: solid;
-    }
-    .rematch-icon::before {
-      top: -2px;
-      left: 50%;
-      transform: translateX(-50%) rotate(45deg);
-      border-width: 0 8px 8px 0;
-      border-color: transparent #4a7c59 transparent transparent;
-    }
-    .rematch-icon::after {
-      bottom: -2px;
-      right: 50%;
-      transform: translateX(50%) rotate(-135deg);
-      border-width: 0 8px 8px 0;
-      border-color: transparent #4a7c59 transparent transparent;
-    }
-    @keyframes rotateArrow {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 12px solid #4a7c59;
     }
 
     /* 로딩 스피너 (리매치 대기) */
@@ -280,6 +322,7 @@
       height: 70px;
       position: relative;
       margin: 1rem auto;
+      animation: spin 1.2s linear infinite;
     }
     .loading-spinner::before {
       content: '';
@@ -292,17 +335,19 @@
       border-radius: 50%;
       border-top-color: #4a7c59;
       border-right-color: #4a7c59;
-      animation: spin 1.2s linear infinite;
     }
+    /* 화살표 머리 */
     .loading-spinner::after {
       content: '';
       position: absolute;
-      top: 50%;
+      top: -3px;
       left: 50%;
-      width: 45px;
-      height: 45px;
-      margin: -22.5px 0 0 -22.5px;
-      border: 4px solid #f5f5f5;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 12px solid #4a7c59;
       border-radius: 50%;
       border-bottom-color: #6b9477;
       border-left-color: #6b9477;
@@ -484,12 +529,12 @@
     }
     .quick-chat-btn {
       padding: 12px 8px;
-      background: white;
-      border: 2px solid var(--line);
+      background: var(--quick-chat-bg);
+      border: 2px solid var(--quick-chat-border);
       border-radius: 8px;
       font-size: 0.8rem;
       font-weight: 600;
-      color: var(--border);
+      color: var(--text);
       cursor: pointer;
       transition: all 0.2s;
       text-align: center;
@@ -499,6 +544,10 @@
       background: var(--wood);
       transform: translateY(-2px);
       box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    [data-theme="dark"] .quick-chat-btn:hover {
+      background: #374151;
+      border-color: #4ade80;
     }
     .quick-chat-btn:active {
       transform: translateY(0);
@@ -580,6 +629,10 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       }
 
+      [data-theme="dark"] .quick-chat-container {
+        background: rgba(30, 41, 59, 0.95);
+      }
+
       .quick-chat-panel {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -642,7 +695,7 @@
     }
 
     .toast {
-      background: white;
+      background: var(--toast-bg);
       padding: 16px 20px;
       border-radius: 12px;
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
@@ -652,6 +705,8 @@
       gap: 12px;
       animation: slideIn 0.3s ease-out;
       min-width: 300px;
+      color: var(--text);
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     .toast.success {
@@ -659,14 +714,29 @@
       background: linear-gradient(135deg, #f0f9f4 0%, #ffffff 100%);
     }
 
+    [data-theme="dark"] .toast.success {
+      background: linear-gradient(135deg, rgba(74, 222, 128, 0.1) 0%, #1e293b 100%);
+      border-left-color: #4ade80;
+    }
+
     .toast.error {
       border-left-color: #c53030;
       background: linear-gradient(135deg, #fef5f5 0%, #ffffff 100%);
     }
 
+    [data-theme="dark"] .toast.error {
+      background: linear-gradient(135deg, rgba(248, 113, 113, 0.1) 0%, #1e293b 100%);
+      border-left-color: #f87171;
+    }
+
     .toast.info {
       border-left-color: #4a7c89;
       background: linear-gradient(135deg, #f0f7f9 0%, #ffffff 100%);
+    }
+
+    [data-theme="dark"] .toast.info {
+      background: linear-gradient(135deg, rgba(74, 124, 137, 0.1) 0%, #1e293b 100%);
+      border-left-color: #67b7c8;
     }
 
     .toast-icon {
@@ -691,7 +761,7 @@
     }
 
     .toast-message {
-      color: #333;
+      color: var(--text);
       font-size: 14px;
       line-height: 1.5;
       font-weight: 500;
@@ -766,6 +836,227 @@
         font-size: 13px;
       }
     }
+
+    /* ===== 롤 스타일 티어 뱃지 ===== */
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      white-space: nowrap;
+      vertical-align: middle;
+      position: relative;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.3),
+        inset 0 -1px 0 rgba(0,0,0,0.2),
+        0 2px 4px rgba(0,0,0,0.2);
+      border: 1px solid rgba(0,0,0,0.1);
+      letter-spacing: 0.5px;
+    }
+    .tier-badge::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 50%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
+      border-radius: 4px 4px 0 0;
+      pointer-events: none;
+    }
+    .tier-badge .tier-icon {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+    }
+    .tier-badge .tier-icon svg { width: 100%; height: 100%; }
+
+    /* 급 티어 */
+    .tier-badge.tier-5급 { background: linear-gradient(135deg, #8b7355 0%, #6b5344 50%, #8b7355 100%); color: #f5e6d3; border-color: #5a4535; }
+    .tier-badge.tier-4급 { background: linear-gradient(135deg, #9a8a7a 0%, #7a6a5a 50%, #9a8a7a 100%); color: #fff5eb; border-color: #6a5a4a; }
+    .tier-badge.tier-3급 { background: linear-gradient(135deg, #a8a8a8 0%, #888888 50%, #a8a8a8 100%); color: #ffffff; border-color: #707070; }
+    .tier-badge.tier-2급 { background: linear-gradient(135deg, #c0c0c0 0%, #a0a0a0 50%, #c0c0c0 100%); color: #ffffff; border-color: #909090; }
+    .tier-badge.tier-1급 { background: linear-gradient(135deg, #d4d4d4 0%, #b8b8b8 50%, #d4d4d4 100%); color: #ffffff; border-color: #a0a0a0; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+
+    /* 단 티어 */
+    .tier-badge.tier-1단 { background: linear-gradient(135deg, #c9a227 0%, #a68523 50%, #c9a227 100%); color: #fff8dc; border-color: #8b7500; }
+    .tier-badge.tier-2단 { background: linear-gradient(135deg, #daa520 0%, #b8860b 50%, #daa520 100%); color: #fffacd; border-color: #996515; }
+    .tier-badge.tier-3단 { background: linear-gradient(135deg, #ffd700 0%, #daa520 50%, #ffd700 100%); color: #ffffff; border-color: #b8860b; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+
+    /* 고급 티어 */
+    .tier-badge.tier-낭인 { background: linear-gradient(135deg, #4fc3c7 0%, #26a69a 50%, #4fc3c7 100%); color: #e0ffff; border-color: #1a8a7e; }
+    .tier-badge.tier-달인 { background: linear-gradient(135deg, #00bcd4 0%, #0097a7 50%, #00bcd4 100%); color: #e0ffff; border-color: #007687; }
+    .tier-badge.tier-명인 { background: linear-gradient(135deg, #7c4dff 0%, #651fff 50%, #7c4dff 100%); color: #e8e0ff; border-color: #5000e0; }
+
+    /* 최상위 티어 */
+    .tier-badge.tier-지존 { background: linear-gradient(135deg, #e040fb 0%, #aa00ff 50%, #e040fb 100%); color: #ffe0ff; border-color: #8800cc; }
+    .tier-badge.tier-패왕 { background: linear-gradient(135deg, #ff5252 0%, #d32f2f 50%, #ff5252 100%); color: #ffe0e0; border-color: #b71c1c; }
+    .tier-badge.tier-투신 { background: linear-gradient(135deg, #ff1744 0%, #c51162 50%, #ff1744 100%); color: #ffffff; border-color: #ab003c; animation: tier-glow-red 2s ease-in-out infinite; }
+    .tier-badge.tier-무신 {
+      background: linear-gradient(135deg, #ffd54f 0%, #ffab00 25%, #ff6f00 50%, #ffab00 75%, #ffd54f 100%);
+      background-size: 200% 200%;
+      color: #ffffff;
+      border: 2px solid #ffd700;
+      text-shadow: 0 0 10px rgba(255,215,0,0.8), 0 1px 2px rgba(0,0,0,0.5);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.2), 0 0 15px rgba(255,215,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
+      animation: tier-shine 3s linear infinite;
+    }
+    .tier-badge.tier-placement { background: linear-gradient(135deg, #607d8b 0%, #455a64 50%, #607d8b 100%); color: #eceff1; border-color: #37474f; }
+
+    @keyframes tier-shine { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    @keyframes tier-glow-red { 0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.2), 0 0 8px rgba(255,23,68,0.4); } 50% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.2), 0 0 15px rgba(255,23,68,0.7); } }
+
+    /* ===== 배치 완료 / 티어 변동 모달 아이콘 ===== */
+    .placement-icon {
+      width: 80px; height: 80px;
+      margin: 0 auto 1rem;
+      position: relative;
+    }
+    .placement-icon .shield {
+      width: 70px; height: 80px;
+      background: linear-gradient(135deg, #ffd700 0%, #ffab00 50%, #ff8f00 100%);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 4px 15px rgba(255, 193, 7, 0.5);
+      animation: shield-pulse 2s ease-in-out infinite;
+    }
+    .placement-icon .shield::before {
+      content: ''; position: absolute;
+      top: 8px; left: 8px; right: 8px; bottom: 8px;
+      background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    }
+    .placement-icon .shield::after {
+      content: '★'; position: absolute;
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 28px; color: #ff8f00;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .placement-icon .sparkle {
+      position: absolute; width: 8px; height: 8px;
+      background: #ffd700; border-radius: 50%;
+      animation: sparkle 1.5s ease-in-out infinite;
+    }
+    .placement-icon .sparkle:nth-child(2) { top: 5px; left: 15px; animation-delay: 0s; }
+    .placement-icon .sparkle:nth-child(3) { top: 10px; right: 10px; animation-delay: 0.3s; }
+    .placement-icon .sparkle:nth-child(4) { bottom: 15px; left: 10px; animation-delay: 0.6s; }
+    .placement-icon .sparkle:nth-child(5) { bottom: 10px; right: 15px; animation-delay: 0.9s; }
+
+    @keyframes shield-pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.05); }
+    }
+    @keyframes sparkle {
+      0%, 100% { opacity: 0; transform: scale(0); }
+      50% { opacity: 1; transform: scale(1); }
+    }
+
+    /* 티어 승급 아이콘 */
+    .promotion-icon {
+      width: 80px; height: 80px;
+      margin: 0 auto 1rem;
+      position: relative;
+    }
+    .promotion-icon .arrow-up {
+      width: 0; height: 0;
+      border-left: 25px solid transparent;
+      border-right: 25px solid transparent;
+      border-bottom: 40px solid #4caf50;
+      position: absolute; left: 50%; top: 10px;
+      transform: translateX(-50%);
+      filter: drop-shadow(0 4px 8px rgba(76, 175, 80, 0.4));
+      animation: arrow-bounce-up 1s ease-in-out infinite;
+    }
+    .promotion-icon .arrow-up::after {
+      content: '';
+      position: absolute; top: 40px; left: -10px;
+      width: 20px; height: 30px;
+      background: #4caf50;
+    }
+    .promotion-icon .glow-ring {
+      position: absolute; top: 50%; left: 50%;
+      width: 70px; height: 70px;
+      border: 3px solid #4caf50;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: glow-expand 1.5s ease-out infinite;
+    }
+    .promotion-icon .glow-ring:nth-child(2) { animation-delay: 0.5s; }
+
+    @keyframes arrow-bounce-up {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-8px); }
+    }
+    @keyframes glow-expand {
+      0% { transform: translate(-50%, -50%) scale(0.8); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+    }
+
+    /* 티어 강등 아이콘 */
+    .demotion-icon {
+      width: 80px; height: 80px;
+      margin: 0 auto 1rem;
+      position: relative;
+    }
+    .demotion-icon .arrow-down {
+      width: 0; height: 0;
+      border-left: 25px solid transparent;
+      border-right: 25px solid transparent;
+      border-top: 40px solid #e53935;
+      position: absolute; left: 50%; bottom: 10px;
+      transform: translateX(-50%);
+      filter: drop-shadow(0 4px 8px rgba(229, 57, 53, 0.4));
+      animation: arrow-bounce-down 1s ease-in-out infinite;
+    }
+    .demotion-icon .arrow-down::before {
+      content: '';
+      position: absolute; bottom: 40px; left: -10px;
+      width: 20px; height: 30px;
+      background: #e53935;
+    }
+    .demotion-icon .crack {
+      position: absolute; top: 50%; left: 50%;
+      width: 60px; height: 60px;
+      transform: translate(-50%, -50%);
+    }
+    .demotion-icon .crack::before, .demotion-icon .crack::after {
+      content: ''; position: absolute;
+      background: #ffcdd2; border-radius: 2px;
+    }
+    .demotion-icon .crack::before {
+      width: 3px; height: 25px; top: 5px; left: 20px;
+      transform: rotate(-20deg);
+    }
+    .demotion-icon .crack::after {
+      width: 3px; height: 20px; top: 15px; left: 35px;
+      transform: rotate(15deg);
+    }
+
+    @keyframes arrow-bounce-down {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(8px); }
+    }
+
+    /* 티어 변동 화살표 */
+    .tier-arrow {
+      display: flex; align-items: center; justify-content: center;
+      width: 50px; height: 50px;
+    }
+    .tier-arrow svg {
+      width: 40px; height: 40px;
+    }
+    .tier-arrow.promotion svg { color: #4caf50; animation: arrow-pulse 1s ease-in-out infinite; }
+    .tier-arrow.demotion svg { color: #e53935; animation: arrow-pulse 1s ease-in-out infinite; }
+
+    @keyframes arrow-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
   </style>
 </head>
 <body>
@@ -777,10 +1068,12 @@
     <div class="players">
       <div class="player-info">
         <span class="label">흑(●):</span>
+        <span id="black-tier"></span>
         <span id="black-player">대기중...</span>
       </div>
       <div class="player-info">
         <span class="label">백(○):</span>
+        <span id="white-tier"></span>
         <span id="white-player">대기중...</span>
       </div>
     </div>
@@ -795,6 +1088,7 @@
       <button class="pill" id="surrender-btn" style="display:none; background:#c44; border-color:#a33;">항복</button>
       <button class="pill" id="rematch-btn" style="display:none; background:#4a7c59; border-color:#3a6c49;">리매치 요청</button>
       <a href="{% url 'games:lobby' %}" class="pill" id="lobby-btn" style="display:none;">로비로 가기</a>
+      <button class="pill theme-toggle" id="theme-toggle">다크</button>
     </div>
   </div>
 
@@ -848,10 +1142,7 @@
   <div id="rematchRequestModal" class="game-over-modal">
     <div class="modal-content">
       <h2 style="color:#4a7c59;">리매치 요청</h2>
-      <div class="rematch-icon">
-        <div class="circle-arrow"></div>
-        <div class="circle-arrow"></div>
-      </div>
+      <div class="rematch-icon"></div>
       <p style="font-size:1.3rem; font-weight:700; margin:1rem 0;">리매치 요청이 왔습니다!</p>
       <p style="font-size:1.1rem; color:#666;">재경기를 하시겠습니까?</p>
       <div style="display:flex; gap:12px; margin-top:1.5rem;">
@@ -919,6 +1210,39 @@
     </div>
   </div>
 
+  <!-- 배치 완료 모달 -->
+  <div id="placementCompleteModal" class="game-over-modal">
+    <div class="modal-content">
+      <div class="placement-icon">
+        <div class="shield"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+      </div>
+      <h2 style="color:#ff8f00; margin-top:0.5rem;">배치 완료!</h2>
+      <p style="font-size:1.1rem; color:#666; margin:0.5rem 0;">5판의 배치전이 끝났습니다</p>
+      <div id="placementResultTier" style="margin:1.5rem 0;"></div>
+      <p style="font-size:1rem; color:#888;">위 티어에서 시작합니다</p>
+      <button class="modal-btn" onclick="closePlacementModal()" style="background:linear-gradient(135deg, #ff8f00, #ff6f00); margin-top:1.5rem;">확인</button>
+    </div>
+  </div>
+
+  <!-- 티어 변동 모달 -->
+  <div id="tierChangeModal" class="game-over-modal">
+    <div class="modal-content">
+      <div id="tierChangeIcon"></div>
+      <h2 id="tierChangeTitle" style="margin-top:0.5rem;">티어 변동!</h2>
+      <div style="display:flex; align-items:center; justify-content:center; gap:0.8rem; margin:1.5rem 0;">
+        <div id="tierChangeOld"></div>
+        <div id="tierChangeArrow" class="tier-arrow"></div>
+        <div id="tierChangeNew"></div>
+      </div>
+      <p id="tierChangeMessage" style="font-size:1.1rem; color:#666;"></p>
+      <button id="tierChangeBtn" class="modal-btn" onclick="closeTierChangeModal()" style="margin-top:1.5rem;">확인</button>
+    </div>
+  </div>
+
 <script>
 (function(){
   const SIZE   = {{ BOARD_SIZE }};
@@ -935,6 +1259,8 @@
   const winnerTop    = document.getElementById("winnerTop");  // 상단 배지
   const blackPlayer  = document.getElementById("black-player");
   const whitePlayer  = document.getElementById("white-player");
+  const blackTier    = document.getElementById("black-tier");
+  const whiteTier    = document.getElementById("white-tier");
   const lobbyBtn     = document.getElementById("lobby-btn");
   const leaveBtn     = document.getElementById("leave-btn");
   const surrenderBtn = document.getElementById("surrender-btn");
@@ -969,6 +1295,52 @@
 
   /* ===== 자신의 색상 정보 ===== */
   let myColor = null;  // "black" or "white"
+
+  /* ===== 티어 시스템 ===== */
+  const TIERS = [
+    { name: "5급", minRp: 0, maxRp: 899, color: "#6b7280" },
+    { name: "4급", minRp: 900, maxRp: 999, color: "#3b82f6" },
+    { name: "3급", minRp: 1000, maxRp: 1099, color: "#06b6d4" },
+    { name: "2급", minRp: 1100, maxRp: 1199, color: "#10b981" },
+    { name: "1급", minRp: 1200, maxRp: 1299, color: "#22c55e" },
+    { name: "1단", minRp: 1300, maxRp: 1399, color: "#84cc16" },
+    { name: "2단", minRp: 1400, maxRp: 1499, color: "#eab308" },
+    { name: "3단", minRp: 1500, maxRp: 1599, color: "#f59e0b" },
+    { name: "낭인", minRp: 1600, maxRp: 1699, color: "#8b5cf6" },
+    { name: "달인", minRp: 1700, maxRp: 1799, color: "#a855f7" },
+    { name: "명인", minRp: 1800, maxRp: 1899, color: "#ec4899" },
+    { name: "지존", minRp: 1900, maxRp: 1999, color: "#f43f5e" },
+    { name: "패왕", minRp: 2000, maxRp: 2099, color: "#ef4444" },
+    { name: "투신", minRp: 2100, maxRp: 2199, color: "#dc2626" },
+    { name: "무신", minRp: 2200, maxRp: Infinity, color: "#b91c1c" },
+  ];
+
+  function getTier(rp) {
+    for (const tier of TIERS) {
+      if (rp >= tier.minRp && rp <= tier.maxRp) {
+        return tier;
+      }
+    }
+    return TIERS[0];
+  }
+
+  function getTierBadgeHTML(rp, totalGames = 999) {
+    // 5판 미만이면 "배치중" 표시
+    if (totalGames < 5) {
+      return `<span class="tier-badge tier-placement">배치중</span>`;
+    }
+    const tier = getTier(rp);
+    return `<span class="tier-badge tier-${tier.name}">${tier.name}</span>`;
+  }
+
+  // 큰 티어 뱃지 (모달용)
+  function getLargeTierBadgeHTML(rp, totalGames = 999) {
+    if (totalGames < 5) {
+      return `<span class="tier-badge tier-placement" style="font-size: 2rem; padding: 0.8rem 1.5rem;">배치중</span>`;
+    }
+    const tier = getTier(rp);
+    return `<span class="tier-badge tier-${tier.name}" style="font-size: 2rem; padding: 0.8rem 1.5rem;">${tier.name}</span>`;
+  }
 
   // 타이머 포맷: 초 → MM:SS
   function formatTime(seconds) {
@@ -1049,6 +1421,9 @@
       ws.send(JSON.stringify({type: "reset_practice"}));
     }
     // 대전 모드이면 그냥 모달만 닫고 게임룸에 남음 (리매치 버튼 활성화됨)
+
+    // 대기 중인 모달(배치 완료/티어 변동) 표시
+    showNextPendingModal();
   };
 
   // 리매치 요청 승인 함수
@@ -1229,10 +1604,14 @@
     playerJoinedModal.style.display = "flex";
   }
 
+  // 배치 완료/티어 변동 대기열 (게임 결과 모달 닫은 후 순차 표시)
+  let pendingModals = [];
+
   function showGameOverModal(winner, winnerName, isSoloPlay) {
     if (modalShown) return;  // 이미 표시되었으면 중복 방지
 
     modalShown = true;
+    pendingModals = [];  // 대기열 초기화
 
     // 게임 결과 알림음 재생
     const isWinner = myColor === winner;
@@ -1248,6 +1627,8 @@
       const whiteChange = lastRatingInfo.white_rating_change;
       const blackRating = lastRatingInfo.black_rating;
       const whiteRating = lastRatingInfo.white_rating;
+      const blackTotalGames = lastRatingInfo.black_total_games || 999;
+      const whiteTotalGames = lastRatingInfo.white_total_games || 999;
 
       ratingDisplay.innerHTML = `
         <div style="margin-top:1rem; padding:0.8rem; background:#f8f9fa; border-radius:8px; font-size:0.95rem;">
@@ -1255,6 +1636,7 @@
           <div style="display:flex; justify-content:center; gap:2rem;">
             <div>
               <span style="font-weight:600;">흑(●)</span>
+              ${getTierBadgeHTML(blackRating, blackTotalGames)}
               <span style="color:${blackChange >= 0 ? '#4a7c59' : '#c53030'}; font-weight:700; margin-left:0.3rem;">
                 ${blackChange >= 0 ? '+' : ''}${blackChange}
               </span>
@@ -1262,6 +1644,7 @@
             </div>
             <div>
               <span style="font-weight:600;">백(○)</span>
+              ${getTierBadgeHTML(whiteRating, whiteTotalGames)}
               <span style="color:${whiteChange >= 0 ? '#4a7c59' : '#c53030'}; font-weight:700; margin-left:0.3rem;">
                 ${whiteChange >= 0 ? '+' : ''}${whiteChange}
               </span>
@@ -1271,6 +1654,31 @@
         </div>
       `;
       ratingDisplay.style.display = "block";
+
+      // 배치 완료/티어 변동 체크 (내 색상 기준)
+      if (myColor === "black") {
+        if (lastRatingInfo.black_placement_complete) {
+          pendingModals.push({ type: 'placement', rating: blackRating, totalGames: blackTotalGames });
+        } else if (lastRatingInfo.black_tier_changed) {
+          pendingModals.push({
+            type: 'tierChange',
+            oldTier: lastRatingInfo.black_old_tier,
+            newTier: lastRatingInfo.black_new_tier,
+            isPromotion: blackChange > 0
+          });
+        }
+      } else if (myColor === "white") {
+        if (lastRatingInfo.white_placement_complete) {
+          pendingModals.push({ type: 'placement', rating: whiteRating, totalGames: whiteTotalGames });
+        } else if (lastRatingInfo.white_tier_changed) {
+          pendingModals.push({
+            type: 'tierChange',
+            oldTier: lastRatingInfo.white_old_tier,
+            newTier: lastRatingInfo.white_new_tier,
+            isPromotion: whiteChange > 0
+          });
+        }
+      }
     } else if (ratingDisplay) {
       ratingDisplay.style.display = "none";
     }
@@ -1284,6 +1692,87 @@
     } else {
       // 상대방과 플레이: 모달 표시
       gameOverModal.style.display = "flex";
+    }
+  }
+
+  // 배치 완료 모달 표시
+  function showPlacementCompleteModal(rating, totalGames) {
+    const resultTier = document.getElementById("placementResultTier");
+    resultTier.innerHTML = getLargeTierBadgeHTML(rating, totalGames);
+    document.getElementById("placementCompleteModal").style.display = "flex";
+  }
+
+  // 티어 변동 모달 표시
+  function showTierChangeModal(oldTier, newTier, isPromotion) {
+    const iconEl = document.getElementById("tierChangeIcon");
+    const title = document.getElementById("tierChangeTitle");
+    const message = document.getElementById("tierChangeMessage");
+    const oldTierEl = document.getElementById("tierChangeOld");
+    const newTierEl = document.getElementById("tierChangeNew");
+    const arrowEl = document.getElementById("tierChangeArrow");
+    const btn = document.getElementById("tierChangeBtn");
+
+    // 이전 티어 (큰 뱃지)
+    oldTierEl.innerHTML = `<span class="tier-badge tier-${oldTier}" style="font-size: 1.3rem; padding: 0.5rem 1rem;">${oldTier}</span>`;
+
+    // 새 티어 (큰 뱃지)
+    newTierEl.innerHTML = `<span class="tier-badge tier-${newTier}" style="font-size: 1.3rem; padding: 0.5rem 1rem;">${newTier}</span>`;
+
+    if (isPromotion) {
+      // 승급 아이콘
+      iconEl.innerHTML = `
+        <div class="promotion-icon">
+          <div class="glow-ring"></div>
+          <div class="glow-ring"></div>
+          <div class="arrow-up"></div>
+        </div>`;
+      // 승급 화살표
+      arrowEl.className = "tier-arrow promotion";
+      arrowEl.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z"/></svg>`;
+      title.textContent = "티어 승급!";
+      title.style.color = "#4caf50";
+      message.textContent = "축하합니다! 티어가 올랐습니다!";
+      btn.style.background = "linear-gradient(135deg, #4caf50, #388e3c)";
+    } else {
+      // 강등 아이콘
+      iconEl.innerHTML = `
+        <div class="demotion-icon">
+          <div class="crack"></div>
+          <div class="arrow-down"></div>
+        </div>`;
+      // 강등 화살표
+      arrowEl.className = "tier-arrow demotion";
+      arrowEl.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>`;
+      title.textContent = "티어 강등";
+      title.style.color = "#e53935";
+      message.textContent = "티어가 내려갔습니다. 다시 도전하세요!";
+      btn.style.background = "linear-gradient(135deg, #e53935, #c62828)";
+    }
+
+    document.getElementById("tierChangeModal").style.display = "flex";
+  }
+
+  // 배치 완료 모달 닫기
+  window.closePlacementModal = function() {
+    document.getElementById("placementCompleteModal").style.display = "none";
+    showNextPendingModal();
+  };
+
+  // 티어 변동 모달 닫기
+  window.closeTierChangeModal = function() {
+    document.getElementById("tierChangeModal").style.display = "none";
+    showNextPendingModal();
+  };
+
+  // 대기 중인 다음 모달 표시
+  function showNextPendingModal() {
+    if (pendingModals.length === 0) return;
+
+    const next = pendingModals.shift();
+    if (next.type === 'placement') {
+      showPlacementCompleteModal(next.rating, next.totalGames);
+    } else if (next.type === 'tierChange') {
+      showTierChangeModal(next.oldTier, next.newTier, next.isPromotion);
     }
   }
 
@@ -1913,7 +2402,14 @@
   let lastRatingInfo = null;
 
   function render(state){
-    const { board, turn, winner, black_player, white_player, black_username, white_username, black_time, white_time, black_rating, white_rating, black_rating_change, white_rating_change } = state;
+    const {
+      board, turn, winner, black_player, white_player, black_username, white_username,
+      black_time, white_time, black_rating, white_rating, black_rating_change, white_rating_change,
+      black_total_games, white_total_games,
+      // 배치/티어 변동 정보
+      black_old_tier, black_new_tier, black_tier_changed, black_placement_complete,
+      white_old_tier, white_new_tier, white_tier_changed, white_placement_complete
+    } = state;
 
     // 착수 완료, 플래그 해제
     isPlaying = false;
@@ -1923,21 +2419,31 @@
 
     // 레이팅 변동 정보 저장 (게임 종료 시)
     if (black_rating_change !== undefined || white_rating_change !== undefined) {
-      lastRatingInfo = { black_rating, white_rating, black_rating_change, white_rating_change };
+      lastRatingInfo = {
+        black_rating, white_rating, black_rating_change, white_rating_change,
+        black_total_games, white_total_games,
+        // 배치/티어 변동 정보
+        black_old_tier, black_new_tier, black_tier_changed, black_placement_complete,
+        white_old_tier, white_new_tier, white_tier_changed, white_placement_complete
+      };
     }
 
-    // 플레이어 정보 업데이트 (레이팅 포함)
+    // 플레이어 정보 업데이트 (티어 + 레이팅 포함)
     if (black_player) {
       const ratingText = black_rating ? ` (${black_rating})` : '';
       blackPlayer.textContent = black_player + ratingText;
+      blackTier.innerHTML = black_rating ? getTierBadgeHTML(black_rating, black_total_games || 0) : '';
     } else {
       blackPlayer.textContent = "대기중...";
+      blackTier.innerHTML = '';
     }
     if (white_player) {
       const ratingText = white_rating ? ` (${white_rating})` : '';
       whitePlayer.textContent = white_player + ratingText;
+      whiteTier.innerHTML = white_rating ? getTierBadgeHTML(white_rating, white_total_games || 0) : '';
     } else {
       whitePlayer.textContent = "대기중...";
+      whiteTier.innerHTML = '';
     }
 
     // 현재 사용자의 색상 결정 (빠른 채팅 말풍선 색상용)
@@ -2004,9 +2510,13 @@
       // 나가기/항복 버튼 숨김
       leaveBtn.style.display = "none";
       surrenderBtn.style.display = "none";
-      // 리매치 버튼 표시 (대전 모드일 때만)
+      // 리매치 버튼 표시 및 리셋 (대전 모드일 때만)
       if (!isPracticeMode) {
         rematchBtn.style.display = "inline-block";
+        rematchBtn.textContent = "리매치 요청";
+        rematchBtn.disabled = false;
+        rematchBtn.style.opacity = "1";
+        rematchBtn.style.cursor = "pointer";
       } else {
         rematchBtn.style.display = "none";
       }
@@ -2047,9 +2557,9 @@
       rematchBtn.style.display = "none";
     }
 
-    // 빈 칸만 클릭 가능
+    // 빈 칸만 클릭 가능 (게임이 끝났으면 모두 비활성화)
     for (let i=0;i<pts.length;i++){
-      pts[i].disabled = (board[i] !== ".");
+      pts[i].disabled = winner || (board[i] !== ".");
     }
 
     // ===== 타이머 업데이트 =====
@@ -2182,6 +2692,32 @@
 
   // Make showToast globally available
   window.showToast = showToast;
+})();
+</script>
+
+<script>
+// 테마 토글
+(function() {
+  const themeToggle = document.getElementById('theme-toggle');
+  const html = document.documentElement;
+
+  function updateText(theme) {
+    if (themeToggle) {
+      themeToggle.textContent = theme === 'dark' ? '라이트' : '다크';
+    }
+  }
+
+  updateText(html.getAttribute('data-theme') || 'light');
+
+  if (themeToggle) {
+    themeToggle.addEventListener('click', function() {
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateText(newTheme);
+    });
+  }
 })();
 </script>
 

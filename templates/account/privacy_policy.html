@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>개인정보처리방침 – 오목조목</title>
@@ -9,6 +15,33 @@
       --wood: #d4b781;
       --line: #7b5c3a;
       --border: #3e2a1f;
+      --bg: #faf7f2;
+      --text: #333;
+      --text-secondary: #666;
+      --section-bg: white;
+      --section-border: #e0d5c0;
+      --highlight-bg: #fff3cd;
+      --highlight-border: #ffc107;
+      --contact-bg: #e7f3ff;
+      --table-header-bg: var(--wood);
+      --table-border: #ddd;
+    }
+
+    /* 다크모드 */
+    [data-theme="dark"] {
+      --wood: #2a2520;
+      --line: #4a4035;
+      --border: #4ade80;
+      --bg: #0f0f1a;
+      --text: #e5e7eb;
+      --text-secondary: #9ca3af;
+      --section-bg: #16213e;
+      --section-border: #374151;
+      --highlight-bg: rgba(251, 191, 36, 0.1);
+      --highlight-border: #b45309;
+      --contact-bg: rgba(59, 130, 246, 0.1);
+      --table-header-bg: #1e293b;
+      --table-border: #374151;
     }
 
     body {
@@ -17,8 +50,9 @@
       max-width: 800px;
       margin: 0 auto;
       padding: 2rem;
-      background: #faf7f2;
-      color: #333;
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     h1 {
@@ -43,6 +77,10 @@
       margin-bottom: 0.75rem;
     }
 
+    [data-theme="dark"] h3 {
+      color: var(--border);
+    }
+
     p {
       margin: 0.75rem 0;
     }
@@ -57,24 +95,29 @@
     }
 
     .last-updated {
-      color: #666;
+      color: var(--text-secondary);
       font-size: 0.9rem;
       margin-bottom: 2rem;
     }
 
     .section {
-      background: white;
+      background: var(--section-bg);
       padding: 1.5rem;
       margin: 1.5rem 0;
       border-radius: 8px;
-      border: 1px solid #e0d5c0;
+      border: 1px solid var(--section-border);
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .highlight {
-      background: #fff3cd;
+      background: var(--highlight-bg);
       padding: 1rem;
-      border-left: 4px solid #ffc107;
+      border-left: 4px solid var(--highlight-border);
       margin: 1rem 0;
+    }
+
+    [data-theme="dark"] .highlight {
+      color: #fcd34d;
     }
 
     table {
@@ -84,22 +127,30 @@
     }
 
     th, td {
-      border: 1px solid #ddd;
+      border: 1px solid var(--table-border);
       padding: 0.75rem;
       text-align: left;
     }
 
     th {
-      background-color: var(--wood);
+      background-color: var(--table-header-bg);
       color: var(--border);
       font-weight: 600;
     }
 
+    [data-theme="dark"] th {
+      color: #e5e7eb;
+    }
+
     .contact-info {
-      background: #e7f3ff;
+      background: var(--contact-bg);
       padding: 1rem;
       border-radius: 8px;
       margin: 1rem 0;
+    }
+
+    [data-theme="dark"] .contact-info h3 {
+      color: #60a5fa;
     }
 
     .btn {
@@ -111,12 +162,37 @@
       border-radius: 8px;
       font-weight: 600;
       margin-top: 2rem;
-      transition: transform 0.2s;
+      transition: transform 0.2s, background 0.3s ease;
+    }
+
+    [data-theme="dark"] .btn {
+      color: #1f2937;
     }
 
     .btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .theme-toggle-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      background: linear-gradient(135deg, #374151, #1f2937);
+      color: #fff;
+      transition: transform 0.1s, background 0.3s ease;
+      z-index: 1000;
+    }
+    .theme-toggle-btn:hover { transform: translateY(-1px); }
+    [data-theme="dark"] .theme-toggle-btn {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: #1f2937;
     }
 
     @media (max-width: 768px) {
@@ -139,6 +215,7 @@
   </style>
 </head>
 <body>
+  <button class="theme-toggle-btn" id="theme-toggle">다크모드</button>
   <h1>개인정보처리방침</h1>
   <p class="last-updated">최종 업데이트: 2026년 1월 14일</p>
 
@@ -338,5 +415,30 @@
   </div>
 
   <a href="{% url 'games:lobby' %}" class="btn">로비로 돌아가기</a>
+
+  <script>
+  (function() {
+    const themeToggle = document.getElementById('theme-toggle');
+    const html = document.documentElement;
+
+    function updateText(theme) {
+      if (themeToggle) {
+        themeToggle.textContent = theme === 'dark' ? '라이트모드' : '다크모드';
+      }
+    }
+
+    updateText(html.getAttribute('data-theme') || 'light');
+
+    if (themeToggle) {
+      themeToggle.addEventListener('click', function() {
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateText(newTheme);
+      });
+    }
+  })();
+  </script>
 </body>
 </html>

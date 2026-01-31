@@ -37,6 +37,7 @@ staticfiles/         # collectstatic 결과물 (운영에서 생성)
 *.swp
 .DS_Store
 Thumbs.db
+.claude/
 
 # ---- Docker(선택)
 docker-compose.override.yml
