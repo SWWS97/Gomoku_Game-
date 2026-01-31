@@ -85,8 +85,10 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
             })
             return
 
-        # Rating 조회
-        rating = await self.get_user_rating()
+        # Rating 및 총 게임 수 조회
+        profile_data = await self.get_user_rating()
+        rating = profile_data["rating"]
+        total_games = profile_data["total_games"]
         nickname = self.user.first_name or self.user.username
 
         # 큐에 추가
@@ -96,6 +98,7 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
             channel_name=self.channel_name,
             nickname=nickname,
             username=self.user.username,
+            total_games=total_games,
         )
 
         if not success:
@@ -180,6 +183,7 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
                 "match_id": match_id,
                 "opponent_nickname": player2.nickname,
                 "opponent_rating": player2.rating,
+                "opponent_total_games": player2.total_games,
                 "accept_timeout": ACCEPT_TIMEOUT,
             })
 
@@ -191,6 +195,7 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
                 "match_id": match_id,
                 "opponent_nickname": player1.nickname,
                 "opponent_rating": player1.rating,
+                "opponent_total_games": player1.total_games,
                 "accept_timeout": ACCEPT_TIMEOUT,
             })
 
@@ -202,6 +207,7 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
             "opponent": {
                 "nickname": event["opponent_nickname"],
                 "rating": event["opponent_rating"],
+                "total_games": event.get("opponent_total_games", 0),
             },
             "accept_timeout": event["accept_timeout"],
         })
@@ -262,6 +268,7 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
                 channel_name=other_player.channel_name,
                 nickname=other_player.nickname,
                 username=other_player.username,
+                total_games=other_player.total_games,
             )
 
             other_channel = MatchmakingConsumer.user_channels.get(other_player.user_id)
@@ -304,13 +311,13 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
         })
 
     @database_sync_to_async
-    def get_user_rating(self) -> int:
-        """유저 Rating 조회"""
+    def get_user_rating(self) -> dict:
+        """유저 Rating 및 총 게임 수 조회"""
         try:
             profile = UserProfile.objects.get(user=self.user)
-            return profile.rating
+            return {"rating": profile.rating, "total_games": profile.total_games}
         except UserProfile.DoesNotExist:
-            return INITIAL_RATING
+            return {"rating": INITIAL_RATING, "total_games": 0}
 
     @database_sync_to_async
     def check_active_game(self) -> bool:
@@ -335,8 +342,8 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
             title="랭크 매칭",
             black=black_user,
             white=white_user,
-            black_ready=True,
-            white_ready=True,
+            black_ready=False,
+            white_ready=False,
         )
 
         return game

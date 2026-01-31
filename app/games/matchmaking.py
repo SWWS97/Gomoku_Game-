@@ -32,6 +32,7 @@ class QueueEntry:
     nickname: str
     username: str
     joined_at: float  # timestamp
+    total_games: int = 0  # 총 게임 수 (배치 여부 판단용)
 
 
 @dataclass
@@ -77,6 +78,7 @@ class MatchmakingService:
         channel_name: str,
         nickname: str,
         username: str,
+        total_games: int = 0,
     ) -> bool:
         """큐에 사용자 추가"""
         # 이미 큐에 있거나 매칭 중이면 거부
@@ -90,6 +92,7 @@ class MatchmakingService:
             nickname=nickname,
             username=username,
             joined_at=time.time(),
+            total_games=total_games,
         )
         return True
 

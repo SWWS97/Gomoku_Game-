@@ -1,6 +1,13 @@
 <!doctype html>
 <html lang="ko">
 <head>
+  <script>
+    // 페이지 로드 전 테마 적용 (깜빡임 방지)
+    (function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <meta charset="utf-8">
   <title>{% block title %}오목조목 – Auth{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -19,7 +26,27 @@
       --ink:#2b2b2b;        /* 글자 */
       --card:#fff9ee;       /* 카드 배경 */
       --accent:#222;        /* 버튼/포커스 */
+      --input-bg:#fffdf7;
+      --link:#000;
+      --muted:#666;
+      --error-bg:#fff3f3;
+      --error-border:#ffb3b3;
     }
+
+    /* 다크모드 */
+    [data-theme="dark"] {
+      --board:#0f0f1a;
+      --line:#2d2d44;
+      --ink:#e5e7eb;
+      --card:#16213e;
+      --accent:#4ade80;
+      --input-bg:#1e293b;
+      --link:#4ade80;
+      --muted:#9ca3af;
+      --error-bg:#2d1f1f;
+      --error-border:#7f4444;
+    }
+
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
@@ -29,50 +56,108 @@
         linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 36px 36px,
         linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 36px 36px,
         var(--board);
+      transition: background 0.3s ease, color 0.3s ease;
     }
-    .stone{font-weight:900; letter-spacing:.02em}
-    .stone.black::before{content:"●"; margin-right:.35rem}
-    .stone.white::before{content:"○"; margin-right:.35rem}
+    .stone{
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      position: relative;
+      box-shadow:
+        0 3px 6px rgba(0, 0, 0, 0.3),
+        0 1px 2px rgba(0, 0, 0, 0.2);
+      vertical-align: middle;
+      margin-right: 0.35rem;
+    }
+    .stone::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 5px;
+      width: 7px;
+      height: 4px;
+      background: radial-gradient(ellipse, rgba(255,255,255,0.4), transparent);
+      border-radius: 50%;
+      transform: rotate(-30deg);
+    }
+    .stone.black{
+      background: radial-gradient(circle at 35% 35%, #555, #1a1a1a 50%, #000 100%);
+      border: 1px solid #000;
+    }
+    .stone.white{
+      background: radial-gradient(circle at 35% 35%, #fff, #e8e8e8 40%, #ccc 100%);
+      border: 1px solid #aaa;
+    }
+    .stone.white::after {
+      background: radial-gradient(ellipse, rgba(255,255,255,0.9), transparent);
+    }
 
     .card{
       background:var(--card); border:2px solid var(--line); border-radius:20px;
       box-shadow:0 10px 30px rgba(0,0,0,.08);
       width:min(92vw, 440px); padding:28px;
       backdrop-filter: blur(2px);
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
-    h1{margin:0 0 4px; font-size:28px}
-    p.sub{margin:0 0 18px; color:#6b6b6b}
+    h1{margin:0 0 4px; font-size:28px; display:flex; align-items:center; gap:8px; color:var(--ink)}
+    p.sub{margin:0 0 18px; color:var(--muted)}
 
     form .row{display:flex; flex-direction:column; gap:6px; margin:12px 0}
-    label{font-size:14px}
+    label{font-size:14px; color:var(--ink)}
     input{
       width:100%; padding:12px 14px; border:2px solid var(--line); border-radius:12px;
-      background:#fffdf7; outline:none; font-size:16px;
+      background:var(--input-bg); outline:none; font-size:16px; color:var(--ink);
+      transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
     }
-    input:focus{border-color:#a67a2e; box-shadow:0 0 0 4px rgba(166,122,46,.12)}
+    input:focus{border-color:var(--accent); box-shadow:0 0 0 4px rgba(74, 222, 128, .15)}
+    [data-theme="dark"] input::placeholder{color:#6b7280}
     .btn{
       width:100%; padding:12px 16px; border-radius:14px; border:2px solid var(--accent);
       background:var(--accent); color:#fff; font-weight:700; cursor:pointer;
-      transition:transform .03s ease;
+      transition:transform .03s ease, background 0.3s ease;
     }
+    [data-theme="dark"] .btn{color:#1f2937}
     .btn:hover{transform:translateY(-1px)}
-    .muted{font-size:14px; color:#666}
+    .muted{font-size:14px; color:var(--muted)}
     .links{display:flex; justify-content:space-between; margin-top:12px}
-    .errorlist{margin:8px 0 0; padding:0; list-style:none; color:#b00020; font-size:14px}
+    .errorlist{margin:8px 0 0; padding:0; list-style:none; color:#ef4444; font-size:14px}
     .messages{margin-bottom:10px}
-    .msg{background:#fff3f3; border:1px solid #ffb3b3; padding:8px 10px; border-radius:10px; margin:6px 0; font-size:14px}
-    .brand{display:flex; align-items:center; gap:10px; margin-bottom:8px}
-    .brand .logo{font-size:22px}
-    a{color:#000; text-underline-offset:3px}
+    .msg{background:var(--error-bg); border:1px solid var(--error-border); padding:8px 10px; border-radius:10px; margin:6px 0; font-size:14px; color:var(--ink)}
+    .brand-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px}
+    .brand{display:flex; align-items:center; gap:6px}
+    .brand .logo{margin-right: 0}
+    .brand .logo.stone{width: 22px; height: 22px}
+    .brand .logo.stone::after{top: 3px; left: 4px; width: 6px; height: 3px}
+    a{color:var(--link); text-underline-offset:3px; transition: color 0.3s ease}
+    [data-theme="dark"] .brand strong{color:#4ade80}
+
+    .theme-toggle-btn{
+      padding:6px 12px; border-radius:8px;
+      border:none; cursor:pointer;
+      font-weight:600; font-size:11px;
+      background:linear-gradient(135deg, #374151, #1f2937);
+      color:#fff;
+      transition:transform 0.1s, background 0.3s ease;
+      white-space:nowrap;
+    }
+    .theme-toggle-btn:hover{transform:translateY(-1px)}
+    [data-theme="dark"] .theme-toggle-btn{
+      background:linear-gradient(135deg, #fbbf24, #f59e0b);
+      color:#1f2937;
+    }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
 <body>
   <main class="card">
-    <div class="brand">
-      <div class="logo stone black"></div>
-      <div class="logo stone white"></div>
-      <div><strong>오목조목</strong> 계정</div>
+    <div class="brand-row">
+      <div class="brand">
+        <div class="logo stone black"></div>
+        <div class="logo stone white"></div>
+        <div><strong>오목조목</strong> 계정</div>
+      </div>
+      <button class="theme-toggle-btn" id="theme-toggle">다크모드</button>
     </div>
     <div class="messages">
       {% if messages %}
@@ -96,6 +181,32 @@
     </script>
     {% block content %}{% endblock %}
   </main>
+
+  <script>
+  (function() {
+    const themeToggle = document.getElementById('theme-toggle');
+    const html = document.documentElement;
+
+    function updateText(theme) {
+      if (themeToggle) {
+        themeToggle.textContent = theme === 'dark' ? '라이트모드' : '다크모드';
+      }
+    }
+
+    updateText(html.getAttribute('data-theme') || 'light');
+
+    if (themeToggle) {
+      themeToggle.addEventListener('click', function() {
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateText(newTheme);
+      });
+    }
+  })();
+  </script>
+
 {% include "includes/heartbeat.html" %}
 </body>
 </html>

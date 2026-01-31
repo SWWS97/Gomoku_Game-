@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="ko">
 <head>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>친구 목록 - 오목조목</title>
@@ -10,6 +16,24 @@
       --line: #7b5c3a;
       --border: #3e2a1f;
       --card: #fff9ee;
+      --text: #333;
+      --text-secondary: #666;
+      --item-border: #e0d5c0;
+      --input-bg: white;
+      --search-result-bg: white;
+    }
+
+    /* 다크모드 */
+    [data-theme="dark"] {
+      --wood: #0f0f1a;
+      --line: #2d2d44;
+      --border: #4ade80;
+      --card: #16213e;
+      --text: #e5e7eb;
+      --text-secondary: #9ca3af;
+      --item-border: #374151;
+      --input-bg: #1e293b;
+      --search-result-bg: #1e293b;
     }
 
     html, body {
@@ -19,6 +43,8 @@
                   linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 36px 36px,
                   var(--wood);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Noto Sans KR, sans-serif;
+      color: var(--text);
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     .container {
@@ -31,18 +57,65 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
       background: var(--card);
       padding: 20px 24px;
       border-radius: 12px;
       border: 2px solid var(--border);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       margin-bottom: 24px;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .header h1 {
       margin: 0;
       font-size: 28px;
       color: var(--border);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    [data-theme="dark"] .btn {
+      background: var(--border);
+      color: #1f2937;
+    }
+
+    .theme-toggle {
+      padding: 6px 12px;
+      font-size: 12px;
+      background: linear-gradient(135deg, #374151, #1f2937);
+      color: #fff;
+      border-radius: 6px;
+      white-space: nowrap;
+      border: none;
+      cursor: pointer;
+    }
+
+    [data-theme="dark"] .theme-toggle {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: #1f2937;
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        padding: 16px;
+      }
+      .header h1 {
+        font-size: 20px;
+      }
+      .theme-toggle {
+        padding: 5px 10px;
+        font-size: 11px;
+      }
+      .header-actions .btn {
+        padding: 5px 10px;
+        font-size: 11px;
+      }
     }
 
     .btn {
@@ -85,6 +158,7 @@
       border: 2px solid var(--border);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       margin-bottom: 20px;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .section h2 {
@@ -104,7 +178,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 12px;
-      border-bottom: 1px solid #e0d5c0;
+      border-bottom: 1px solid var(--item-border);
     }
 
     .friend-item:last-child, .request-item:last-child {
@@ -139,7 +213,7 @@
     .empty-message {
       text-align: center;
       padding: 24px;
-      color: #999;
+      color: var(--text-secondary);
     }
 
     .search-section {
@@ -153,12 +227,18 @@
       border-radius: 8px;
       font-size: 16px;
       box-sizing: border-box;
-      background: white;
+      background: var(--input-bg);
+      color: var(--text);
+      transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
     }
 
     .search-input:focus {
       outline: none;
       border-color: var(--border);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-secondary);
     }
 
     .search-results {
@@ -175,8 +255,8 @@
       justify-content: space-between;
       align-items: center;
       padding: 12px;
-      border-bottom: 1px solid #e0d5c0;
-      background: white;
+      border-bottom: 1px solid var(--item-border);
+      background: var(--search-result-bg);
     }
 
     .search-result-item:first-child {
@@ -189,7 +269,7 @@
 
     .status-text {
       font-size: 12px;
-      color: #666;
+      color: var(--text-secondary);
     }
 
     .messages {
@@ -222,8 +302,9 @@
   <div class="container">
     <div class="header">
       <h1>친구 목록</h1>
-      <div>
-        <a href="{% url 'games:lobby' %}" class="btn">로비로 돌아가기</a>
+      <div class="header-actions">
+        <a href="{% url 'games:lobby' %}" class="btn">로비로가기</a>
+        <button class="theme-toggle" id="theme-toggle">다크모드</button>
       </div>
     </div>
 
@@ -408,6 +489,30 @@
         searchResults.classList.add('active');
       }
     });
+
+    // 테마 토글
+    (function() {
+      const themeToggle = document.getElementById('theme-toggle');
+      const html = document.documentElement;
+
+      function updateText(theme) {
+        if (themeToggle) {
+          themeToggle.textContent = theme === 'dark' ? '라이트모드' : '다크모드';
+        }
+      }
+
+      updateText(html.getAttribute('data-theme') || 'light');
+
+      if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+          const currentTheme = html.getAttribute('data-theme');
+          const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+          html.setAttribute('data-theme', newTheme);
+          localStorage.setItem('theme', newTheme);
+          updateText(newTheme);
+        });
+      }
+    })();
   </script>
 {% include "includes/heartbeat.html" %}
 </body>

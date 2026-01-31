@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="ko">
 <head>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>게임 전적 – Omok</title>
@@ -12,6 +18,32 @@
       --card: #fff9ee;
       --win: #2d5016;
       --loss: #7a2e2e;
+      --text: #333;
+      --text-secondary: #666;
+      --item-bg: white;
+      --item-border: var(--line);
+      --pagination-bg: white;
+      --pagination-disabled-bg: #f0f0f0;
+      --win-bg: #e8f5e9;
+      --loss-bg: #ffebee;
+    }
+
+    /* 다크모드 */
+    [data-theme="dark"] {
+      --wood: #0f0f1a;
+      --line: #2d2d44;
+      --border: #4ade80;
+      --card: #16213e;
+      --win: #4ade80;
+      --loss: #f87171;
+      --text: #e5e7eb;
+      --text-secondary: #9ca3af;
+      --item-bg: #1e293b;
+      --item-border: #374151;
+      --pagination-bg: #1e293b;
+      --pagination-disabled-bg: #374151;
+      --win-bg: rgba(74, 222, 128, 0.15);
+      --loss-bg: rgba(248, 113, 113, 0.15);
     }
 
     html, body {
@@ -21,6 +53,8 @@
                   linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 36px 36px,
                   var(--wood);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Noto Sans KR, sans-serif;
+      color: var(--text);
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     .container {
@@ -33,18 +67,48 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
       background: var(--card);
       padding: 20px 24px;
       border-radius: 12px;
       border: 2px solid var(--border);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       margin-bottom: 24px;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .header h1 {
       margin: 0;
       font-size: 28px;
       color: var(--border);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    [data-theme="dark"] .btn {
+      background: var(--border);
+      color: #1f2937;
+    }
+
+    .theme-toggle {
+      padding: 6px 12px;
+      font-size: 12px;
+      background: linear-gradient(135deg, #374151, #1f2937);
+      color: #fff;
+      border-radius: 6px;
+      white-space: nowrap;
+      border: none;
+      cursor: pointer;
+    }
+
+    [data-theme="dark"] .theme-toggle {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: #1f2937;
     }
 
     .btn {
@@ -81,11 +145,12 @@
       border: 2px solid var(--border);
       box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
       text-align: center;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .stat-card .label {
       font-size: 14px;
-      color: #666;
+      color: var(--text-secondary);
       margin-bottom: 8px;
     }
 
@@ -105,6 +170,7 @@
       border-radius: 12px;
       border: 2px solid var(--border);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .history-section h2 {
@@ -126,18 +192,20 @@
       grid-template-columns: 1fr 120px 100px;
       gap: 16px;
       padding: 16px 20px;
-      background: white;
-      border: 2px solid var(--line);
+      background: var(--item-bg);
+      border: 2px solid var(--item-border);
       border-radius: 10px;
       align-items: center;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .history-item .players {
       font-size: 14px;
+      color: var(--text);
     }
 
     .history-item .players .vs {
-      color: #999;
+      color: var(--text-secondary);
       margin: 0 8px;
     }
 
@@ -150,25 +218,25 @@
     }
 
     .history-item .result.win {
-      background: #e8f5e9;
+      background: var(--win-bg);
       color: var(--win);
     }
 
     .history-item .result.loss {
-      background: #ffebee;
+      background: var(--loss-bg);
       color: var(--loss);
     }
 
     .history-item .date {
       font-size: 13px;
-      color: #999;
+      color: var(--text-secondary);
       text-align: right;
     }
 
     .empty-state {
       text-align: center;
       padding: 60px 20px;
-      color: #999;
+      color: var(--text-secondary);
       font-size: 16px;
     }
 
@@ -206,9 +274,10 @@
     }
 
     .pagination a {
-      background: white;
+      background: var(--pagination-bg);
       border: 2px solid var(--line);
       color: var(--border);
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .pagination a:hover {
@@ -222,16 +291,20 @@
       color: white;
     }
 
+    [data-theme="dark"] .pagination span.current {
+      color: #1f2937;
+    }
+
     .pagination span.disabled {
-      background: #f0f0f0;
-      border: 2px solid #ddd;
-      color: #999;
+      background: var(--pagination-disabled-bg);
+      border: 2px solid var(--item-border);
+      color: var(--text-secondary);
       cursor: not-allowed;
     }
 
     .pagination .page-info {
       font-size: 13px;
-      color: #666;
+      color: var(--text-secondary);
       margin: 0 8px;
     }
 
@@ -242,22 +315,21 @@
       }
 
       .header {
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
         padding: 16px;
       }
 
       .header h1 {
-        font-size: 22px;
-        text-align: center;
+        font-size: 20px;
       }
 
-      .btn {
-        padding: 8px 16px;
-        font-size: 13px;
-        align-self: stretch;
-        text-align: center;
+      .theme-toggle {
+        padding: 5px 10px;
+        font-size: 11px;
+      }
+
+      .header-actions .btn {
+        padding: 5px 10px;
+        font-size: 11px;
       }
 
       /* 통계 카드: 2열 그리드 */
@@ -400,7 +472,10 @@
   <div class="container">
     <div class="header">
       <h1>게임 전적</h1>
-      <a href="{% url 'games:lobby' %}" class="btn">로비로 돌아가기</a>
+      <div class="header-actions">
+        <a href="{% url 'games:lobby' %}" class="btn">로비로가기</a>
+        <button class="theme-toggle" id="theme-toggle">다크모드</button>
+      </div>
     </div>
 
     <!-- 통계 -->
@@ -489,6 +564,32 @@
       {% endif %}
     </div>
   </div>
+
+  <script>
+  (function() {
+    const themeToggle = document.getElementById('theme-toggle');
+    const html = document.documentElement;
+
+    function updateText(theme) {
+      if (themeToggle) {
+        themeToggle.textContent = theme === 'dark' ? '라이트모드' : '다크모드';
+      }
+    }
+
+    updateText(html.getAttribute('data-theme') || 'light');
+
+    if (themeToggle) {
+      themeToggle.addEventListener('click', function() {
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateText(newTheme);
+      });
+    }
+  })();
+  </script>
+
 {% include "includes/heartbeat.html" %}
 </body>
 </html>
