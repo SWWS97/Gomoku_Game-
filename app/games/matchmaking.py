@@ -5,10 +5,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-"""
-LOL 스타일 Rating 기반 매칭 서비스
-"""
-
 # 매칭 설정
 BASE_RANGE = 50  # 기본 Rating 범위
 EXPANSION_RATE = 25  # 확장 속도 (15초당)

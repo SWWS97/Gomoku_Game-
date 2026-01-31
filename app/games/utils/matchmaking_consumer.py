@@ -1,5 +1,3 @@
-"""LOL 스타일 Rating 기반 매칭 WebSocket 컨슈머"""
-
 import asyncio
 import random
 
