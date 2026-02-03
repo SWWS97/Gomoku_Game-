@@ -450,6 +450,7 @@ dependencies = [
     { name = "django-environ" },
     { name = "psycopg", extra = ["binary"] },
     { name = "redis" },
+    { name = "typing-extensions" },
     { name = "whitenoise" },
 ]
 
@@ -473,6 +474,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
     { name = "redis", specifier = ">=5" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.14.4" },
+    { name = "typing-extensions", specifier = ">=4.15.0" },
     { name = "whitenoise", specifier = ">=6.7" },
 ]
 provides-extras = ["dev"]

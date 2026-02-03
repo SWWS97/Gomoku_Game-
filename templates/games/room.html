@@ -9,7 +9,7 @@
   </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Omok {{ game.id }}</title>
+  <title>오목조목 {{ game.id }}</title>
   <style>
     :root{
       --cell: 40px;
@@ -204,11 +204,51 @@
       width: calc(({{ BOARD_SIZE }} - 1) * var(--cell) + 2 * var(--margin));
       height: calc(({{ BOARD_SIZE }} - 1) * var(--cell) + 2 * var(--margin));
       border: 6px solid var(--border);
-      background: var(--wood);
+      background:
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 35px,
+          rgba(0,0,0,.03) 35px,
+          rgba(0,0,0,.03) 36px
+        ),
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 80px,
+          rgba(0,0,0,.02) 80px,
+          rgba(0,0,0,.02) 81px
+        ),
+        linear-gradient(160deg, #e8c882 0%, #d4b781 30%, #c9a86c 60%, #d4b781 100%);
       border-radius: 6px;
-      box-shadow: 0 18px 26px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.25);
+      box-shadow:
+        0 18px 26px rgba(0,0,0,.25),
+        inset 0 1px 0 rgba(255,255,255,.25),
+        inset 0 0 20px rgba(0,0,0,.06);
       overflow: visible;
       margin: 10px auto 36px;
+    }
+    [data-theme="dark"] .board-wrap{
+      background:
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 35px,
+          rgba(255,255,255,.02) 35px,
+          rgba(255,255,255,.02) 36px
+        ),
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 80px,
+          rgba(255,255,255,.015) 80px,
+          rgba(255,255,255,.015) 81px
+        ),
+        linear-gradient(160deg, #342e28 0%, #2a2520 30%, #221e19 60%, #2a2520 100%);
+      box-shadow:
+        0 18px 26px rgba(0,0,0,.5),
+        inset 0 1px 0 rgba(255,255,255,.05),
+        inset 0 0 20px rgba(0,0,0,.15);
     }
     .grid{ position:absolute; inset:0; display:block; }
     .layer{ position:absolute; inset:0; pointer-events:none; }
@@ -235,25 +275,37 @@
 
     .stone{
       position:absolute; width:5.1%; height:5.1%; transform:translate(-50%,-50%); border-radius:50%;
-      pointer-events:none; filter: drop-shadow(0 3px 3px rgba(0,0,0,.35));
+      pointer-events:none; filter: drop-shadow(0 3px 4px rgba(0,0,0,.4));
     }
     .stone.black{
       background:
+        radial-gradient(circle at 32% 26%, rgba(255,255,255,.12) 0%, transparent 40%),
         radial-gradient(circle at 30% 28%, #4a4a4a 0%, #262626 45%, #0f0f0f 70%),
-        radial-gradient(circle at 68% 74%, rgba(255,255,255,.20), rgba(255,255,255,0) 55%);
-      box-shadow: inset 1px 1px 3px rgba(255,255,255,.08), inset -7px -7px 12px rgba(0,0,0,.55);
+        radial-gradient(circle at 68% 74%, rgba(255,255,255,.15), rgba(255,255,255,0) 55%);
+      box-shadow: inset 1px 1px 4px rgba(255,255,255,.1), inset -7px -7px 14px rgba(0,0,0,.6);
     }
     .stone.white{
       background:
-        radial-gradient(circle at 30% 28%, #ffffff 0%, #f1f1f1 45%, #e7e7e7 70%),
-        radial-gradient(circle at 68% 78%, rgba(0,0,0,.12), rgba(0,0,0,0) 55%);
-      box-shadow: inset 1px 1px 2px rgba(255,255,255,.75), inset -7px -7px 12px rgba(0,0,0,.12);
+        radial-gradient(circle at 32% 26%, rgba(255,255,255,.95) 0%, transparent 35%),
+        radial-gradient(circle at 30% 28%, #ffffff 0%, #f1f1f1 45%, #e2e2e2 70%),
+        radial-gradient(circle at 68% 78%, rgba(0,0,0,.1), rgba(0,0,0,0) 55%);
+      box-shadow: inset 1px 1px 3px rgba(255,255,255,.8), inset -7px -7px 14px rgba(0,0,0,.1);
     }
 
     /* 미리보기 돌 (반투명) */
     .stone.preview{
       opacity: 0.4;
       filter: drop-shadow(0 2px 2px rgba(0,0,0,.2));
+    }
+
+    /* 착수 애니메이션 */
+    .stone.new-move {
+      animation: stoneDrop 0.25s ease-out;
+    }
+    @keyframes stoneDrop {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.3; }
+      70% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
 
     /* 마지막 착수 강조 애니메이션 */
@@ -263,11 +315,11 @@
     @keyframes stonePulse {
       0%, 100% {
         transform: translate(-50%, -50%) scale(1);
-        filter: drop-shadow(0 3px 3px rgba(0,0,0,.35));
+        filter: drop-shadow(0 3px 4px rgba(0,0,0,.4));
       }
       50% {
         transform: translate(-50%, -50%) scale(1.15);
-        filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.8)) drop-shadow(0 3px 3px rgba(0,0,0,.35));
+        filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.8)) drop-shadow(0 3px 4px rgba(0,0,0,.4));
       }
     }
 
@@ -386,11 +438,16 @@
         font-size: 0.75rem;
       }
 
-      /* 타이머 */
+      /* 타이머: absolute 해제하고 topbar 아래에 자연스럽게 배치 */
       .timer-container{
-        top: 80px;
+        position: static;
+        transform: none;
         gap: 20px;
         padding: 0.5rem 1rem;
+        margin: 4px 0 0;
+        justify-content: center;
+        width: auto;
+        box-sizing: border-box;
       }
       .timer-label{
         font-size: 0.7rem;
@@ -407,12 +464,12 @@
 
       /* 게임판 */
       .board-wrap{
-        width: calc(95vw - 24px);
+        width: calc(100vw - 16px);
         max-width: 500px;
-        height: calc(95vw - 24px);
+        height: calc(100vw - 16px);
         max-height: 500px;
-        margin: 60px auto 20px;
-        border: 4px solid var(--border);
+        margin: 10px auto 20px;
+        border: 5px solid var(--border);
       }
 
       /* 모달 */
@@ -456,7 +513,7 @@
         font-size: 1rem;
       }
       .board-wrap{
-        margin-top: 50px;
+        margin-top: 10px;
       }
       .modal-content{
         padding: 1rem 1.5rem;
@@ -482,9 +539,9 @@
         font-size: 0.9rem;
       }
       .board-wrap{
-        width: calc(98vw - 16px);
-        height: calc(98vw - 16px);
-        margin-top: 45px;
+        width: calc(100vw - 12px);
+        height: calc(100vw - 12px);
+        margin-top: 10px;
         border: 3px solid var(--border);
       }
       .pt{
@@ -600,11 +657,12 @@
 
     /* 모바일 반응형 */
     @media (max-width: 1024px) {
-      /* 빠른 채팅 토글 버튼을 오목판 바로 아래에 배치 */
+      /* 빠른 채팅 토글 버튼을 오목판 아래에 배치 */
       #quick-chat-toggle-btn {
         position: fixed !important;
         left: 50%;
-        top: 62vh;
+        bottom: 20px;
+        top: auto;
         transform: translateX(-50%);
         z-index: 99;
         padding: 10px 20px;
@@ -612,14 +670,17 @@
         white-space: nowrap;
       }
 
-      /* 빠른 채팅 선택지를 토글 버튼 아래에 배치 */
+      /* 빠른 채팅 선택지를 토글 버튼 위에 배치 */
       .quick-chat-container {
         position: fixed;
         left: 50%;
-        top: calc(62vh + 50px);
+        bottom: 60px;
+        top: auto;
         transform: translateX(-50%);
         min-width: 90vw;
         max-width: 90vw;
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
         width: auto;
         margin: 0;
         background: rgba(255, 255, 255, 0.95);
@@ -1088,7 +1149,7 @@
       <button class="pill" id="surrender-btn" style="display:none; background:#c44; border-color:#a33;">항복</button>
       <button class="pill" id="rematch-btn" style="display:none; background:#4a7c59; border-color:#3a6c49;">리매치 요청</button>
       <a href="{% url 'games:lobby' %}" class="pill" id="lobby-btn" style="display:none;">로비로 가기</a>
-      <button class="pill theme-toggle" id="theme-toggle">다크</button>
+      <button class="pill theme-toggle" id="theme-toggle">다크모드</button>
     </div>
   </div>
 
@@ -2479,9 +2540,9 @@
       const d = document.createElement("div");
       d.className = "stone " + (cell==="B" ? "black" : "white");
 
-      // 마지막 착수된 돌이면 항상 애니메이션 클래스 추가
+      // 마지막 착수된 돌이면 애니메이션 클래스 추가
       if (i === lastStoneIndex) {
-        d.className += " last-move";
+        d.className += " new-move last-move";
       }
 
       d.style.left = px + "%";
@@ -2703,7 +2764,7 @@
 
   function updateText(theme) {
     if (themeToggle) {
-      themeToggle.textContent = theme === 'dark' ? '라이트' : '다크';
+      themeToggle.textContent = theme === 'dark' ? '라이트모드' : '다크모드';
     }
   }
 

@@ -497,8 +497,9 @@
 
     .header {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       align-items: center;
+      gap: 12px;
       background: var(--card);
       padding: 20px 24px;
       border-radius: 12px;
@@ -717,13 +718,16 @@
       gap: 6px;
       align-items: center;
       flex-wrap: nowrap;
-      justify-content: flex-end;
+      justify-content: center;
+      width: 100%;
     }
 
     .top-actions .btn {
       font-size: 12px !important;
       padding: 6px 10px !important;
       white-space: nowrap;
+      flex: 1;
+      text-align: center;
     }
 
     /* 로그아웃 + 다크모드 묶음 */
@@ -731,13 +735,18 @@
       display: flex;
       gap: 6px;
       align-items: center;
-      flex-shrink: 0;
+      flex: 1;
+    }
+
+    .action-group .btn {
+      flex: 1;
     }
 
     /* 타이틀 행 (웹에서는 일반 flex) */
     .header-title-row {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 12px;
     }
 
@@ -1597,17 +1606,21 @@
         padding: 16px;
       }
 
-      /* 모바일: 타이틀 행 (타이틀 + 다크모드) */
+      /* 모바일: 타이틀 행 (타이틀 + 닉네임 + 다크모드) */
       .header-title-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-wrap: nowrap;
+        gap: 6px;
         width: 100%;
       }
 
       .header h1 {
-        font-size: 20px;
+        font-size: 18px;
         margin: 0;
+        flex-shrink: 1;
+        min-width: 0;
       }
 
       /* 모바일: 다크모드 버튼 타이틀 옆에 표시 */
@@ -1615,6 +1628,11 @@
         display: flex !important;
         padding: 5px 10px !important;
         font-size: 11px !important;
+        flex-shrink: 0;
+      }
+
+      .header-title-row .user-info {
+        flex-shrink: 0;
       }
 
       /* 웹용 action-group 숨김 */
@@ -1635,13 +1653,9 @@
       }
 
       .user-info {
-        grid-column: 1 / -1;
-        font-size: 15px;
+        font-size: 13px;
         font-weight: 700;
-        padding: 8px 12px;
-        background: rgba(74, 124, 89, 0.1);
-        border-radius: 8px;
-        text-align: center;
+        padding: 5px 10px;
       }
 
       .top-actions .btn {
@@ -2317,13 +2331,13 @@
           </span>
           오목조목 로비
         </h1>
-        <button class="btn theme-toggle mobile-theme-toggle" id="theme-toggle-mobile">다크모드</button>
-      </div>
-      <div class="top-actions">
         <span class="user-info">
           <span class="my-tier-slot" data-rating="{{ my_rating }}" data-total-games="{{ my_total_games }}"></span>
           <span class="my-nickname">{{ user.first_name|default:user.username }}</span>
         </span>
+        <button class="btn theme-toggle mobile-theme-toggle" id="theme-toggle-mobile">다크모드</button>
+      </div>
+      <div class="top-actions">
         <a href="{% url 'games:friends' %}" class="btn" style="background: #4a7c89; position: relative;">
           친구 목록
           <span id="friendNotificationBadge" style="display: none; position: absolute; top: -4px; right: -4px; background: #e53e3e; color: white; border-radius: 10px; padding: 2px 6px; font-size: 11px; font-weight: 700;"></span>
@@ -2823,10 +2837,10 @@
     const maxRp = rp + rangeDelta;
     const minTier = getTier(minRp);
     const maxTier = getTier(maxRp);
-    if (minTier.name === maxTier.name) {
-      return minTier.name;
-    }
-    return `${minTier.name} ~ ${maxTier.name}`;
+    const tierText = minTier.name === maxTier.name
+      ? minTier.name
+      : `${minTier.name} ~ ${maxTier.name}`;
+    return tierText;
   }
 
   // 전역에서 사용 가능하도록

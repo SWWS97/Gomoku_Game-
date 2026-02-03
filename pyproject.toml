@@ -18,6 +18,7 @@ dependencies = [
   "django-allauth[socialaccount]>=65.0", # 소셜 로그인 (네이버, 카카오 등)
   "celery>=5.4", # 비동기 작업 큐
   "celery-types>=0.24.0",
+  "typing-extensions>=4.15.0",
 ]
 
 # 개발 전용 패키지들은 별도 그룹으로
