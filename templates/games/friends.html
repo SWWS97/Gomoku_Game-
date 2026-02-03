@@ -514,6 +514,35 @@
       }
     })();
   </script>
+<!-- Lobby BGM -->
+<audio id="bgm-lobby" loop preload="auto">
+  <source src="/static/audio/lobby.mp3" type="audio/mpeg">
+</audio>
+<script>
+(function() {
+  const bgm = document.getElementById('bgm-lobby');
+  const enabled = localStorage.getItem('bgm-enabled') !== 'false';
+  const volume = parseFloat(localStorage.getItem('bgm-volume') || '0.3');
+  if (!enabled || !bgm) return;
+  bgm.volume = volume;
+  if (sessionStorage.getItem('bgm-interacted')) {
+    bgm.play().catch(function(){});
+  } else {
+    function start() {
+      sessionStorage.setItem('bgm-interacted', '1');
+      bgm.volume = volume;
+      bgm.play().catch(function(){});
+      document.removeEventListener('click', start);
+      document.removeEventListener('touchstart', start);
+      document.removeEventListener('keydown', start);
+    }
+    document.addEventListener('click', start);
+    document.addEventListener('touchstart', start);
+    document.addEventListener('keydown', start);
+  }
+})();
+</script>
+
 {% include "includes/heartbeat.html" %}
 </body>
 </html>

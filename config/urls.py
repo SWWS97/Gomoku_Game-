@@ -15,6 +15,8 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
@@ -31,3 +33,6 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),  # allauth 소셜 로그인
     # path("accounts/", include("django.contrib.auth.urls")),  # allauth 사용하므로 주석 처리
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
