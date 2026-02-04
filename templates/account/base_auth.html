@@ -207,6 +207,38 @@
   })();
   </script>
 
+<!-- Lobby BGM (프로필 수정 등 특정 페이지에서만) -->
+<script>
+if (window.__playLobbyBgm) {
+  (function() {
+    const audio = document.createElement('audio');
+    audio.id = 'bgm-lobby';
+    audio.loop = true;
+    audio.innerHTML = '<source src="/static/audio/lobby.mp3" type="audio/mpeg">';
+    document.body.appendChild(audio);
+    const enabled = localStorage.getItem('bgm-enabled') !== 'false';
+    const volume = parseFloat(localStorage.getItem('bgm-volume') || '0.3');
+    if (!enabled) return;
+    audio.volume = volume;
+    if (sessionStorage.getItem('bgm-interacted')) {
+      audio.play().catch(function(){});
+    } else {
+      function start() {
+        sessionStorage.setItem('bgm-interacted', '1');
+        audio.volume = volume;
+        audio.play().catch(function(){});
+        document.removeEventListener('click', start);
+        document.removeEventListener('touchstart', start);
+        document.removeEventListener('keydown', start);
+      }
+      document.addEventListener('click', start);
+      document.addEventListener('touchstart', start);
+      document.addEventListener('keydown', start);
+    }
+  })();
+}
+</script>
+
 {% include "includes/heartbeat.html" %}
 </body>
 </html>

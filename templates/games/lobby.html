@@ -574,8 +574,9 @@
       margin-right: 12px;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
-      padding: 8px 14px;
+      padding: 8px 80px;
       background: linear-gradient(135deg, rgba(74, 124, 89, 0.1), rgba(90, 74, 58, 0.1));
       border-radius: 20px;
       border: 1px solid rgba(74, 124, 89, 0.3);
@@ -748,6 +749,18 @@
       align-items: center;
       justify-content: center;
       gap: 12px;
+    }
+
+    /* 웹: 유저 정보 행 - 타이틀 옆 인라인 */
+    .header-user-row {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 4px;
+    }
+
+    /* 웹: 모바일 로그아웃 숨김 */
+    .mobile-logout {
+      display: none !important;
     }
 
     /* 모바일 다크모드 버튼 - 웹에서 숨김 */
@@ -1417,6 +1430,95 @@
       background: #999;
     }
 
+    /* 설정 모달 */
+    .settings-group {
+      background: var(--input-bg);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+    }
+    .settings-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: #ccc;
+      border-radius: 24px;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: #4a7c59;
+    }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+    }
+    .volume-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .volume-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100px;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--line);
+      outline: none;
+    }
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #4a7c59;
+      cursor: pointer;
+    }
+    .volume-slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #4a7c59;
+      cursor: pointer;
+      border: none;
+    }
+    .volume-value {
+      font-size: 12px;
+      color: var(--text-secondary);
+      min-width: 32px;
+      text-align: right;
+    }
+
     /* 채팅창 */
     .chat-container {
       position: fixed;
@@ -1606,11 +1708,11 @@
         padding: 16px;
       }
 
-      /* 모바일: 타이틀 행 (타이틀 + 닉네임 + 다크모드) */
+      /* 모바일: 타이틀 행 (타이틀 + 다크모드) */
       .header-title-row {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
         flex-wrap: nowrap;
         gap: 6px;
         width: 100%;
@@ -1619,8 +1721,7 @@
       .header h1 {
         font-size: 18px;
         margin: 0;
-        flex-shrink: 1;
-        min-width: 0;
+        white-space: nowrap;
       }
 
       /* 모바일: 다크모드 버튼 타이틀 옆에 표시 */
@@ -1631,8 +1732,30 @@
         flex-shrink: 0;
       }
 
-      .header-title-row .user-info {
+      .header-user-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+      }
+
+      .header-user-row .user-info {
+        flex: 1;
+        text-align: center;
+        font-size: 14px;
+        justify-content: center;
+      }
+
+      .mobile-logout {
+        display: flex !important;
+        font-size: 11px !important;
+        padding: 5px 10px !important;
         flex-shrink: 0;
+      }
+
+      /* 그리드 내 로그아웃 숨김 (모바일) */
+      .action-group .logout-btn {
+        display: none !important;
       }
 
       /* 웹용 action-group 숨김 */
@@ -2331,11 +2454,14 @@
           </span>
           오목조목 로비
         </h1>
+        <button class="btn theme-toggle mobile-theme-toggle" id="theme-toggle-mobile">다크모드</button>
+        <a href="{% url 'account_logout' %}" class="btn logout-btn mobile-logout">로그아웃</a>
+      </div>
+      <div class="header-user-row">
         <span class="user-info">
           <span class="my-tier-slot" data-rating="{{ my_rating }}" data-total-games="{{ my_total_games }}"></span>
           <span class="my-nickname">{{ user.first_name|default:user.username }}</span>
         </span>
-        <button class="btn theme-toggle mobile-theme-toggle" id="theme-toggle-mobile">다크모드</button>
       </div>
       <div class="top-actions">
         <a href="{% url 'games:friends' %}" class="btn" style="background: #4a7c89; position: relative;">
@@ -2347,6 +2473,7 @@
         <button class="btn" id="tier-list-btn" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">티어표</button>
         <a href="{% url 'accounts:profile_edit' %}" class="btn" style="background: #6a5d4a;">프로필</a>
         <div class="action-group">
+          <button class="btn" id="settings-btn" style="background: #6b7280;">설정</button>
           <a href="{% url 'account_logout' %}" class="btn logout-btn">로그아웃</a>
           <button class="btn theme-toggle" id="theme-toggle">다크모드</button>
         </div>
@@ -2792,6 +2919,62 @@
       <button class="modal-btn cancel" id="waiting-cancel-btn">취소</button>
     </div>
   </div>
+
+  <!-- 설정 모달 -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal-content" style="max-width: 360px;">
+      <h2>설정</h2>
+
+      <div class="settings-group">
+        <div class="settings-row">
+          <span class="settings-label">배경음악</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="bgm-toggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label" style="font-size: 13px; color: var(--text-secondary);">BGM 볼륨</span>
+          <div class="volume-control">
+            <input type="range" id="bgm-volume" min="0" max="100" value="30" class="volume-slider">
+            <span class="volume-value" id="bgm-volume-value">30%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-row">
+          <span class="settings-label">효과음</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="sfx-toggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label" style="font-size: 13px; color: var(--text-secondary);">효과음 볼륨</span>
+          <div class="volume-control">
+            <input type="range" id="sfx-volume" min="0" max="100" value="50" class="volume-slider">
+            <span class="volume-value" id="sfx-volume-value">50%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-buttons" style="margin-top: 20px;">
+        <button class="modal-btn cancel" id="settings-close-btn" style="flex:1;">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BGM Audio Elements -->
+  <audio id="bgm-lobby" loop preload="auto">
+    <source src="{% static 'audio/lobby.mp3' %}" type="audio/mpeg">
+  </audio>
+  <audio id="bgm-matchmaking" loop preload="auto">
+    <source src="{% static 'audio/matchmaking.mp3' %}" type="audio/mpeg">
+  </audio>
+  <audio id="bgm-match-found" loop preload="auto">
+    <source src="{% static 'audio/match_found.mp3' %}" type="audio/mpeg">
+  </audio>
 
   <script>
   // 티어 시스템
@@ -3284,6 +3467,7 @@
         case "match_found":
           // 매칭 성공!
           currentMatchId = data.match_id;
+          if (window.bgmManager) window.bgmManager.switchToMatchFound();
           showMatchFound(data.opponent, data.accept_timeout);
           break;
 
@@ -3298,6 +3482,7 @@
         case "match_confirmed":
           // 양쪽 수락 - 게임 시작
           hideAllModals();
+          if (window.bgmManager) window.bgmManager.stopAll();
           window.showToast("매칭 성공! 게임을 시작합니다.", "success");
           // 게임 페이지로 이동
           setTimeout(() => {
@@ -3309,10 +3494,12 @@
           // 매칭 거절됨
           hideAllModals();
           if (data.reason === "opponent_declined") {
+            if (window.bgmManager) window.bgmManager.switchToMatchmaking();
             window.showToast("상대방이 매칭을 거절했습니다. 다시 검색합니다.", "info");
             // 다시 검색 모달 표시
             searchModal.classList.add("active");
           } else {
+            if (window.bgmManager) window.bgmManager.switchToLobby();
             window.showToast("매칭을 취소했습니다.", "info");
           }
           break;
@@ -3320,6 +3507,7 @@
         case "match_timeout":
           // 수락 시간 초과
           hideAllModals();
+          if (window.bgmManager) window.bgmManager.switchToLobby();
           window.showToast("수락 시간이 초과되었습니다.", "error");
           break;
 
@@ -3331,6 +3519,7 @@
         case "error":
           // 에러
           hideAllModals();
+          if (window.bgmManager) window.bgmManager.switchToLobby();
           window.showToast(data.message || "오류가 발생했습니다.", "error");
           break;
       }
@@ -3409,10 +3598,12 @@
     // 이벤트 리스너
     matchmakingBtn.addEventListener("click", () => {
       connectMatchmaking();
+      if (window.bgmManager) window.bgmManager.switchToMatchmaking();
     });
 
     matchmakingCancelBtn.addEventListener("click", () => {
       endMatchmaking();
+      if (window.bgmManager) window.bgmManager.switchToLobby();
     });
 
     matchAcceptBtn.addEventListener("click", () => {
@@ -3761,6 +3952,185 @@
       if (themeToggleMobile) themeToggleMobile.textContent = text;
     }
   })();
+</script>
+
+<!-- BGM & Settings Script -->
+<script>
+(function() {
+  // ── Audio Elements ──
+  const bgmLobby = document.getElementById('bgm-lobby');
+  const bgmMatchmaking = document.getElementById('bgm-matchmaking');
+  const bgmMatchFound = document.getElementById('bgm-match-found');
+
+  // ── Settings Elements ──
+  const settingsBtn = document.getElementById('settings-btn');
+  const settingsModal = document.getElementById('settings-modal');
+  const settingsCloseBtn = document.getElementById('settings-close-btn');
+  const bgmToggle = document.getElementById('bgm-toggle');
+  const bgmVolumeSlider = document.getElementById('bgm-volume');
+  const bgmVolumeValue = document.getElementById('bgm-volume-value');
+  const sfxToggle = document.getElementById('sfx-toggle');
+  const sfxVolumeSlider = document.getElementById('sfx-volume');
+  const sfxVolumeValue = document.getElementById('sfx-volume-value');
+
+  // ── State ──
+  let bgmEnabled = localStorage.getItem('bgm-enabled') !== 'false';
+  let bgmVolume = parseFloat(localStorage.getItem('bgm-volume') || '0.3');
+  let sfxEnabled = localStorage.getItem('sfx-enabled') !== 'false';
+  let sfxVolume = parseFloat(localStorage.getItem('sfx-volume') || '0.5');
+  let currentBgm = null;       // currently playing audio element
+  let userInteracted = false;  // autoplay policy guard
+  let fadeInterval = null;
+
+  // ── Init UI ──
+  bgmToggle.checked = bgmEnabled;
+  bgmVolumeSlider.value = Math.round(bgmVolume * 100);
+  bgmVolumeValue.textContent = Math.round(bgmVolume * 100) + '%';
+  sfxToggle.checked = sfxEnabled;
+  sfxVolumeSlider.value = Math.round(sfxVolume * 100);
+  sfxVolumeValue.textContent = Math.round(sfxVolume * 100) + '%';
+
+  // ── Settings Modal ──
+  settingsBtn.addEventListener('click', () => {
+    settingsModal.classList.add('active');
+  });
+  settingsCloseBtn.addEventListener('click', () => {
+    settingsModal.classList.remove('active');
+  });
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) settingsModal.classList.remove('active');
+  });
+
+  // ── Settings Handlers ──
+  bgmToggle.addEventListener('change', () => {
+    bgmEnabled = bgmToggle.checked;
+    localStorage.setItem('bgm-enabled', bgmEnabled);
+    if (bgmEnabled && currentBgm) {
+      currentBgm.volume = bgmVolume;
+      currentBgm.play().catch(() => {});
+    } else if (!bgmEnabled && currentBgm) {
+      currentBgm.pause();
+    }
+  });
+
+  bgmVolumeSlider.addEventListener('input', () => {
+    bgmVolume = parseInt(bgmVolumeSlider.value) / 100;
+    bgmVolumeValue.textContent = bgmVolumeSlider.value + '%';
+    localStorage.setItem('bgm-volume', bgmVolume);
+    if (currentBgm && bgmEnabled) {
+      currentBgm.volume = bgmVolume;
+    }
+  });
+
+  sfxToggle.addEventListener('change', () => {
+    sfxEnabled = sfxToggle.checked;
+    localStorage.setItem('sfx-enabled', sfxEnabled);
+  });
+
+  sfxVolumeSlider.addEventListener('input', () => {
+    sfxVolume = parseInt(sfxVolumeSlider.value) / 100;
+    sfxVolumeValue.textContent = sfxVolumeSlider.value + '%';
+    localStorage.setItem('sfx-volume', sfxVolume);
+  });
+
+  // ── Core BGM Functions ──
+  function playBgm(audioEl) {
+    if (!bgmEnabled) {
+      currentBgm = audioEl;
+      return;
+    }
+    if (currentBgm === audioEl && !audioEl.paused) return;
+
+    audioEl.volume = bgmVolume;
+    audioEl.currentTime = 0;
+    audioEl.play().catch(() => {});
+    currentBgm = audioEl;
+  }
+
+  function stopBgm(audioEl) {
+    if (!audioEl) return;
+    audioEl.pause();
+    audioEl.currentTime = 0;
+  }
+
+  function crossFade(fromAudio, toAudio, duration) {
+    duration = duration || 800;
+    if (fadeInterval) clearInterval(fadeInterval);
+
+    const steps = 20;
+    const stepTime = duration / steps;
+    let step = 0;
+    const fromVol = fromAudio ? fromAudio.volume : 0;
+
+    if (toAudio) {
+      toAudio.volume = 0;
+      toAudio.currentTime = 0;
+      if (bgmEnabled) toAudio.play().catch(() => {});
+    }
+
+    fadeInterval = setInterval(() => {
+      step++;
+      const progress = step / steps;
+
+      if (fromAudio) {
+        fromAudio.volume = Math.max(0, fromVol * (1 - progress));
+      }
+      if (toAudio && bgmEnabled) {
+        toAudio.volume = bgmVolume * progress;
+      }
+
+      if (step >= steps) {
+        clearInterval(fadeInterval);
+        fadeInterval = null;
+        if (fromAudio) {
+          fromAudio.pause();
+          fromAudio.currentTime = 0;
+        }
+        currentBgm = toAudio;
+      }
+    }, stepTime);
+  }
+
+  // ── Autoplay Policy ──
+  // 이전 페이지에서 이미 인터랙션했으면 바로 재생
+  if (sessionStorage.getItem('bgm-interacted')) {
+    userInteracted = true;
+    playBgm(bgmLobby);
+  } else {
+    function onFirstInteraction() {
+      if (userInteracted) return;
+      userInteracted = true;
+      sessionStorage.setItem('bgm-interacted', '1');
+      playBgm(bgmLobby);
+      document.removeEventListener('click', onFirstInteraction);
+      document.removeEventListener('touchstart', onFirstInteraction);
+      document.removeEventListener('keydown', onFirstInteraction);
+    }
+    document.addEventListener('click', onFirstInteraction);
+    document.addEventListener('touchstart', onFirstInteraction);
+    document.addEventListener('keydown', onFirstInteraction);
+  }
+
+  // ── Expose BGM API for matchmaking integration ──
+  window.bgmManager = {
+    switchToMatchmaking: function() {
+      crossFade(currentBgm, bgmMatchmaking, 800);
+    },
+    switchToMatchFound: function() {
+      crossFade(currentBgm, bgmMatchFound, 500);
+    },
+    switchToLobby: function() {
+      crossFade(currentBgm, bgmLobby, 800);
+    },
+    stopAll: function() {
+      if (fadeInterval) { clearInterval(fadeInterval); fadeInterval = null; }
+      stopBgm(bgmLobby);
+      stopBgm(bgmMatchmaking);
+      stopBgm(bgmMatchFound);
+      currentBgm = null;
+    }
+  };
+})();
 </script>
 
 {% include "includes/heartbeat.html" %}
