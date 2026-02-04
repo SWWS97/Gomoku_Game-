@@ -1,5 +1,10 @@
 {% extends "account/base_auth.html" %}
 {% block title %}프로필 수정 – Omok{% endblock %}
+{% block extra_head %}
+<script>
+window.__playLobbyBgm = true;
+</script>
+{% endblock %}
 {% block content %}
 <h1><span class="stone white"></span> 프로필 수정</h1>
 <p class="sub">닉네임과 비밀번호를 변경할 수 있습니다</p>

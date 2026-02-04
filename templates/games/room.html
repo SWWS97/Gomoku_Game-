@@ -1149,6 +1149,7 @@
       <button class="pill" id="surrender-btn" style="display:none; background:#c44; border-color:#a33;">항복</button>
       <button class="pill" id="rematch-btn" style="display:none; background:#4a7c59; border-color:#3a6c49;">리매치 요청</button>
       <a href="{% url 'games:lobby' %}" class="pill" id="lobby-btn" style="display:none;">로비로 가기</a>
+      <button class="pill" id="bgm-mute-btn" style="background:#6b7280; border-color:#555; font-size:13px;">BGM</button>
       <button class="pill theme-toggle" id="theme-toggle">다크모드</button>
     </div>
   </div>
@@ -2777,6 +2778,67 @@
       html.setAttribute('data-theme', newTheme);
       localStorage.setItem('theme', newTheme);
       updateText(newTheme);
+    });
+  }
+})();
+</script>
+
+<!-- Game BGM -->
+<audio id="bgm-game" loop preload="auto">
+  <source src="/static/audio/game.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+(function() {
+  const bgmGame = document.getElementById('bgm-game');
+  const muteBtn = document.getElementById('bgm-mute-btn');
+
+  let bgmEnabled = localStorage.getItem('bgm-enabled') !== 'false';
+  let bgmVolume = parseFloat(localStorage.getItem('bgm-volume') || '0.3');
+
+  function updateMuteBtn() {
+    if (muteBtn) {
+      muteBtn.textContent = bgmEnabled ? 'BGM OFF' : 'BGM ON';
+      muteBtn.style.opacity = bgmEnabled ? '0.5' : '1';
+    }
+  }
+
+  function startBgm() {
+    if (!bgmEnabled || !bgmGame) return;
+    bgmGame.volume = bgmVolume;
+    bgmGame.play().catch(() => {});
+  }
+
+  updateMuteBtn();
+
+  // Autoplay policy: sessionStorage로 이전 인터랙션 기억
+  if (sessionStorage.getItem('bgm-interacted')) {
+    startBgm();
+  } else {
+    function onFirstInteraction() {
+      sessionStorage.setItem('bgm-interacted', '1');
+      startBgm();
+      document.removeEventListener('click', onFirstInteraction);
+      document.removeEventListener('touchstart', onFirstInteraction);
+      document.removeEventListener('keydown', onFirstInteraction);
+    }
+    document.addEventListener('click', onFirstInteraction);
+    document.addEventListener('touchstart', onFirstInteraction);
+    document.addEventListener('keydown', onFirstInteraction);
+  }
+
+  // Mute toggle
+  if (muteBtn) {
+    muteBtn.addEventListener('click', () => {
+      bgmEnabled = !bgmEnabled;
+      localStorage.setItem('bgm-enabled', bgmEnabled);
+      updateMuteBtn();
+      if (bgmEnabled) {
+        bgmGame.volume = bgmVolume;
+        bgmGame.play().catch(() => {});
+      } else {
+        bgmGame.pause();
+      }
     });
   }
 })();
