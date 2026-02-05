@@ -423,6 +423,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             "winner": game.winner,
             "size": BOARD_SIZE,
             **game.get_both_player_names(),
+            "black_id": game.black_id,
+            "white_id": game.white_id,
             "black_time": black_time,
             "white_time": white_time,
             "black_ready": game.black_ready,
@@ -1299,6 +1301,17 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             message_type = content.get("type")
 
             if message_type == "chat_message":
+                # 채팅 금지 체크
+                is_banned = await self.check_chat_banned()
+                if is_banned:
+                    await self.send_json(
+                        {
+                            "type": "chat_error",
+                            "message": is_banned,
+                        }
+                    )
+                    return
+
                 message = content.get("message", "").strip()
                 if message:
                     # 욕설 필터링 적용
@@ -1332,6 +1345,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                 {
                     "type": "chat_message",
                     "sender": event["sender"],
+                    "sender_id": event["sender_id"],
                     "message": event["message"],
                     "is_mine": event["sender_id"] == self.user_id,
                     "rating": event.get("rating", INITIAL_RATING),
@@ -1480,6 +1494,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         return [
             {
                 "sender": msg.user.first_name or msg.user.username,
+                "sender_id": msg.user_id,
                 "message": msg.content,
                 "is_mine": msg.user_id == self.user_id,
                 "rating": profiles_data.get(msg.user_id, {}).get(
@@ -1489,6 +1504,23 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             }
             for msg in messages
         ]
+
+    @database_sync_to_async
+    def check_chat_banned(self):
+        """채팅 금지 상태 확인. 금지 중이면 메시지 문자열, 아니면 None 반환"""
+        try:
+            profile = UserProfile.objects.get(user_id=self.user_id)
+            now = timezone.now()
+            if profile.chat_banned_until and profile.chat_banned_until > now:
+                remaining = profile.chat_banned_until - now
+                days = remaining.days
+                hours = remaining.seconds // 3600
+                if days > 0:
+                    return f"채팅 금지 중입니다. ({days}일 {hours}시간 남음)"
+                return f"채팅 금지 중입니다. ({hours}시간 남음)"
+        except UserProfile.DoesNotExist:
+            pass
+        return None
 
     @database_sync_to_async
     def save_lobby_message(self, content):

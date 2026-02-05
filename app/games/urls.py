@@ -39,4 +39,20 @@ urlpatterns = [
         views.get_unread_message_count,
         name="unread_message_count",
     ),  # 안 읽은 메시지 수
+    # 신고
+    path("api/report/", views.submit_report, name="submit_report"),
+    # 관리자 페이지
+    path("admin-panel/", views.admin_panel, name="admin_panel"),
+    path("admin-panel/api/reports/", views.admin_reports_api, name="admin_reports_api"),
+    path(
+        "admin-panel/api/reports/<int:report_id>/action/",
+        views.admin_report_action,
+        name="admin_report_action",
+    ),
+    path("admin-panel/api/users/", views.admin_users_api, name="admin_users_api"),
+    path(
+        "admin-panel/api/users/<int:user_id>/sanction/",
+        views.admin_user_sanction,
+        name="admin_user_sanction",
+    ),
 ]
