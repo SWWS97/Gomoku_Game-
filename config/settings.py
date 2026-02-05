@@ -78,6 +78,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",  # django-allauth 필수 미들웨어
+    "app.accounts.middleware.SuspensionCheckMiddleware",
 ]
 
 # ──────────────────────────────────────────────────────────────────────

@@ -756,6 +756,29 @@
       display: inline-flex;
       align-items: center;
       margin-left: 4px;
+      gap: 8px;
+    }
+    .admin-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      border-radius: 10px;
+      text-decoration: none;
+      line-height: 1.4;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .admin-badge:hover {
+      background: linear-gradient(135deg, #f87171, #ef4444);
+    }
+    [data-theme="dark"] .admin-badge {
+      background: linear-gradient(135deg, #f87171, #ef4444);
+    }
+    [data-theme="dark"] .admin-badge:hover {
+      background: linear-gradient(135deg, #fca5a5, #f87171);
     }
 
     /* 웹: 모바일 로그아웃 숨김 */
@@ -2441,6 +2464,138 @@
         font-size: 11px;
       }
     }
+
+    /* 신고 버튼 (채팅 메시지) */
+    .chat-message .report-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 11px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+
+    .chat-message .report-btn:hover {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .chat-message:hover .report-btn {
+      display: inline-block;
+    }
+
+    /* 모바일: 항상 표시 */
+    @media (max-width: 768px) {
+      .chat-message .report-btn {
+        display: inline-block;
+      }
+    }
+
+    /* 신고 모달 */
+    .report-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .report-modal.active {
+      display: flex;
+    }
+
+    .report-modal .report-content {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 24px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      animation: modalFadeIn 0.3s ease;
+    }
+
+    .report-modal .report-content h3 {
+      margin: 0 0 6px;
+      font-size: 1.2rem;
+      color: var(--text);
+    }
+
+    .report-modal .report-target {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .report-modal label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .report-modal select,
+    .report-modal textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 2px solid var(--line);
+      border-radius: 6px;
+      font-size: 14px;
+      background: var(--input-bg);
+      color: var(--text);
+      margin-bottom: 14px;
+      box-sizing: border-box;
+    }
+
+    .report-modal select:focus,
+    .report-modal textarea:focus {
+      outline: none;
+      border-color: var(--border);
+    }
+
+    .report-modal textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    .report-modal .report-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .report-modal .report-actions button {
+      padding: 8px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .report-modal .btn-report-cancel {
+      background: #6b7280;
+      color: #fff;
+    }
+
+    .report-modal .btn-report-submit {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .report-modal .btn-report-submit:hover {
+      background: #dc2626;
+    }
+
+    [data-theme="dark"] .report-modal .report-content {
+      background: #16213e;
+      border: 1px solid #2d3748;
+    }
   </style>
 </head>
 <body>
@@ -2462,6 +2617,9 @@
           <span class="my-tier-slot" data-rating="{{ my_rating }}" data-total-games="{{ my_total_games }}"></span>
           <span class="my-nickname">{{ user.first_name|default:user.username }}</span>
         </span>
+        {% if user.is_staff %}
+        <a href="{% url 'games:admin_panel' %}" class="admin-badge">관리자</a>
+        {% endif %}
       </div>
       <div class="top-actions">
         <a href="{% url 'games:friends' %}" class="btn" style="background: #4a7c89; position: relative;">
@@ -2920,6 +3078,7 @@
     </div>
   </div>
 
+
   <!-- 설정 모달 -->
   <div class="modal-overlay" id="settings-modal">
     <div class="modal-content" style="max-width: 360px;">
@@ -3079,10 +3238,16 @@
           } else if (data.type === "chat_history") {
             // 최근 24시간 채팅 기록 로드
             data.messages.forEach(msg => {
-              addChatMessage(msg.sender, msg.message, msg.is_mine, msg.rating || 1000, msg.total_games || 0);
+              addChatMessage(msg.sender, msg.message, msg.is_mine, msg.rating || 1000, msg.total_games || 0, msg.sender_id || null);
             });
           } else if (data.type === "chat_message") {
-            addChatMessage(data.sender, data.message, data.is_mine, data.rating || 1000, data.total_games || 0);
+            addChatMessage(data.sender, data.message, data.is_mine, data.rating || 1000, data.total_games || 0, data.sender_id || null);
+          } else if (data.type === "chat_error") {
+            if (window.showToast) {
+              window.showToast(data.message, "error");
+            } else {
+              alert(data.message);
+            }
           }
         } catch (err) {
           console.error("[Lobby] Message parse error:", err);
@@ -3245,7 +3410,7 @@
     const chatSendBtn = document.getElementById("chat-send-btn");
 
     // 채팅 메시지 추가 함수
-    window.addChatMessage = function(sender, message, isMine, rating = 1000, totalGames = 999) {
+    window.addChatMessage = function(sender, message, isMine, rating = 1000, totalGames = 999, senderId = null) {
       const messageDiv = document.createElement("div");
       messageDiv.className = isMine ? "chat-message mine" : "chat-message";
 
@@ -3268,6 +3433,18 @@
 
       messageDiv.appendChild(senderSpan);
       messageDiv.appendChild(textDiv);
+
+      // 내 메시지가 아닌 경우 신고 버튼 추가
+      if (!isMine && senderId) {
+        const reportBtn = document.createElement("button");
+        reportBtn.className = "report-btn";
+        reportBtn.textContent = "신고";
+        reportBtn.addEventListener("click", () => {
+          openReportModal(senderId, sender, message);
+        });
+        messageDiv.appendChild(reportBtn);
+      }
+
       chatMessages.appendChild(messageDiv);
 
       // 스크롤을 맨 아래로
@@ -3833,6 +4010,85 @@
     // 초기 체크 및 30초마다 체크
     checkUnreadMessages();
     setInterval(checkUnreadMessages, 30000);
+  })();
+
+  // 신고 모달 로직
+  (function(){
+    const reportModal = document.getElementById("report-modal");
+    const reportReason = document.getElementById("report-reason");
+    const reportDescription = document.getElementById("report-description");
+    const reportTargetInfo = document.getElementById("report-target-info");
+    const reportCancelBtn = document.getElementById("report-cancel-btn");
+    const reportSubmitBtn = document.getElementById("report-submit-btn");
+
+    let reportUserId = null;
+    let reportEvidence = "";
+
+    window.openReportModal = function(userId, nickname, chatMessage) {
+      reportUserId = userId;
+      reportEvidence = chatMessage || "";
+      reportTargetInfo.textContent = `대상: ${nickname}`;
+      reportReason.value = "";
+      reportDescription.value = "";
+      reportModal.classList.add("active");
+    };
+
+    reportCancelBtn.addEventListener("click", () => {
+      reportModal.classList.remove("active");
+      reportUserId = null;
+    });
+
+    reportModal.addEventListener("click", (e) => {
+      if (e.target === reportModal) {
+        reportModal.classList.remove("active");
+        reportUserId = null;
+      }
+    });
+
+    reportSubmitBtn.addEventListener("click", async () => {
+      if (!reportReason.value) {
+        if (window.showToast) {
+          window.showToast("신고 사유를 선택해주세요.", "error");
+        }
+        return;
+      }
+
+      reportSubmitBtn.disabled = true;
+      reportSubmitBtn.textContent = "접수 중...";
+
+      try {
+        const response = await fetch("{% url 'games:submit_report' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+          },
+          body: JSON.stringify({
+            reported_user_id: reportUserId,
+            report_type: "chat",
+            reason: reportReason.value,
+            description: reportDescription.value,
+            evidence: reportEvidence,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          if (window.showToast) window.showToast(result.message, "success");
+        } else {
+          if (window.showToast) window.showToast(result.error, "error");
+        }
+      } catch (err) {
+        console.error("신고 오류:", err);
+        if (window.showToast) window.showToast("신고 접수 중 오류가 발생했습니다.", "error");
+      } finally {
+        reportSubmitBtn.disabled = false;
+        reportSubmitBtn.textContent = "신고";
+        reportModal.classList.remove("active");
+        reportUserId = null;
+      }
+    });
   })();
   </script>
 

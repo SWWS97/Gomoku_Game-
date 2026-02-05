@@ -1,0 +1,32 @@
+{% extends "account/base_auth.html" %}
+{% block title %}계정 정지 – 오목조목{% endblock %}
+{% block content %}
+<h1><span class="stone black"></span> 계정 정지</h1>
+
+<div style="text-align: center; padding: 20px 0;">
+  <p style="font-size: 16px; font-weight: 600; color: #ef4444; margin-bottom: 12px;">
+    {{ reason }}
+  </p>
+
+  {% if not permanent %}
+    <p style="color: var(--muted); font-size: 14px;">
+      정지 해제: {{ until|date:"Y년 n월 j일 H:i" }}
+      {% if remaining_days > 0 %}
+        ({{ remaining_days }}일 남음)
+      {% endif %}
+    </p>
+  {% else %}
+    <p style="color: var(--muted); font-size: 14px;">
+      영구 정지된 계정은 이용이 제한됩니다.
+    </p>
+  {% endif %}
+
+  <p style="color: var(--muted); font-size: 13px; margin-top: 16px;">
+    이의가 있는 경우 관리자에게 문의해주세요.
+  </p>
+</div>
+
+<div class="links" style="justify-content: center;">
+  <a class="muted" href="{% url 'account_logout' %}">로그아웃</a>
+</div>
+{% endblock %}

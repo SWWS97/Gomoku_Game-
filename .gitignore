@@ -28,7 +28,8 @@ envs/
 # ---- Django artifacts
 db.sqlite3
 /media/
-staticfiles/         # collectstatic 결과물 (운영에서 생성)
+# collectstatic 결과물 (운영에서 생성)
+staticfiles/
 *.log
 
 # ---- IDE / OS

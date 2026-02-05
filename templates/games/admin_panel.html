@@ -1,0 +1,953 @@
+{% load static %}
+<!doctype html>
+<html lang="ko">
+<head>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>관리자 페이지 – 오목조목</title>
+  <style>
+    :root {
+      --wood: #d4b781;
+      --line: #7b5c3a;
+      --border: #3e2a1f;
+      --card: #fff9ee;
+      --bg: #faf7f2;
+      --text: #333;
+      --text-secondary: #666;
+      --input-bg: #fffdf7;
+      --shadow: rgba(0, 0, 0, 0.15);
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+    }
+
+    [data-theme="dark"] {
+      --wood: #1a1a2e;
+      --line: #2d2d44;
+      --border: #4ade80;
+      --card: #16213e;
+      --bg: #0f0f1a;
+      --text: #e5e7eb;
+      --text-secondary: #9ca3af;
+      --input-bg: #1e293b;
+      --shadow: rgba(0, 0, 0, 0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .admin-header {
+      background: var(--card);
+      border-bottom: 2px solid var(--line);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .admin-header h1 {
+      font-size: 1.4rem;
+      color: var(--border);
+    }
+
+    .admin-header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .admin-header-actions a,
+    .admin-header-actions button {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--text);
+    }
+
+    .admin-header-actions a:hover,
+    .admin-header-actions button:hover {
+      opacity: 0.85;
+    }
+
+    .admin-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* 대시보드 카드 */
+    .dashboard-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .dash-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .dash-card .dash-value {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .dash-card .dash-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .dash-card.pending .dash-value { color: var(--danger); }
+    .dash-card.users .dash-value { color: var(--info); }
+    .dash-card.today .dash-value { color: var(--warning); }
+
+    /* 탭 */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--line);
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      background: none;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      color: var(--border);
+      border-bottom-color: var(--border);
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* 필터 */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-btn {
+      padding: 6px 14px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--card);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      background: var(--border);
+      color: #fff;
+      border-color: var(--border);
+    }
+
+    .search-input {
+      padding: 8px 14px;
+      border: 2px solid var(--line);
+      border-radius: 6px;
+      font-size: 14px;
+      background: var(--input-bg);
+      color: var(--text);
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--border);
+    }
+
+    .search-btn {
+      padding: 8px 16px;
+      background: var(--border);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* 테이블 */
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .admin-table th {
+      background: var(--line);
+      color: #fff;
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    [data-theme="dark"] .admin-table th {
+      background: #1e293b;
+      color: var(--text);
+    }
+
+    .admin-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(123, 92, 58, 0.15);
+      font-size: 13px;
+      vertical-align: top;
+    }
+
+    .admin-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .admin-table tr:hover td {
+      background: rgba(123, 92, 58, 0.05);
+    }
+
+    [data-theme="dark"] .admin-table tr:hover td {
+      background: rgba(74, 222, 128, 0.05);
+    }
+
+    /* 배지 */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-reviewed { background: #d1fae5; color: #065f46; }
+    .badge-dismissed { background: #e5e7eb; color: #374151; }
+    .badge-danger { background: #fee2e2; color: #991b1b; }
+    .badge-warning { background: #fff7cd; color: #7a6200; }
+    .badge-info { background: #dbeafe; color: #1e40af; }
+
+    [data-theme="dark"] .badge-pending { background: #78350f; color: #fef3c7; }
+    [data-theme="dark"] .badge-reviewed { background: #064e3b; color: #d1fae5; }
+    [data-theme="dark"] .badge-dismissed { background: #374151; color: #e5e7eb; }
+    [data-theme="dark"] .badge-danger { background: #7f1d1d; color: #fee2e2; }
+    [data-theme="dark"] .badge-warning { background: #713f12; color: #fef9c3; }
+    [data-theme="dark"] .badge-info { background: #1e3a5f; color: #bfdbfe; }
+
+    /* 액션 버튼 */
+    .action-btn {
+      padding: 4px 10px;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 2px;
+    }
+
+    .action-btn.dismiss { background: #9ca3af; color: #fff; }
+    .action-btn.warn { background: #f59e0b; color: #fff; }
+    .action-btn.chat-ban { background: #f97316; color: #fff; }
+    .action-btn.suspend { background: #ef4444; color: #fff; }
+    .action-btn.perma-ban { background: #991b1b; color: #fff; }
+    .action-btn.unsanction { background: #22c55e; color: #fff; }
+
+    .action-btn:hover { opacity: 0.85; }
+
+    /* 제재 옵션 드롭다운 */
+    .action-dropdown {
+      display: none;
+      position: absolute;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px var(--shadow);
+      z-index: 100;
+      padding: 8px;
+      min-width: 220px;
+    }
+
+    .action-dropdown.active {
+      display: block;
+    }
+
+    .action-dropdown label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin: 6px 0 4px;
+      color: var(--text);
+    }
+
+    .action-dropdown select,
+    .action-dropdown input,
+    .action-dropdown textarea {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      font-size: 13px;
+      background: var(--input-bg);
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .action-dropdown textarea {
+      resize: vertical;
+      min-height: 50px;
+    }
+
+    .action-dropdown .dropdown-btns {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .action-dropdown .dropdown-btns button {
+      flex: 1;
+      padding: 6px;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* 유저 카드 */
+    .user-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .user-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .user-card-header h3 {
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    .user-card-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .user-card-info span {
+      color: var(--text-secondary);
+    }
+
+    .user-card-info strong {
+      color: var(--text);
+    }
+
+    .sanction-history {
+      font-size: 12px;
+      color: var(--text-secondary);
+      border-top: 1px solid rgba(123, 92, 58, 0.15);
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+
+    .sanction-history h4 {
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    .sanction-item {
+      padding: 4px 0;
+      border-bottom: 1px dashed rgba(123, 92, 58, 0.1);
+    }
+
+    /* 페이지네이션 */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .pagination button {
+      padding: 6px 12px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .pagination button.active {
+      background: var(--border);
+      color: #fff;
+      border-color: var(--border);
+    }
+
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* 빈 상태 */
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    /* 반응형 */
+    @media (max-width: 768px) {
+      .admin-container { padding: 12px; }
+      .admin-header { padding: 12px 16px; }
+      .admin-header h1 { font-size: 1.1rem; }
+
+      .admin-table {
+        display: block;
+        overflow-x: auto;
+      }
+
+      .dashboard-cards {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .tab-btn {
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+    }
+
+    /* 토스트 */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      box-shadow: 0 4px 12px var(--shadow);
+      font-size: 14px;
+      animation: slideIn 0.3s ease;
+      min-width: 250px;
+    }
+
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--danger); }
+
+    .toast-close {
+      margin-left: auto;
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .slide-out {
+      animation: slideOut 0.3s ease forwards;
+    }
+
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-header">
+    <h1>오목조목 관리자</h1>
+    <div class="admin-header-actions">
+      <a href="{% url 'games:lobby' %}">로비로 이동</a>
+      <button id="theme-toggle">다크모드</button>
+    </div>
+  </div>
+
+  <div class="admin-container">
+    <!-- 대시보드 카드 -->
+    <div class="dashboard-cards">
+      <div class="dash-card pending">
+        <div class="dash-value">{{ pending_count }}</div>
+        <div class="dash-label">대기 중 신고</div>
+      </div>
+      <div class="dash-card users">
+        <div class="dash-value">{{ total_users }}</div>
+        <div class="dash-label">전체 유저</div>
+      </div>
+      <div class="dash-card today">
+        <div class="dash-value">{{ today_reports }}</div>
+        <div class="dash-label">오늘 신고</div>
+      </div>
+    </div>
+
+    <!-- 탭 -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="reports">신고 관리</button>
+      <button class="tab-btn" data-tab="users">유저 관리</button>
+    </div>
+
+    <!-- 신고 관리 탭 -->
+    <div class="tab-content active" id="tab-reports">
+      <div class="filter-bar">
+        <button class="filter-btn active" data-status="pending">대기</button>
+        <button class="filter-btn" data-status="reviewed">처리완료</button>
+        <button class="filter-btn" data-status="dismissed">기각</button>
+        <button class="filter-btn" data-status="all">전체</button>
+      </div>
+
+      <div id="reports-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>신고자</th>
+              <th>피신고자</th>
+              <th>유형</th>
+              <th>사유</th>
+              <th>상태</th>
+              <th>일시</th>
+              <th>처리</th>
+            </tr>
+          </thead>
+          <tbody id="reports-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="reports-empty" style="display:none;">신고 내역이 없습니다.</div>
+        <div class="pagination" id="reports-pagination"></div>
+      </div>
+    </div>
+
+    <!-- 유저 관리 탭 -->
+    <div class="tab-content" id="tab-users">
+      <div class="filter-bar">
+        <input type="text" class="search-input" id="user-search-input" placeholder="닉네임 또는 아이디로 검색..." />
+        <button class="search-btn" id="user-search-btn">검색</button>
+      </div>
+      <div id="user-results"></div>
+      <div class="empty-state" id="users-empty">유저를 검색해주세요.</div>
+    </div>
+  </div>
+
+  <!-- 토스트 -->
+  <div class="toast-container" id="toast-container"></div>
+
+  {% csrf_token %}
+
+  <script>
+  // 토스트
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast ' + type;
+    toast.innerHTML = '<span>' + message + '</span><button class="toast-close" onclick="this.parentElement.remove()">×</button>';
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('slide-out');
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+  // ─── 탭 전환 ───
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ─── 신고 관리 ───
+  let currentReportStatus = 'pending';
+  let currentReportPage = 1;
+
+  // 필터 버튼
+  document.querySelectorAll('.filter-btn[data-status]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn[data-status]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentReportStatus = btn.dataset.status;
+      currentReportPage = 1;
+      loadReports();
+    });
+  });
+
+  async function loadReports() {
+    try {
+      const res = await fetch(`{% url 'games:admin_reports_api' %}?status=${currentReportStatus}&page=${currentReportPage}`);
+      const data = await res.json();
+      renderReports(data.reports, data.total_pages, data.current_page);
+    } catch (err) {
+      console.error('신고 로드 오류:', err);
+    }
+  }
+
+  function renderReports(reports, totalPages, currentPage) {
+    const tbody = document.getElementById('reports-tbody');
+    const empty = document.getElementById('reports-empty');
+    const pagination = document.getElementById('reports-pagination');
+
+    if (reports.length === 0) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      pagination.innerHTML = '';
+      return;
+    }
+
+    empty.style.display = 'none';
+
+    tbody.innerHTML = reports.map(r => {
+      const statusBadge = r.status === 'pending' ? 'badge-pending'
+        : r.status === 'reviewed' ? 'badge-reviewed' : 'badge-dismissed';
+
+      const actionBtns = r.status === 'pending' ? `
+        <div style="position:relative;">
+          <button class="action-btn warn" onclick="openReportAction(${r.id}, '${r.reported_user}', ${r.reported_user_id})">처리</button>
+          <button class="action-btn dismiss" onclick="reportAction(${r.id}, 'dismiss')">기각</button>
+        </div>
+      ` : (r.reviewed_by ? '<span style="font-size:12px;color:var(--text-secondary);">' + r.reviewed_by + '</span>' : '-');
+
+      return `<tr>
+        <td>${r.id}</td>
+        <td>${r.reporter}</td>
+        <td>${r.reported_user}</td>
+        <td>${r.report_type}</td>
+        <td>
+          <strong>${r.reason}</strong>
+          ${r.description ? '<br><span style="color:var(--text-secondary);font-size:12px;">' + escapeHtml(r.description) + '</span>' : ''}
+          ${r.evidence ? '<br><span style="color:var(--text-secondary);font-size:11px;">증거: ' + escapeHtml(r.evidence) + '</span>' : ''}
+        </td>
+        <td><span class="badge ${statusBadge}">${r.status_display}</span></td>
+        <td>${r.created_at}</td>
+        <td>${actionBtns}</td>
+      </tr>`;
+    }).join('');
+
+    // 페이지네이션
+    if (totalPages > 1) {
+      let html = '';
+      html += `<button ${currentPage <= 1 ? 'disabled' : ''} onclick="goReportPage(${currentPage - 1})">이전</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goReportPage(${i})">${i}</button>`;
+      }
+      html += `<button ${currentPage >= totalPages ? 'disabled' : ''} onclick="goReportPage(${currentPage + 1})">다음</button>`;
+      pagination.innerHTML = html;
+    } else {
+      pagination.innerHTML = '';
+    }
+  }
+
+  function goReportPage(page) {
+    currentReportPage = page;
+    loadReports();
+  }
+
+  // 신고 기각
+  async function reportAction(reportId, action, durationDays, adminNote) {
+    try {
+      const body = { action };
+      if (durationDays) body.duration_days = durationDays;
+      if (adminNote) body.admin_note = adminNote;
+
+      const res = await fetch(`/games/admin-panel/api/reports/${reportId}/action/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        showToast(data.message, 'success');
+        loadReports();
+      } else {
+        showToast(data.error, 'error');
+      }
+    } catch (err) {
+      showToast('처리 중 오류가 발생했습니다.', 'error');
+    }
+  }
+
+  // 신고 처리 모달 (인라인)
+  let activeDropdown = null;
+
+  function openReportAction(reportId, userName, userId) {
+    // 기존 드롭다운 닫기
+    if (activeDropdown) activeDropdown.remove();
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'action-dropdown active';
+    dropdown.style.position = 'fixed';
+    dropdown.style.top = '50%';
+    dropdown.style.left = '50%';
+    dropdown.style.transform = 'translate(-50%, -50%)';
+    dropdown.style.zIndex = '1000';
+    dropdown.innerHTML = `
+      <h4 style="margin:0 0 8px;font-size:14px;">${userName} 제재</h4>
+      <label>제재 유형</label>
+      <select id="dd-action">
+        <option value="warning">경고</option>
+        <option value="chat_ban">채팅 금지</option>
+        <option value="suspend">계정 정지</option>
+        <option value="permanent_ban">영구 정지</option>
+      </select>
+      <label>기간 (일) <span style="font-size:11px;color:var(--text-secondary);">채팅금지/정지만 해당</span></label>
+      <select id="dd-duration">
+        <option value="1">1일</option>
+        <option value="3">3일</option>
+        <option value="7">7일</option>
+        <option value="30">30일</option>
+      </select>
+      <label>관리자 메모</label>
+      <textarea id="dd-note" placeholder="메모 (선택)"></textarea>
+      <div class="dropdown-btns">
+        <button style="background:#6b7280;color:#fff;" onclick="closeDropdown()">취소</button>
+        <button style="background:#ef4444;color:#fff;" onclick="submitReportAction(${reportId})">제재 적용</button>
+      </div>
+    `;
+
+    // 배경 오버레이
+    const overlay = document.createElement('div');
+    overlay.id = 'dd-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.3);z-index:999;';
+    overlay.addEventListener('click', closeDropdown);
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(dropdown);
+    activeDropdown = dropdown;
+  }
+
+  function closeDropdown() {
+    if (activeDropdown) {
+      activeDropdown.remove();
+      activeDropdown = null;
+    }
+    const overlay = document.getElementById('dd-overlay');
+    if (overlay) overlay.remove();
+  }
+
+  function submitReportAction(reportId) {
+    const action = document.getElementById('dd-action').value;
+    const duration = document.getElementById('dd-duration').value;
+    const note = document.getElementById('dd-note').value;
+    closeDropdown();
+    reportAction(reportId, action, duration, note);
+  }
+
+  // ─── 유저 관리 ───
+  const userSearchInput = document.getElementById('user-search-input');
+  const userSearchBtn = document.getElementById('user-search-btn');
+
+  userSearchBtn.addEventListener('click', searchUsers);
+  userSearchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') searchUsers();
+  });
+
+  async function searchUsers() {
+    const query = userSearchInput.value.trim();
+    if (!query) return;
+
+    document.getElementById('users-empty').style.display = 'none';
+
+    try {
+      const res = await fetch(`{% url 'games:admin_users_api' %}?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      renderUsers(data.users);
+    } catch (err) {
+      showToast('유저 검색 오류', 'error');
+    }
+  }
+
+  function renderUsers(users) {
+    const container = document.getElementById('user-results');
+    const empty = document.getElementById('users-empty');
+
+    if (users.length === 0) {
+      container.innerHTML = '';
+      empty.textContent = '검색 결과가 없습니다.';
+      empty.style.display = 'block';
+      return;
+    }
+
+    empty.style.display = 'none';
+
+    container.innerHTML = users.map(u => {
+      let statusBadges = '';
+      if (u.permanently_banned) statusBadges += '<span class="badge badge-danger">영구정지</span> ';
+      if (u.suspended) statusBadges += '<span class="badge badge-danger">계정정지</span> ';
+      if (u.chat_banned) statusBadges += '<span class="badge badge-warning">채팅금지</span> ';
+      if (u.is_staff) statusBadges += '<span class="badge badge-info">관리자</span> ';
+      if (!statusBadges) statusBadges = '<span class="badge badge-reviewed">정상</span>';
+
+      const sanctionHtml = u.sanctions.length > 0
+        ? `<div class="sanction-history">
+            <h4>제재 이력 (최근 5건)</h4>
+            ${u.sanctions.map(s => `<div class="sanction-item">${s.type} | ${s.reason} | ${s.date} ~ ${s.ends_at}</div>`).join('')}
+          </div>`
+        : '';
+
+      return `<div class="user-card">
+        <div class="user-card-header">
+          <h3>${escapeHtml(u.nickname)} <span style="font-size:12px;color:var(--text-secondary);">@${escapeHtml(u.username)}</span></h3>
+          <div>${statusBadges}</div>
+        </div>
+        <div class="user-card-info">
+          <div><span>RP:</span> <strong>${u.rating}</strong></div>
+          <div><span>총 게임:</span> <strong>${u.total_games}</strong></div>
+          <div><span>신고 횟수:</span> <strong>${u.report_count}</strong></div>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="action-btn chat-ban" onclick="userSanction(${u.id}, 'chat_ban', 1, '${escapeHtml(u.nickname)}')">채금 1일</button>
+          <button class="action-btn chat-ban" onclick="userSanction(${u.id}, 'chat_ban', 7, '${escapeHtml(u.nickname)}')">채금 7일</button>
+          <button class="action-btn suspend" onclick="userSanction(${u.id}, 'suspend', 1, '${escapeHtml(u.nickname)}')">정지 1일</button>
+          <button class="action-btn suspend" onclick="userSanction(${u.id}, 'suspend', 7, '${escapeHtml(u.nickname)}')">정지 7일</button>
+          <button class="action-btn suspend" onclick="userSanction(${u.id}, 'suspend', 30, '${escapeHtml(u.nickname)}')">정지 30일</button>
+          <button class="action-btn perma-ban" onclick="userSanction(${u.id}, 'permanent_ban', null, '${escapeHtml(u.nickname)}')">영구정지</button>
+          ${(u.chat_banned || u.suspended || u.permanently_banned) ? `<button class="action-btn unsanction" onclick="userSanction(${u.id}, 'unsanction', null, '${escapeHtml(u.nickname)}')">제재 해제</button>` : ''}
+        </div>
+        ${sanctionHtml}
+      </div>`;
+    }).join('');
+  }
+
+  async function userSanction(userId, action, durationDays, nickname) {
+    const label = {
+      chat_ban: `채팅 금지 ${durationDays}일`,
+      suspend: `계정 정지 ${durationDays}일`,
+      permanent_ban: '영구 정지',
+      unsanction: '제재 해제',
+    }[action];
+
+    if (!confirm(`${nickname}에게 ${label}을(를) 적용하시겠습니까?`)) return;
+
+    try {
+      const body = { action };
+      if (durationDays) body.duration_days = durationDays;
+      body.reason = '관리자 직접 제재';
+
+      const res = await fetch(`/games/admin-panel/api/users/${userId}/sanction/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        showToast(data.message, 'success');
+        searchUsers(); // 새로고침
+      } else {
+        showToast(data.error, 'error');
+      }
+    } catch (err) {
+      showToast('제재 처리 중 오류가 발생했습니다.', 'error');
+    }
+  }
+
+  // HTML 이스케이프
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // 초기 로드
+  loadReports();
+
+  // 테마 토글
+  (function() {
+    const themeToggle = document.getElementById('theme-toggle');
+    const html = document.documentElement;
+
+    function updateText(theme) {
+      if (themeToggle) themeToggle.textContent = theme === 'dark' ? '라이트모드' : '다크모드';
+    }
+
+    updateText(html.getAttribute('data-theme') || 'light');
+
+    if (themeToggle) {
+      themeToggle.addEventListener('click', () => {
+        const cur = html.getAttribute('data-theme');
+        const next = cur === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        updateText(next);
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

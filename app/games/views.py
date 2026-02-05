@@ -1,12 +1,17 @@
+import json
+from datetime import timedelta
+from functools import wraps
+
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.db.models import Q
-from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth import get_user_model
-from django.http import HttpResponseForbidden, JsonResponse
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db.models import Q
+from django.http import HttpResponseForbidden, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from app.accounts.models import UserProfile
 from app.accounts.views import get_online_users
@@ -19,6 +24,8 @@ from .models import (
     Game,
     GameHistory,
     Move,
+    Report,
+    Sanction,
 )
 
 User = get_user_model()
@@ -530,3 +537,362 @@ def search_users(request):
         )
 
     return JsonResponse({"users": results})
+
+
+# ──────────────────────────────────────────────────────────────────────
+# 신고 API
+# ──────────────────────────────────────────────────────────────────────
+
+
+@login_required
+def submit_report(request):
+    """신고 접수 API"""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST만 허용됩니다."}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "잘못된 요청입니다."}, status=400)
+
+    reported_user_id = data.get("reported_user_id")
+    report_type = data.get("report_type")
+    reason = data.get("reason")
+    description = data.get("description", "")
+    evidence = data.get("evidence", "")
+
+    if not all([reported_user_id, report_type, reason]):
+        return JsonResponse({"error": "필수 항목이 누락되었습니다."}, status=400)
+
+    if int(reported_user_id) == request.user.id:
+        return JsonResponse({"error": "자기 자신을 신고할 수 없습니다."}, status=400)
+
+    reported_user = get_object_or_404(User, id=reported_user_id)
+
+    # 중복 신고 방지 (같은 대상, 24시간 내)
+
+    recent = Report.objects.filter(
+        reporter=request.user,
+        reported_user=reported_user,
+        created_at__gte=timezone.now() - timedelta(hours=24),
+    ).exists()
+    if recent:
+        return JsonResponse(
+            {"error": "이미 최근 24시간 내에 해당 유저를 신고했습니다."}, status=400
+        )
+
+    Report.objects.create(
+        reporter=request.user,
+        reported_user=reported_user,
+        report_type=report_type,
+        reason=reason,
+        description=description,
+        evidence=evidence,
+    )
+
+    return JsonResponse({"success": True, "message": "신고가 접수되었습니다."})
+
+
+# ──────────────────────────────────────────────────────────────────────
+# 관리자 페이지
+# ──────────────────────────────────────────────────────────────────────
+
+
+def staff_required(view_func):
+    """is_staff 데코레이터"""
+
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated or not request.user.is_staff:
+            return HttpResponseForbidden("접근 권한이 없습니다.")
+        return view_func(request, *args, **kwargs)
+
+    return wrapper
+
+
+@staff_required
+def admin_panel(request):
+    """관리자 페이지"""
+
+    pending_count = Report.objects.filter(status="pending").count()
+    total_users = User.objects.count()
+    today = timezone.now().date()
+    today_reports = Report.objects.filter(created_at__date=today).count()
+
+    context = {
+        "pending_count": pending_count,
+        "total_users": total_users,
+        "today_reports": today_reports,
+    }
+    return render(request, "games/admin_panel.html", context)
+
+
+@staff_required
+def admin_reports_api(request):
+    """신고 목록 API"""
+    status_filter = request.GET.get("status", "pending")
+    page = int(request.GET.get("page", 1))
+
+    reports = Report.objects.select_related("reporter", "reported_user", "reviewed_by")
+    if status_filter != "all":
+        reports = reports.filter(status=status_filter)
+
+    paginator = Paginator(reports, 20)
+    page_obj = paginator.get_page(page)
+
+    results = []
+    for r in page_obj:
+        results.append(
+            {
+                "id": r.id,
+                "reporter": r.reporter.first_name or r.reporter.username,
+                "reported_user": r.reported_user.first_name or r.reported_user.username,
+                "reported_user_id": r.reported_user.id,
+                "report_type": r.get_report_type_display(),
+                "reason": r.get_reason_display(),
+                "description": r.description,
+                "evidence": r.evidence,
+                "status": r.status,
+                "status_display": r.get_status_display(),
+                "created_at": r.created_at.strftime("%Y-%m-%d %H:%M"),
+                "reviewed_by": (r.reviewed_by.first_name or r.reviewed_by.username)
+                if r.reviewed_by
+                else None,
+            }
+        )
+
+    return JsonResponse(
+        {
+            "reports": results,
+            "total_pages": paginator.num_pages,
+            "current_page": page_obj.number,
+        }
+    )
+
+
+@staff_required
+def admin_report_action(request, report_id):
+    """신고 처리 API"""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST만 허용됩니다."}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "잘못된 요청입니다."}, status=400)
+
+    report = get_object_or_404(Report, id=report_id)
+    action = data.get("action")  # dismiss, warning, chat_ban, suspend, permanent_ban
+    duration_days = data.get("duration_days")
+    admin_note = data.get("admin_note", "")
+
+    if action == "dismiss":
+        report.status = "dismissed"
+        report.admin_note = admin_note
+        report.reviewed_at = timezone.now()
+        report.reviewed_by = request.user
+        report.save()
+        return JsonResponse({"success": True, "message": "신고를 기각했습니다."})
+
+    # 제재 처리
+    report.status = "reviewed"
+    report.admin_note = admin_note
+    report.reviewed_at = timezone.now()
+    report.reviewed_by = request.user
+    report.save()
+
+    profile, _ = UserProfile.objects.get_or_create(user=report.reported_user)
+    ends_at = None
+
+    if action == "warning":
+        Sanction.objects.create(
+            user=report.reported_user,
+            sanction_type="warning",
+            reason=admin_note or report.get_reason_display(),
+            issued_by=request.user,
+            related_report=report,
+        )
+        return JsonResponse({"success": True, "message": "경고를 부여했습니다."})
+
+    elif action == "chat_ban":
+        days = int(duration_days or 1)
+        ends_at = timezone.now() + timedelta(days=days)
+        profile.chat_banned_until = ends_at
+        profile.save()
+        Sanction.objects.create(
+            user=report.reported_user,
+            sanction_type="chat_ban",
+            reason=admin_note or report.get_reason_display(),
+            duration_days=days,
+            ends_at=ends_at,
+            issued_by=request.user,
+            related_report=report,
+        )
+        return JsonResponse(
+            {"success": True, "message": f"채팅 금지 {days}일을 부여했습니다."}
+        )
+
+    elif action == "suspend":
+        days = int(duration_days or 1)
+        ends_at = timezone.now() + timedelta(days=days)
+        profile.suspended_until = ends_at
+        profile.save()
+        Sanction.objects.create(
+            user=report.reported_user,
+            sanction_type="suspend",
+            reason=admin_note or report.get_reason_display(),
+            duration_days=days,
+            ends_at=ends_at,
+            issued_by=request.user,
+            related_report=report,
+        )
+        return JsonResponse(
+            {"success": True, "message": f"계정 정지 {days}일을 부여했습니다."}
+        )
+
+    elif action == "permanent_ban":
+        profile.is_permanently_banned = True
+        profile.save()
+        Sanction.objects.create(
+            user=report.reported_user,
+            sanction_type="permanent_ban",
+            reason=admin_note or report.get_reason_display(),
+            issued_by=request.user,
+            related_report=report,
+        )
+        return JsonResponse({"success": True, "message": "영구 정지를 부여했습니다."})
+
+    return JsonResponse({"error": "잘못된 액션입니다."}, status=400)
+
+
+@staff_required
+def admin_users_api(request):
+    """유저 검색 API"""
+
+    query = request.GET.get("q", "").strip()
+    if not query:
+        return JsonResponse({"users": []})
+
+    users = User.objects.filter(
+        Q(username__icontains=query) | Q(first_name__icontains=query)
+    )[:20]
+
+    results = []
+    for u in users:
+        try:
+            profile = u.profile
+            rating = profile.rating
+            total_games = profile.total_games
+            chat_banned = bool(
+                profile.chat_banned_until and profile.chat_banned_until > timezone.now()
+            )
+            suspended = bool(
+                profile.suspended_until and profile.suspended_until > timezone.now()
+            )
+            permanently_banned = profile.is_permanently_banned
+        except UserProfile.DoesNotExist:
+            rating = 1000
+            total_games = 0
+            chat_banned = False
+            suspended = False
+            permanently_banned = False
+
+        sanctions = Sanction.objects.filter(user=u).order_by("-starts_at")[:5]
+        sanction_list = [
+            {
+                "type": s.get_sanction_type_display(),
+                "reason": s.reason[:50],
+                "date": s.starts_at.strftime("%Y-%m-%d"),
+                "ends_at": s.ends_at.strftime("%Y-%m-%d %H:%M")
+                if s.ends_at
+                else "영구",
+            }
+            for s in sanctions
+        ]
+
+        results.append(
+            {
+                "id": u.id,
+                "username": u.username,
+                "nickname": u.first_name or u.username,
+                "rating": rating,
+                "total_games": total_games,
+                "is_staff": u.is_staff,
+                "chat_banned": chat_banned,
+                "suspended": suspended,
+                "permanently_banned": permanently_banned,
+                "sanctions": sanction_list,
+                "report_count": Report.objects.filter(reported_user=u).count(),
+            }
+        )
+
+    return JsonResponse({"users": results})
+
+
+@staff_required
+def admin_user_sanction(request, user_id):
+    """유저 직접 제재 API"""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST만 허용됩니다."}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "잘못된 요청입니다."}, status=400)
+
+    target_user = get_object_or_404(User, id=user_id)
+    action = data.get("action")
+    duration_days = data.get("duration_days")
+    reason = data.get("reason", "관리자 직접 제재")
+
+    profile, _ = UserProfile.objects.get_or_create(user=target_user)
+
+    if action == "chat_ban":
+        days = int(duration_days or 1)
+        ends_at = timezone.now() + timedelta(days=days)
+        profile.chat_banned_until = ends_at
+        profile.save()
+        Sanction.objects.create(
+            user=target_user,
+            sanction_type="chat_ban",
+            reason=reason,
+            duration_days=days,
+            ends_at=ends_at,
+            issued_by=request.user,
+        )
+        return JsonResponse({"success": True, "message": f"채팅 금지 {days}일"})
+
+    elif action == "suspend":
+        days = int(duration_days or 1)
+        ends_at = timezone.now() + timedelta(days=days)
+        profile.suspended_until = ends_at
+        profile.save()
+        Sanction.objects.create(
+            user=target_user,
+            sanction_type="suspend",
+            reason=reason,
+            duration_days=days,
+            ends_at=ends_at,
+            issued_by=request.user,
+        )
+        return JsonResponse({"success": True, "message": f"계정 정지 {days}일"})
+
+    elif action == "permanent_ban":
+        profile.is_permanently_banned = True
+        profile.save()
+        Sanction.objects.create(
+            user=target_user,
+            sanction_type="permanent_ban",
+            reason=reason,
+            issued_by=request.user,
+        )
+        return JsonResponse({"success": True, "message": "영구 정지"})
+
+    elif action == "unsanction":
+        profile.chat_banned_until = None
+        profile.suspended_until = None
+        profile.is_permanently_banned = False
+        profile.save()
+        return JsonResponse({"success": True, "message": "제재를 해제했습니다."})
+
+    return JsonResponse({"error": "잘못된 액션입니다."}, status=400)
