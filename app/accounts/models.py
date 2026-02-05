@@ -38,6 +38,13 @@ class UserProfile(models.Model):
     wins = models.IntegerField(default=0, verbose_name="승리")
     losses = models.IntegerField(default=0, verbose_name="패배")
     rating = models.IntegerField(default=INITIAL_RATING, verbose_name="레이팅")
+    chat_banned_until = models.DateTimeField(
+        null=True, blank=True, verbose_name="채팅 금지 만료"
+    )
+    suspended_until = models.DateTimeField(
+        null=True, blank=True, verbose_name="계정 정지 만료"
+    )
+    is_permanently_banned = models.BooleanField(default=False, verbose_name="영구 정지")
 
     class Meta:
         verbose_name = "사용자 프로필"

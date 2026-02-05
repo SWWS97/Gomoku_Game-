@@ -22,7 +22,7 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path("sw-omokjomok-manage/", admin.site.urls),
     path(
         "", RedirectView.as_view(pattern_name="account_login", permanent=False)
     ),  # 접속시 바로 로그인 페이지로 가게 (allauth 사용)
@@ -34,7 +34,10 @@ urlpatterns = [
     # path("accounts/", include("django.contrib.auth.urls")),  # allauth 사용하므로 주석 처리
 ]
 
+# 개발 환경: Daphne에서 정적 파일 서빙
 if settings.DEBUG:
-    urlpatterns += static(
-        settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0]
-    )
+    # 프로젝트 static/ (개발 소스 - 수정 즉시 반영)
+    for static_dir in settings.STATICFILES_DIRS:
+        urlpatterns += static(settings.STATIC_URL, document_root=static_dir)
+    # collectstatic 결과물 (Django admin 등 서드파티 정적 파일)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
