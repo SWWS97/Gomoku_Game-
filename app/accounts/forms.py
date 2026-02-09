@@ -2,7 +2,9 @@ import os
 import uuid
 from datetime import timedelta
 
+import boto3
 from django import forms
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.core.files.base import ContentFile
@@ -10,6 +12,28 @@ from django.core.validators import EmailValidator
 from django.utils import timezone
 
 from .models import NicknameChangeLog, UserProfile
+
+
+def upload_to_oci(file_content: bytes, filename: str, content_type: str) -> str:
+    """Oracle Object Storage에 직접 업로드 (put_object 사용)"""
+    s3_client = boto3.client(
+        "s3",
+        aws_access_key_id=settings.OCI_ACCESS_KEY,
+        aws_secret_access_key=settings.OCI_SECRET_KEY,
+        endpoint_url=f"https://{settings.OCI_NAMESPACE}.compat.objectstorage.{settings.OCI_REGION}.oraclecloud.com",
+        region_name=settings.OCI_REGION,
+    )
+
+    s3_client.put_object(
+        Bucket=settings.OCI_BUCKET_NAME,
+        Key=filename,
+        Body=file_content,
+        ContentLength=len(file_content),
+        ContentType=content_type,
+        ACL="public-read",
+    )
+
+    return filename
 
 User = get_user_model()
 
@@ -298,15 +322,23 @@ class ProfileEditForm(forms.Form):
             # 기존 이미지 삭제 후 새 이미지 저장
             if profile.profile_image:
                 profile.profile_image.delete(save=False)
-            # Oracle Object Storage는 Content-Length가 필수이므로
-            # 파일 내용을 읽어서 ContentFile로 저장
+
             file_content = profile_image.read()
             file_name = profile_image.name
             ext = os.path.splitext(file_name)[1].lower()
             new_filename = f"profiles/{uuid.uuid4().hex}{ext}"
-            profile.profile_image.save(
-                new_filename, ContentFile(file_content), save=True
-            )
+
+            # Oracle Object Storage 사용 시 직접 업로드 (Content-Length 필수)
+            if getattr(settings, "OCI_ACCESS_KEY", ""):
+                content_type = profile_image.content_type or "image/jpeg"
+                upload_to_oci(file_content, new_filename, content_type)
+                profile.profile_image.name = new_filename
+                profile.save()
+            else:
+                # 로컬 개발 환경
+                profile.profile_image.save(
+                    new_filename, ContentFile(file_content), save=True
+                )
 
         # 닉네임 변경
         if nickname and nickname != self.user.first_name:
