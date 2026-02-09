@@ -401,21 +401,25 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             else:
                 white_time = max(0, white_time - int(elapsed))
 
-        # 플레이어 레이팅 및 총 게임 수 조회
+        # 플레이어 레이팅, 총 게임 수, 프로필 이미지 조회
         black_rating = INITIAL_RATING
         white_rating = INITIAL_RATING
         black_total_games = 0
         white_total_games = 0
+        black_profile_image = "/static/images/default_profile.svg"
+        white_profile_image = "/static/images/default_profile.svg"
         if game.black:
             black_profile = UserProfile.objects.filter(user=game.black).first()
             if black_profile:
                 black_rating = black_profile.rating
                 black_total_games = black_profile.total_games
+                black_profile_image = black_profile.profile_image_url
         if game.white:
             white_profile = UserProfile.objects.filter(user=game.white).first()
             if white_profile:
                 white_rating = white_profile.rating
                 white_total_games = white_profile.total_games
+                white_profile_image = white_profile.profile_image_url
 
         return {
             "board": game.board,
@@ -434,6 +438,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             "white_rating": white_rating,
             "black_total_games": black_total_games,
             "white_total_games": white_total_games,
+            "black_profile_image": black_profile_image,
+            "white_profile_image": white_profile_image,
         }
 
     @database_sync_to_async
@@ -1333,6 +1339,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                             "message": filtered_message,
                             "rating": profile_data["rating"],
                             "total_games": profile_data["total_games"],
+                            "profile_image": profile_data.get(
+                                "profile_image", "/static/images/default_profile.svg"
+                            ),
                         },
                     )
         except Exception as e:
@@ -1350,6 +1359,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                     "is_mine": event["sender_id"] == self.user_id,
                     "rating": event.get("rating", INITIAL_RATING),
                     "total_games": event.get("total_games", 0),
+                    "profile_image": event.get(
+                        "profile_image", "/static/images/default_profile.svg"
+                    ),
                 }
             )
         except Exception as e:
@@ -1401,6 +1413,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                     "status": status,
                     "rating": profile_data.get("rating", INITIAL_RATING),
                     "total_games": profile_data.get("total_games", 0),
+                    "profile_image": profile_data.get(
+                        "profile_image", "/static/images/default_profile.svg"
+                    ),
                 }
             )
 
@@ -1408,13 +1423,14 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def get_users_ratings(self, user_ids: list[int]) -> dict[int, dict]:
-        """여러 사용자의 RP 및 총 게임 수 조회"""
+        """여러 사용자의 RP, 총 게임 수, 프로필 이미지 URL 조회"""
         result = {}
         profiles = UserProfile.objects.filter(user_id__in=user_ids)
         for profile in profiles:
             result[profile.user_id] = {
                 "rating": profile.rating,
                 "total_games": profile.total_games,
+                "profile_image": profile.profile_image_url,
             }
         return result
 
@@ -1480,7 +1496,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             created_at__gte=cutoff_time
         ).select_related("user")[:100]
 
-        # 메시지 작성자들의 RP 및 총 게임 수 조회
+        # 메시지 작성자들의 RP, 총 게임 수, 프로필 이미지 조회
         user_ids = list(set(msg.user_id for msg in messages))
         profiles_data = {}
         if user_ids:
@@ -1489,6 +1505,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                 profiles_data[profile.user_id] = {
                     "rating": profile.rating,
                     "total_games": profile.total_games,
+                    "profile_image": profile.profile_image_url,
                 }
 
         return [
@@ -1501,6 +1518,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                     "rating", INITIAL_RATING
                 ),
                 "total_games": profiles_data.get(msg.user_id, {}).get("total_games", 0),
+                "profile_image": profiles_data.get(msg.user_id, {}).get(
+                    "profile_image", "/static/images/default_profile.svg"
+                ),
             }
             for msg in messages
         ]
@@ -1529,9 +1549,17 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def get_user_rating(self, user_id: int) -> dict:
-        """사용자 RP 및 총 게임 수 조회"""
+        """사용자 RP, 총 게임 수, 프로필 이미지 URL 조회"""
         try:
             profile = UserProfile.objects.get(user_id=user_id)
-            return {"rating": profile.rating, "total_games": profile.total_games}
+            return {
+                "rating": profile.rating,
+                "total_games": profile.total_games,
+                "profile_image": profile.profile_image_url,
+            }
         except UserProfile.DoesNotExist:
-            return {"rating": INITIAL_RATING, "total_games": 0}
+            return {
+                "rating": INITIAL_RATING,
+                "total_games": 0,
+                "profile_image": "/static/images/default_profile.svg",
+            }
