@@ -35,6 +35,7 @@ def upload_to_oci(file_content: bytes, filename: str, content_type: str) -> str:
 
     return filename
 
+
 User = get_user_model()
 
 
