@@ -5,15 +5,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('accounts', '0004_userprofile_chat_banned_until_and_more'),
+        ("accounts", "0004_userprofile_chat_banned_until_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userprofile',
-            name='profile_image',
-            field=models.ImageField(blank=True, null=True, upload_to=app.accounts.models.profile_image_path, verbose_name='프로필 이미지'),
+            model_name="userprofile",
+            name="profile_image",
+            field=models.ImageField(
+                blank=True,
+                null=True,
+                upload_to=app.accounts.models.profile_image_path,
+                verbose_name="프로필 이미지",
+            ),
         ),
     ]

@@ -66,7 +66,9 @@ def ProfileEditView(request):
     else:
         form = ProfileEditForm(user=request.user)
 
-    return render(request, "account/profile_edit.html", {"form": form, "profile": profile})
+    return render(
+        request, "account/profile_edit.html", {"form": form, "profile": profile}
+    )
 
 
 def user_profile(request, username):
