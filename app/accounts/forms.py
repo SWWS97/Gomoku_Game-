@@ -1,10 +1,11 @@
 import os
-import tempfile
 import uuid
 from datetime import timedelta
 
-import boto3
-from botocore.config import Config
+import requests
+from botocore.auth import SigV4Auth
+from botocore.awsrequest import AWSRequest
+from botocore.credentials import Credentials
 from django import forms
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -17,36 +18,38 @@ from .models import NicknameChangeLog, UserProfile
 
 
 def upload_to_oci(file_content: bytes, filename: str, content_type: str) -> str:
-    """Oracle Object Storage에 직접 업로드 (임시 파일 사용)"""
-    # Oracle OCI S3 호환 설정
-    config = Config(
-        signature_version="s3v4",
-        s3={"addressing_style": "path"},
+    """Oracle Object Storage에 직접 HTTP PUT 요청으로 업로드"""
+    # URL 생성
+    url = (
+        f"https://{settings.OCI_NAMESPACE}.compat.objectstorage."
+        f"{settings.OCI_REGION}.oraclecloud.com/"
+        f"{settings.OCI_BUCKET_NAME}/{filename}"
     )
 
-    s3_client = boto3.client(
-        "s3",
-        aws_access_key_id=settings.OCI_ACCESS_KEY,
-        aws_secret_access_key=settings.OCI_SECRET_KEY,
-        endpoint_url=f"https://{settings.OCI_NAMESPACE}.compat.objectstorage.{settings.OCI_REGION}.oraclecloud.com",
-        region_name=settings.OCI_REGION,
-        config=config,
+    # AWS SigV4 서명 생성
+    credentials = Credentials(
+        access_key=settings.OCI_ACCESS_KEY,
+        secret_key=settings.OCI_SECRET_KEY,
     )
 
-    # 임시 파일에 저장 후 업로드 (Content-Length 자동 계산)
-    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-        tmp_file.write(file_content)
-        tmp_path = tmp_file.name
+    headers = {
+        "Content-Type": content_type,
+        "Content-Length": str(len(file_content)),
+    }
 
-    try:
-        s3_client.upload_file(
-            tmp_path,
-            settings.OCI_BUCKET_NAME,
-            filename,
-            ExtraArgs={"ContentType": content_type},
-        )
-    finally:
-        os.unlink(tmp_path)  # 임시 파일 삭제
+    # AWS 서명용 요청 생성
+    aws_request = AWSRequest(method="PUT", url=url, data=file_content, headers=headers)
+    SigV4Auth(credentials, "s3", settings.OCI_REGION).add_auth(aws_request)
+
+    # 실제 HTTP 요청
+    response = requests.put(
+        url,
+        data=file_content,
+        headers=dict(aws_request.headers),
+    )
+
+    if response.status_code not in (200, 201):
+        raise Exception(f"OCI upload failed: {response.status_code} - {response.text}")
 
     return filename
 
