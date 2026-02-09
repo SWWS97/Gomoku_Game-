@@ -41,3 +41,6 @@ if settings.DEBUG:
         urlpatterns += static(settings.STATIC_URL, document_root=static_dir)
     # collectstatic 결과물 (Django admin 등 서드파티 정적 파일)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    # 미디어 파일 (로컬 개발용 - 프로덕션에서는 Oracle Object Storage 사용)
+    if hasattr(settings, "MEDIA_ROOT"):
+        urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

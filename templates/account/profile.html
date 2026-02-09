@@ -68,10 +68,43 @@
       transition: background 0.3s ease, border-color 0.3s ease;
     }
 
-    .header h1 {
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .profile-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .profile-info h1 {
       margin: 0;
-      font-size: 28px;
+      font-size: 24px;
       color: var(--border);
+    }
+
+    .profile-rating {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .rating-value {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-secondary);
     }
 
     .header-actions {
@@ -310,7 +343,15 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>{{ profile_user.first_name|default:profile_user.username }}님의 프로필</h1>
+      <div class="profile-header">
+        <img src="{{ profile.profile_image_url }}" alt="프로필 이미지" class="profile-avatar">
+        <div class="profile-info">
+          <h1>{{ profile_user.first_name|default:profile_user.username }}</h1>
+          <div class="profile-rating">
+            <span class="rating-value">{{ profile.rating }} RP</span>
+          </div>
+        </div>
+      </div>
       <div class="header-actions">
         <a href="{% url 'games:lobby' %}" class="btn">로비로</a>
         <button class="theme-toggle" id="theme-toggle">다크모드</button>
@@ -426,6 +467,35 @@
     }
   })();
   </script>
+
+<!-- Lobby BGM -->
+<audio id="bgm-lobby" loop preload="auto">
+  <source src="/static/audio/lobby.mp3" type="audio/mpeg">
+</audio>
+<script>
+(function() {
+  const bgm = document.getElementById('bgm-lobby');
+  const enabled = localStorage.getItem('bgm-enabled') !== 'false';
+  const volume = parseFloat(localStorage.getItem('bgm-volume') || '0.3');
+  if (!enabled || !bgm) return;
+  bgm.volume = volume;
+  if (sessionStorage.getItem('bgm-interacted')) {
+    bgm.play().catch(function(){});
+  } else {
+    function start() {
+      sessionStorage.setItem('bgm-interacted', '1');
+      bgm.volume = volume;
+      bgm.play().catch(function(){});
+      document.removeEventListener('click', start);
+      document.removeEventListener('touchstart', start);
+      document.removeEventListener('keydown', start);
+    }
+    document.addEventListener('click', start);
+    document.addEventListener('touchstart', start);
+    document.addEventListener('keydown', start);
+  }
+})();
+</script>
 
 {% include "includes/heartbeat.html" %}
 </body>

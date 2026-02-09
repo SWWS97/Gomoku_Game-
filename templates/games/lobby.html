@@ -853,6 +853,19 @@
       margin-right: 2px;
     }
 
+    .user-profile-img {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 2px solid #e0e0e0;
+    }
+
+    [data-theme="dark"] .user-profile-img {
+      border-color: #4b5563;
+    }
+
     .user-badge:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -1623,9 +1636,25 @@
 
     .chat-message {
       display: flex;
+      flex-direction: row;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .chat-profile-img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 2px solid var(--line);
+    }
+
+    .chat-content {
+      display: flex;
       flex-direction: column;
       gap: 4px;
-      align-items: flex-start;
+      min-width: 0;
     }
 
     .chat-message .sender {
@@ -1659,6 +1688,10 @@
     }
 
     .chat-message.mine {
+      flex-direction: row-reverse;
+    }
+
+    .chat-message.mine .chat-content {
       align-items: flex-end;
     }
 
@@ -2252,6 +2285,16 @@
       border-radius: 16px;
       border: 1px solid rgba(74, 222, 128, 0.3);
       box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .opponent-profile-img {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid rgba(74, 222, 128, 0.5);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      margin-bottom: 0.5rem;
     }
 
     .opponent-info p:first-child {
@@ -3041,6 +3084,7 @@
       </div>
 
       <div class="opponent-info">
+        <img id="opponent-profile-img" src="/static/images/default_profile.svg" alt="상대방" class="opponent-profile-img">
         <p style="font-size: 0.9rem; color: #666; margin: 0;">상대방</p>
         <p class="opponent-nickname">
           <span id="opponent-tier"></span>
@@ -3238,10 +3282,10 @@
           } else if (data.type === "chat_history") {
             // 최근 24시간 채팅 기록 로드
             data.messages.forEach(msg => {
-              addChatMessage(msg.sender, msg.message, msg.is_mine, msg.rating || 1000, msg.total_games || 0, msg.sender_id || null);
+              addChatMessage(msg.sender, msg.message, msg.is_mine, msg.rating || 1000, msg.total_games || 0, msg.sender_id || null, msg.profile_image || null);
             });
           } else if (data.type === "chat_message") {
-            addChatMessage(data.sender, data.message, data.is_mine, data.rating || 1000, data.total_games || 0, data.sender_id || null);
+            addChatMessage(data.sender, data.message, data.is_mine, data.rating || 1000, data.total_games || 0, data.sender_id || null, data.profile_image || null);
           } else if (data.type === "chat_error") {
             if (window.showToast) {
               window.showToast(data.message, "error");
@@ -3273,6 +3317,13 @@
       users.forEach(user => {
         const badge = document.createElement("div");
         badge.className = "user-badge";
+
+        // 프로필 이미지
+        const profileImg = document.createElement("img");
+        profileImg.className = "user-profile-img";
+        profileImg.src = user.profile_image || "/static/images/default_profile.svg";
+        profileImg.alt = user.nickname;
+        badge.appendChild(profileImg);
 
         // 티어 뱃지 추가 (total_games가 5 미만이면 "배치중" 표시)
         const tierBadge = document.createElement("span");
@@ -3410,9 +3461,18 @@
     const chatSendBtn = document.getElementById("chat-send-btn");
 
     // 채팅 메시지 추가 함수
-    window.addChatMessage = function(sender, message, isMine, rating = 1000, totalGames = 999, senderId = null) {
+    window.addChatMessage = function(sender, message, isMine, rating = 1000, totalGames = 999, senderId = null, profileImage = null) {
       const messageDiv = document.createElement("div");
       messageDiv.className = isMine ? "chat-message mine" : "chat-message";
+
+      // 프로필 이미지
+      const profileImg = document.createElement("img");
+      profileImg.className = "chat-profile-img";
+      profileImg.src = profileImage || "/static/images/default_profile.svg";
+      profileImg.alt = sender;
+
+      const contentDiv = document.createElement("div");
+      contentDiv.className = "chat-content";
 
       const senderSpan = document.createElement("div");
       senderSpan.className = "sender";
@@ -3431,8 +3491,11 @@
       textDiv.className = "text";
       textDiv.textContent = message;
 
-      messageDiv.appendChild(senderSpan);
-      messageDiv.appendChild(textDiv);
+      contentDiv.appendChild(senderSpan);
+      contentDiv.appendChild(textDiv);
+
+      messageDiv.appendChild(profileImg);
+      messageDiv.appendChild(contentDiv);
 
       // 내 메시지가 아닌 경우 신고 버튼 추가
       if (!isMine && senderId) {
@@ -3718,6 +3781,12 @@
       opponentTier.innerHTML = getTierBadgeHTML(opponent.rating, opponent.total_games || 0);
       opponentNickname.textContent = opponent.nickname;
       opponentRating.textContent = opponent.rating;
+
+      // 상대방 프로필 이미지
+      const opponentProfileImg = document.getElementById("opponent-profile-img");
+      if (opponentProfileImg) {
+        opponentProfileImg.src = opponent.profile_image || "/static/images/default_profile.svg";
+      }
 
       // 수락 카운트다운 시작
       acceptTimeLeft = timeout;

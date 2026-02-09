@@ -7,7 +7,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.validators import EmailValidator
 from django.utils import timezone
 
-from .models import NicknameChangeLog
+from .models import NicknameChangeLog, UserProfile
 
 User = get_user_model()
 
@@ -120,9 +120,20 @@ class SocialSignupForm(forms.Form):
 
 class ProfileEditForm(forms.Form):
     """
-    프로필 수정 폼 (닉네임 + 이메일 + 비밀번호)
+    프로필 수정 폼 (프로필 이미지 + 닉네임 + 이메일 + 비밀번호)
     닉네임은 하루에 한번만 변경 가능
     """
+
+    profile_image = forms.ImageField(
+        required=False,
+        label="프로필 이미지",
+        widget=forms.FileInput(attrs={"accept": "image/*"}),
+    )
+
+    remove_profile_image = forms.BooleanField(
+        required=False,
+        label="프로필 이미지 삭제",
+    )
 
     nickname = forms.CharField(
         max_length=30,
@@ -217,6 +228,23 @@ class ProfileEditForm(forms.Form):
 
         return nickname
 
+    def clean_profile_image(self):
+        """프로필 이미지 검증 (5MB 제한, 이미지 형식만)"""
+        image = self.cleaned_data.get("profile_image")
+        if image:
+            # 파일 크기 제한 (5MB)
+            if image.size > 5 * 1024 * 1024:
+                raise forms.ValidationError("이미지 파일은 5MB 이하만 가능합니다.")
+
+            # 파일 형식 검증
+            allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+            if image.content_type not in allowed_types:
+                raise forms.ValidationError(
+                    "JPG, PNG, GIF, WEBP 형식의 이미지만 업로드 가능합니다."
+                )
+
+        return image
+
     def clean(self):
         """비밀번호 변경 검증"""
         cleaned_data = super().clean()
@@ -251,6 +279,25 @@ class ProfileEditForm(forms.Form):
         nickname = self.cleaned_data.get("nickname", "").strip()
         email = self.cleaned_data.get("email", "").strip()
         new_password1 = self.cleaned_data.get("new_password1")
+        profile_image = self.cleaned_data.get("profile_image")
+        remove_profile_image = self.cleaned_data.get("remove_profile_image")
+
+        # UserProfile 가져오기 또는 생성
+        profile, _ = UserProfile.objects.get_or_create(user=self.user)
+
+        # 프로필 이미지 처리
+        if remove_profile_image:
+            # 기존 이미지 삭제
+            if profile.profile_image:
+                profile.profile_image.delete(save=False)
+                profile.profile_image = None
+                profile.save()
+        elif profile_image:
+            # 기존 이미지 삭제 후 새 이미지 저장
+            if profile.profile_image:
+                profile.profile_image.delete(save=False)
+            profile.profile_image = profile_image
+            profile.save()
 
         # 닉네임 변경
         if nickname and nickname != self.user.first_name:

@@ -19,6 +19,8 @@ dependencies = [
   "celery>=5.4", # 비동기 작업 큐
   "celery-types>=0.24.0",
   "typing-extensions>=4.15.0",
+  "django-storages[s3]>=1.14", # S3 호환 스토리지 (Oracle Object Storage)
+  "Pillow>=10.0", # 이미지 처리
 ]
 
 # 개발 전용 패키지들은 별도 그룹으로
