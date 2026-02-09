@@ -1,9 +1,11 @@
+import os
 import uuid
 from datetime import timedelta
 
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
+from django.core.files.base import ContentFile
 from django.core.validators import EmailValidator
 from django.utils import timezone
 
@@ -296,8 +298,15 @@ class ProfileEditForm(forms.Form):
             # 기존 이미지 삭제 후 새 이미지 저장
             if profile.profile_image:
                 profile.profile_image.delete(save=False)
-            profile.profile_image = profile_image
-            profile.save()
+            # Oracle Object Storage는 Content-Length가 필수이므로
+            # 파일 내용을 읽어서 ContentFile로 저장
+            file_content = profile_image.read()
+            file_name = profile_image.name
+            ext = os.path.splitext(file_name)[1].lower()
+            new_filename = f"profiles/{uuid.uuid4().hex}{ext}"
+            profile.profile_image.save(
+                new_filename, ContentFile(file_content), save=True
+            )
 
         # 닉네임 변경
         if nickname and nickname != self.user.first_name:
