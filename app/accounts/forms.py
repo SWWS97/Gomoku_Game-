@@ -1,8 +1,10 @@
 import os
 import uuid
 from datetime import timedelta
+from io import BytesIO
 
 import boto3
+from botocore.config import Config
 from django import forms
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -16,21 +18,29 @@ from .models import NicknameChangeLog, UserProfile
 
 def upload_to_oci(file_content: bytes, filename: str, content_type: str) -> str:
     """Oracle Object Storage에 직접 업로드 (put_object 사용)"""
+    # Oracle OCI S3 호환 설정
+    config = Config(
+        signature_version="s3v4",
+        s3={"addressing_style": "path"},
+    )
+
     s3_client = boto3.client(
         "s3",
         aws_access_key_id=settings.OCI_ACCESS_KEY,
         aws_secret_access_key=settings.OCI_SECRET_KEY,
         endpoint_url=f"https://{settings.OCI_NAMESPACE}.compat.objectstorage.{settings.OCI_REGION}.oraclecloud.com",
         region_name=settings.OCI_REGION,
+        config=config,
     )
+
+    # BytesIO로 감싸서 Content-Length 자동 계산
+    file_obj = BytesIO(file_content)
 
     s3_client.put_object(
         Bucket=settings.OCI_BUCKET_NAME,
         Key=filename,
-        Body=file_content,
-        ContentLength=len(file_content),
+        Body=file_obj,
         ContentType=content_type,
-        ACL="public-read",
     )
 
     return filename
