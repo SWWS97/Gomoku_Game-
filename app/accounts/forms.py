@@ -1,3 +1,4 @@
+import hashlib
 import os
 import uuid
 from datetime import timedelta
@@ -19,12 +20,13 @@ from .models import NicknameChangeLog, UserProfile
 
 def upload_to_oci(file_content: bytes, filename: str, content_type: str) -> str:
     """Oracle Object Storage에 직접 HTTP PUT 요청으로 업로드"""
+
     # URL 생성
-    url = (
-        f"https://{settings.OCI_NAMESPACE}.compat.objectstorage."
-        f"{settings.OCI_REGION}.oraclecloud.com/"
-        f"{settings.OCI_BUCKET_NAME}/{filename}"
-    )
+    host = f"{settings.OCI_NAMESPACE}.compat.objectstorage.{settings.OCI_REGION}.oraclecloud.com"
+    url = f"https://{host}/{settings.OCI_BUCKET_NAME}/{filename}"
+
+    # Content SHA256 해시 (AWS S3 호환 필수)
+    content_sha256 = hashlib.sha256(file_content).hexdigest()
 
     # AWS SigV4 서명 생성
     credentials = Credentials(
@@ -33,8 +35,10 @@ def upload_to_oci(file_content: bytes, filename: str, content_type: str) -> str:
     )
 
     headers = {
+        "Host": host,
         "Content-Type": content_type,
         "Content-Length": str(len(file_content)),
+        "x-amz-content-sha256": content_sha256,
     }
 
     # AWS 서명용 요청 생성
