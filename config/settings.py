@@ -1,8 +1,8 @@
-# config/settings.py
 import os
 from pathlib import Path
 
 import environ
+from boto3.s3.transfer import TransferConfig
 
 # ──────────────────────────────────────────────────────────────────────
 # 기본 경로 / env 로딩
@@ -201,6 +201,12 @@ OCI_REGION = env("OCI_REGION", default="ap-chuncheon-1")
 
 if OCI_ACCESS_KEY and OCI_SECRET_KEY and OCI_NAMESPACE:
     # Oracle Object Storage 사용 (S3 호환 API)
+
+    # Oracle OCI는 멀티파트 업로드 시 Content-Length 필수이므로 단일 파트 업로드 강제
+    OCI_TRANSFER_CONFIG = TransferConfig(
+        multipart_threshold=1024 * 1024 * 1024,  # 1GB - 사실상 멀티파트 비활성화
+        use_threads=False,
+    )
     STORAGES = {
         "default": {
             "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
@@ -212,6 +218,7 @@ if OCI_ACCESS_KEY and OCI_SECRET_KEY and OCI_NAMESPACE:
                 "region_name": OCI_REGION,
                 "default_acl": "public-read",
                 "querystring_auth": False,  # URL에 인증 파라미터 제외 (public 접근)
+                "transfer_config": OCI_TRANSFER_CONFIG,
             },
         },
         "staticfiles": {
