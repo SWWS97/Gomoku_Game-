@@ -40,9 +40,12 @@ def SignUpView(request):
 
 @login_required
 def ProfileEditView(request):
-    """프로필 수정 뷰 (닉네임 + 비밀번호)"""
+    """프로필 수정 뷰 (프로필 이미지 + 닉네임 + 비밀번호)"""
+    # 현재 유저의 프로필 가져오기
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
     if request.method == "POST":
-        form = ProfileEditForm(request.POST, user=request.user)
+        form = ProfileEditForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             # 비밀번호 변경 여부 체크
             password_changed = bool(form.cleaned_data.get("new_password1"))
@@ -63,7 +66,7 @@ def ProfileEditView(request):
     else:
         form = ProfileEditForm(user=request.user)
 
-    return render(request, "account/profile_edit.html", {"form": form})
+    return render(request, "account/profile_edit.html", {"form": form, "profile": profile})
 
 
 def user_profile(request, username):

@@ -1,5 +1,15 @@
+import os
+import uuid
+
 from django.conf import settings
 from django.db import models
+
+
+def profile_image_path(instance, filename):
+    """프로필 이미지 저장 경로 생성 (UUID로 파일명 변경)"""
+    ext = os.path.splitext(filename)[1].lower()
+    new_filename = f"{uuid.uuid4().hex}{ext}"
+    return f"profiles/{new_filename}"
 
 
 # 레이팅 시스템 상수
@@ -38,6 +48,12 @@ class UserProfile(models.Model):
     wins = models.IntegerField(default=0, verbose_name="승리")
     losses = models.IntegerField(default=0, verbose_name="패배")
     rating = models.IntegerField(default=INITIAL_RATING, verbose_name="레이팅")
+    profile_image = models.ImageField(
+        upload_to=profile_image_path,
+        null=True,
+        blank=True,
+        verbose_name="프로필 이미지",
+    )
     chat_banned_until = models.DateTimeField(
         null=True, blank=True, verbose_name="채팅 금지 만료"
     )
@@ -64,6 +80,13 @@ class UserProfile(models.Model):
         if self.total_games == 0:
             return 0.0
         return round((self.wins / self.total_games) * 100, 1)
+
+    @property
+    def profile_image_url(self):
+        """프로필 이미지 URL (없으면 기본 이미지)"""
+        if self.profile_image:
+            return self.profile_image.url
+        return "/static/images/default_profile.svg"
 
 
 class NicknameChangeLog(models.Model):

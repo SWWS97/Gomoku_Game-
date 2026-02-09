@@ -29,6 +29,7 @@ class QueueEntry:
     username: str
     joined_at: float  # timestamp
     total_games: int = 0  # 총 게임 수 (배치 여부 판단용)
+    profile_image: str = ""  # 프로필 이미지 URL
 
 
 @dataclass
@@ -75,6 +76,7 @@ class MatchmakingService:
         nickname: str,
         username: str,
         total_games: int = 0,
+        profile_image: str = "",
     ) -> bool:
         """큐에 사용자 추가"""
         # 이미 큐에 있거나 매칭 중이면 거부
@@ -89,6 +91,7 @@ class MatchmakingService:
             username=username,
             joined_at=time.time(),
             total_games=total_games,
+            profile_image=profile_image,
         )
         return True
 

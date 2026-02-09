@@ -49,6 +49,7 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "channels",
+    "storages",  # django-storages (Oracle Object Storage)
     # django-allauth
     "django.contrib.sites",
     "allauth",
@@ -186,6 +187,42 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [
     BASE_DIR / "static",  # 프로젝트 루트의 static 폴더
 ]
+
+# ──────────────────────────────────────────────────────────────────────
+# 미디어 파일 (Oracle Object Storage - S3 호환)
+#   프로필 이미지 등 사용자 업로드 파일
+# ──────────────────────────────────────────────────────────────────────
+# Oracle Object Storage 설정
+OCI_ACCESS_KEY = env("OCI_ACCESS_KEY", default="")
+OCI_SECRET_KEY = env("OCI_SECRET_KEY", default="")
+OCI_BUCKET_NAME = env("OCI_BUCKET_NAME", default="omokjomok-media")
+OCI_NAMESPACE = env("OCI_NAMESPACE", default="")
+OCI_REGION = env("OCI_REGION", default="ap-chuncheon-1")
+
+if OCI_ACCESS_KEY and OCI_SECRET_KEY and OCI_NAMESPACE:
+    # Oracle Object Storage 사용 (S3 호환 API)
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+            "OPTIONS": {
+                "access_key": OCI_ACCESS_KEY,
+                "secret_key": OCI_SECRET_KEY,
+                "bucket_name": OCI_BUCKET_NAME,
+                "endpoint_url": f"https://{OCI_NAMESPACE}.compat.objectstorage.{OCI_REGION}.oraclecloud.com",
+                "region_name": OCI_REGION,
+                "default_acl": "public-read",
+                "querystring_auth": False,  # URL에 인증 파라미터 제외 (public 접근)
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    MEDIA_URL = f"https://{OCI_NAMESPACE}.compat.objectstorage.{OCI_REGION}.oraclecloud.com/{OCI_BUCKET_NAME}/"
+else:
+    # 로컬 개발 환경: 파일시스템 사용
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
 
 # ──────────────────────────────────────────────────────────────────────
 # 기타
