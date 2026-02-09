@@ -1,7 +1,7 @@
 import os
+import tempfile
 import uuid
 from datetime import timedelta
-from io import BytesIO
 
 import boto3
 from botocore.config import Config
@@ -17,7 +17,7 @@ from .models import NicknameChangeLog, UserProfile
 
 
 def upload_to_oci(file_content: bytes, filename: str, content_type: str) -> str:
-    """Oracle Object Storage에 직접 업로드 (put_object 사용)"""
+    """Oracle Object Storage에 직접 업로드 (임시 파일 사용)"""
     # Oracle OCI S3 호환 설정
     config = Config(
         signature_version="s3v4",
@@ -33,15 +33,20 @@ def upload_to_oci(file_content: bytes, filename: str, content_type: str) -> str:
         config=config,
     )
 
-    # BytesIO로 감싸서 Content-Length 자동 계산
-    file_obj = BytesIO(file_content)
+    # 임시 파일에 저장 후 업로드 (Content-Length 자동 계산)
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+        tmp_file.write(file_content)
+        tmp_path = tmp_file.name
 
-    s3_client.put_object(
-        Bucket=settings.OCI_BUCKET_NAME,
-        Key=filename,
-        Body=file_obj,
-        ContentType=content_type,
-    )
+    try:
+        s3_client.upload_file(
+            tmp_path,
+            settings.OCI_BUCKET_NAME,
+            filename,
+            ExtraArgs={"ContentType": content_type},
+        )
+    finally:
+        os.unlink(tmp_path)  # 임시 파일 삭제
 
     return filename
 
