@@ -304,7 +304,9 @@ class ProfileEditForm(forms.Form):
             file_name = profile_image.name
             ext = os.path.splitext(file_name)[1].lower()
             new_filename = f"profiles/{uuid.uuid4().hex}{ext}"
-            profile.profile_image.save(new_filename, ContentFile(file_content), save=True)
+            profile.profile_image.save(
+                new_filename, ContentFile(file_content), save=True
+            )
 
         # 닉네임 변경
         if nickname and nickname != self.user.first_name:
