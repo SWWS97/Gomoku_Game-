@@ -1029,9 +1029,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 "lobby", {"type": "user_status_changed"}
             )
             # 게임 방 목록도 업데이트
-            await self.channel_layer.group_send(
-                "lobby", {"type": "room_list_changed"}
-            )
+            await self.channel_layer.group_send("lobby", {"type": "room_list_changed"})
         except Exception as e:
             print("[WS][notify_lobby_status_change] ERROR:", repr(e))
 
@@ -1345,7 +1343,8 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                             "rating": profile_data["rating"],
                             "total_games": profile_data["total_games"],
                             "profile_image": profile_data.get(
-                                "profile_image", "/static/images/default_profile_green.svg"
+                                "profile_image",
+                                "/static/images/default_profile_green.svg",
                             ),
                         },
                     )
@@ -1603,9 +1602,11 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             online_user_ids.add(user_info["user_id"])
 
         # 대기 중인 게임 (white가 null)
-        waiting_games = Game.objects.filter(white__isnull=True).select_related(
-            "black"
-        ).order_by("-created_at")
+        waiting_games = (
+            Game.objects.filter(white__isnull=True)
+            .select_related("black")
+            .order_by("-created_at")
+        )
 
         games_list = []
         for game in waiting_games:
@@ -1620,14 +1621,16 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                     rating = INITIAL_RATING
                     total_games = 0
 
-                games_list.append({
-                    "id": game.id,
-                    "title": game.title,
-                    "has_password": bool(game.password),
-                    "black_nickname": game.black.first_name or game.black.username,
-                    "black_username": game.black.username,
-                    "black_rating": rating,
-                    "black_total_games": total_games,
-                })
+                games_list.append(
+                    {
+                        "id": game.id,
+                        "title": game.title,
+                        "has_password": bool(game.password),
+                        "black_nickname": game.black.first_name or game.black.username,
+                        "black_username": game.black.username,
+                        "black_rating": rating,
+                        "black_total_games": total_games,
+                    }
+                )
 
         return games_list

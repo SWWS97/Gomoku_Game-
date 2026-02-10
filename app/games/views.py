@@ -35,9 +35,7 @@ def notify_lobby_room_change():
     """로비에 게임 방 목록 변경 알림"""
     try:
         channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            "lobby", {"type": "room_list_changed"}
-        )
+        async_to_sync(channel_layer.group_send)("lobby", {"type": "room_list_changed"})
     except Exception as e:
         print(f"[notify_lobby_room_change] ERROR: {repr(e)}")
 
