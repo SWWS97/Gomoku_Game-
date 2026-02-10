@@ -77,6 +77,8 @@ class Game(models.Model):
             "white_player": self.get_player_name("white"),
             "black_username": self.black.username if self.black else None,
             "white_username": self.white.username if self.white else None,
+            "black_id": self.black_id,
+            "white_id": self.white_id,
         }
 
     def reset_for_new_round(self):

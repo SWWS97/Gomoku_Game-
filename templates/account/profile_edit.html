@@ -55,7 +55,7 @@ window.__playLobbyBgm = true;
         {% if profile.profile_image %}
         <label class="btn-remove">
           {{ form.remove_profile_image }}
-          기본 이미지
+          이미지 삭제
         </label>
         {% endif %}
       </div>
@@ -68,6 +68,22 @@ window.__playLobbyBgm = true;
       </div>
     {% endif %}
     <p class="muted">JPG, PNG, GIF, WEBP (최대 5MB)</p>
+  </div>
+
+  <!-- 기본 아바타 색상 선택 -->
+  <div class="row avatar-color-section">
+    <label>기본 아바타 색상</label>
+    <p class="muted" style="margin-bottom: 10px;">프로필 이미지가 없을 때 사용됩니다</p>
+    <div class="avatar-color-options">
+      {% for value, label in form.default_avatar.field.choices %}
+      <label class="avatar-color-option" data-color="{{ value }}">
+        <input type="radio" name="default_avatar" value="{{ value }}"
+          {% if selected_avatar == value %}checked{% endif %}>
+        <img src="/static/images/default_profile_{{ value }}.svg" alt="{{ label }}">
+        <span class="color-label">{{ label }}</span>
+      </label>
+      {% endfor %}
+    </div>
   </div>
 
   <div class="row">
@@ -308,6 +324,49 @@ window.__playLobbyBgm = true;
     height: 16px;
     cursor: pointer;
   }
+  /* 아바타 색상 선택 */
+  .avatar-color-section {
+    margin-bottom: 1.5rem;
+  }
+  .avatar-color-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .avatar-color-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+  }
+  .avatar-color-option:hover {
+    background: rgba(74, 124, 89, 0.1);
+  }
+  .avatar-color-option input[type="radio"] {
+    display: none;
+  }
+  .avatar-color-option input[type="radio"]:checked + img {
+    box-shadow: 0 0 0 3px #4a7c59;
+  }
+  .avatar-color-option img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    transition: box-shadow 0.2s ease;
+  }
+  .avatar-color-option .color-label {
+    font-size: 11px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  [data-theme="dark"] .avatar-color-option:hover {
+    background: rgba(90, 140, 105, 0.2);
+  }
 </style>
 
 <script>
@@ -329,12 +388,19 @@ document.getElementById('id_profile_image').addEventListener('change', function(
   }
 });
 
-// 이미지 삭제 선택 시 미리보기를 기본 이미지로
+// 현재 선택된 기본 아바타 색상 가져오기
+function getSelectedAvatarColor() {
+  const checked = document.querySelector('input[name="default_avatar"]:checked');
+  return checked ? checked.value : 'green';
+}
+
+// 이미지 삭제 선택 시 미리보기를 선택된 기본 아바타로
 const removeCheckbox = document.getElementById('id_remove_profile_image');
 if (removeCheckbox) {
   removeCheckbox.addEventListener('change', function(e) {
     if (e.target.checked) {
-      document.getElementById('previewImg').src = '/static/images/default_profile.svg';
+      const color = getSelectedAvatarColor();
+      document.getElementById('previewImg').src = `/static/images/default_profile_${color}.svg`;
       document.getElementById('id_profile_image').value = '';
     } else {
       // 체크 해제 시 원래 이미지로 복원
@@ -342,5 +408,22 @@ if (removeCheckbox) {
     }
   });
 }
+
+// 기본 아바타 색상 선택 시 미리보기 업데이트 (커스텀 이미지가 없을 때만)
+const avatarRadios = document.querySelectorAll('input[name="default_avatar"]');
+avatarRadios.forEach(radio => {
+  radio.addEventListener('change', function(e) {
+    const fileInput = document.getElementById('id_profile_image');
+    const removeCheck = document.getElementById('id_remove_profile_image');
+    const hasCustomImage = {% if profile.profile_image %}true{% else %}false{% endif %};
+    const hasNewFile = fileInput && fileInput.files && fileInput.files.length > 0;
+    const isRemoving = removeCheck && removeCheck.checked;
+
+    // 커스텀 이미지가 없거나, 삭제 중이면 미리보기 업데이트
+    if (!hasCustomImage || isRemoving) {
+      document.getElementById('previewImg').src = `/static/images/default_profile_${e.target.value}.svg`;
+    }
+  });
+});
 </script>
 {% endblock %}

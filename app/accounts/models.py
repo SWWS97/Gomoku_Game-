@@ -17,6 +17,18 @@ INITIAL_RATING = 1000  # 초기 레이팅
 MIN_RATING = 800  # 최소 레이팅
 K_FACTOR = 32  # K-factor (레이팅 변동폭)
 
+# 기본 프로필 아바타 색상 옵션
+DEFAULT_AVATAR_CHOICES = [
+    ("green", "초록"),
+    ("blue", "파랑"),
+    ("red", "빨강"),
+    ("purple", "보라"),
+    ("yellow", "노랑"),
+    ("wood", "나무"),
+    ("cyan", "하늘"),
+    ("gray", "회색"),
+]
+
 
 def calculate_elo(winner_rating, loser_rating, k=K_FACTOR):
     """
@@ -54,6 +66,12 @@ class UserProfile(models.Model):
         blank=True,
         verbose_name="프로필 이미지",
     )
+    default_avatar = models.CharField(
+        max_length=20,
+        choices=DEFAULT_AVATAR_CHOICES,
+        default="green",
+        verbose_name="기본 아바타 색상",
+    )
     chat_banned_until = models.DateTimeField(
         null=True, blank=True, verbose_name="채팅 금지 만료"
     )
@@ -83,10 +101,11 @@ class UserProfile(models.Model):
 
     @property
     def profile_image_url(self):
-        """프로필 이미지 URL (없으면 기본 이미지)"""
+        """프로필 이미지 URL (없으면 선택한 기본 아바타 색상)"""
         if self.profile_image:
             return self.profile_image.url
-        return "/static/images/default_profile.svg"
+        color = self.default_avatar or "green"
+        return f"/static/images/default_profile_{color}.svg"
 
 
 class NicknameChangeLog(models.Model):

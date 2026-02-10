@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#d4b781"/>
+      <stop offset="100%" style="stop-color:#b8956a"/>
+    </linearGradient>
+    <radialGradient id="whiteStone" cx="35%" cy="35%" r="60%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="100%" style="stop-color:#d1d5db"/>
+    </radialGradient>
+    <radialGradient id="blackStone" cx="35%" cy="35%" r="60%">
+      <stop offset="0%" style="stop-color:#4b5563"/>
+      <stop offset="100%" style="stop-color:#1f2937"/>
+    </radialGradient>
+  </defs>
+  <circle cx="50" cy="50" r="50" fill="url(#bgGrad)"/>
+  <g stroke="#7b5c3a" stroke-width="0.8" opacity="0.4">
+    <line x1="20" y1="30" x2="80" y2="30"/>
+    <line x1="20" y1="50" x2="80" y2="50"/>
+    <line x1="20" y1="70" x2="80" y2="70"/>
+    <line x1="30" y1="20" x2="30" y2="80"/>
+    <line x1="50" y1="20" x2="50" y2="80"/>
+    <line x1="70" y1="20" x2="70" y2="80"/>
+  </g>
+  <circle cx="30" cy="30" r="9" fill="url(#blackStone)" stroke="#111827" stroke-width="0.5"/>
+  <circle cx="50" cy="50" r="9" fill="url(#blackStone)" stroke="#111827" stroke-width="0.5"/>
+  <circle cx="70" cy="70" r="9" fill="url(#blackStone)" stroke="#111827" stroke-width="0.5"/>
+  <circle cx="50" cy="30" r="9" fill="url(#whiteStone)" stroke="#9ca3af" stroke-width="0.5"/>
+  <circle cx="70" cy="50" r="9" fill="url(#whiteStone)" stroke="#9ca3af" stroke-width="0.5"/>
+</svg>

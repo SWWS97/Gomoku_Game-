@@ -67,7 +67,13 @@ def ProfileEditView(request):
         form = ProfileEditForm(user=request.user)
 
     return render(
-        request, "account/profile_edit.html", {"form": form, "profile": profile}
+        request,
+        "account/profile_edit.html",
+        {
+            "form": form,
+            "profile": profile,
+            "selected_avatar": profile.default_avatar or "green",
+        },
     )
 
 
