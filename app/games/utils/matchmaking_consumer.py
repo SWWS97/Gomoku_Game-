@@ -124,6 +124,9 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
             }
         )
 
+        # 로비에 매칭 상태 변경 알림
+        await self.notify_lobby_matchmaking_change()
+
         # 주기적 업데이트 및 매칭 체크 시작
         self.queue_task = asyncio.create_task(self.queue_update_loop())
 
@@ -141,6 +144,9 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
         self.in_queue = False
 
         await self.send_json({"type": "queue_left"})
+
+        # 로비에 매칭 상태 변경 알림
+        await self.notify_lobby_matchmaking_change()
 
     async def queue_update_loop(self):
         """큐 업데이트 루프 (매초 실행)"""
@@ -363,7 +369,7 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
             return {
                 "rating": INITIAL_RATING,
                 "total_games": 0,
-                "profile_image": "/static/images/default_profile.svg",
+                "profile_image": "/static/images/default_profile_green.svg",
             }
 
     @database_sync_to_async
@@ -394,3 +400,12 @@ class MatchmakingConsumer(AsyncJsonWebsocketConsumer):
         )
 
         return game
+
+    async def notify_lobby_matchmaking_change(self):
+        """로비에 매칭 상태 변경 알림"""
+        try:
+            await self.channel_layer.group_send(
+                "lobby", {"type": "user_status_changed"}
+            )
+        except Exception as e:
+            print(f"[MatchmakingConsumer] notify_lobby error: {repr(e)}")

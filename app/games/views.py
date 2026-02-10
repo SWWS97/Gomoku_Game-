@@ -31,6 +31,17 @@ from .models import (
 User = get_user_model()
 
 
+def notify_lobby_room_change():
+    """로비에 게임 방 목록 변경 알림"""
+    try:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "lobby", {"type": "room_list_changed"}
+        )
+    except Exception as e:
+        print(f"[notify_lobby_room_change] ERROR: {repr(e)}")
+
+
 @login_required
 def lobby(request):
     """게임 로비 - 대기 중인 방 목록 표시"""
@@ -183,6 +194,10 @@ def new_game(request):
         g = Game.objects.create(
             black=request.user, title=title, password=password if password else None
         )
+
+        # 로비에 새 게임 방 알림
+        notify_lobby_room_change()
+
         return redirect("games:room", pk=g.pk)
 
     # GET 요청은 로비로 리다이렉트
@@ -220,12 +235,36 @@ def join_game(request, pk):
             f"game_{game.pk}", {"type": "player_joined"}
         )
 
+        # 로비에 게임 방 목록 변경 알림 (방이 꽉 참)
+        notify_lobby_room_change()
+
     return redirect("games:room", pk=game.pk)
 
 
 def game_room(request, pk):
     game = get_object_or_404(Game, pk=pk)
     return render(request, "games/room.html", {"game": game, "BOARD_SIZE": BOARD_SIZE})
+
+
+def ai_game(request):
+    """AI 대전 게임 페이지"""
+    difficulty = request.GET.get("difficulty", "normal")
+    color = request.GET.get("color", "B")
+
+    # 유효성 검사
+    if difficulty not in ("easy", "normal", "hard"):
+        difficulty = "normal"
+    if color not in ("B", "W"):
+        color = "B"
+
+    return render(
+        request,
+        "games/ai_game.html",
+        {
+            "difficulty": difficulty,
+            "player_color": color,
+        },
+    )
 
 
 @login_required
@@ -258,6 +297,8 @@ def leave_game(request, pk):
         # WebSocket으로 백돌 플레이어에게 알림 (게임 삭제됨)
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(f"game_{pk}", {"type": "game_deleted"})
+        # 로비에 게임 방 목록 변경 알림
+        notify_lobby_room_change()
         return redirect("games:lobby")
 
     # 백돌 플레이어가 나가면 백돌만 제거
@@ -269,6 +310,8 @@ def leave_game(request, pk):
         async_to_sync(channel_layer.group_send)(
             f"game_{pk}", {"type": "broadcast_state"}
         )
+        # 로비에 게임 방 목록 변경 알림 (방이 다시 대기 중으로 전환)
+        notify_lobby_room_change()
         return redirect("games:lobby")
 
     # 참가하지 않은 유저면 그냥 로비로
