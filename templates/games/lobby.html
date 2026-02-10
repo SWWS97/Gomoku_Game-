@@ -133,6 +133,10 @@
       background: linear-gradient(135deg, rgba(240, 180, 41, 0.1), #0f172a);
     }
 
+    [data-theme="dark"] .user-badge.matchmaking {
+      background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), #0f172a);
+    }
+
     [data-theme="dark"] .room-card {
       background: #1e293b;
       border-color: #374151;
@@ -948,6 +952,29 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+    }
+
+    /* RP매칭 중인 사용자 스타일 (보라색) */
+    .user-badge.matchmaking::before {
+      background: #9b59b6;
+      animation: pulse-purple 2s infinite;
+    }
+
+    .user-badge.matchmaking {
+      border-color: #9b59b6;
+      background: linear-gradient(135deg, #f5eef8, #fff);
+    }
+
+    .user-badge.matchmaking .nickname-link {
+      background: linear-gradient(135deg, #8e44ad, #7d3c98);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    @keyframes pulse-purple {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.1); }
     }
 
     /* 진행 중인 게임 배너 */
@@ -2463,6 +2490,87 @@
       cursor: not-allowed;
     }
 
+    /* AI 대전 버튼 */
+    .btn-ai {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      font-weight: 700;
+    }
+
+    .btn-ai:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+
+    [data-theme="dark"] .btn-ai {
+      background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    }
+
+    [data-theme="dark"] .btn-ai:hover {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    /* AI 모달 옵션 */
+    .ai-options {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .option-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .option-group label {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .option-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .option-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: 2px solid var(--card-border);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .option-btn:hover {
+      border-color: #10b981;
+    }
+
+    .option-btn.active {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-color: #10b981;
+      color: white;
+    }
+
+    [data-theme="dark"] .option-btn {
+      background: var(--input-bg);
+      border-color: #374151;
+    }
+
+    [data-theme="dark"] .option-btn:hover {
+      border-color: #4ade80;
+    }
+
+    [data-theme="dark"] .option-btn.active {
+      background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+      border-color: #4ade80;
+    }
+
     /* 초소형 모바일 */
     @media (max-width: 375px) {
       .header {
@@ -2642,6 +2750,7 @@
   </style>
 </head>
 <body>
+  {% csrf_token %}
   <div class="container">
     <div class="header">
       <div class="header-title-row">
@@ -2711,15 +2820,17 @@
         <div style="display: flex; gap: 8px;">
           {% if has_active_game %}
             <button class="btn btn-matchmaking" disabled title="진행 중인 게임이 있습니다">RP 매칭</button>
+            <button class="btn btn-ai" id="ai-game-btn">AI 대전</button>
             <button class="btn" disabled title="진행 중인 게임이 있습니다">공개 방 만들기</button>
           {% else %}
             <button class="btn btn-matchmaking" id="matchmaking-btn">RP 매칭</button>
+            <button class="btn btn-ai" id="ai-game-btn">AI 대전</button>
             <button class="btn" id="new-room-btn">공개 방 만들기</button>
           {% endif %}
         </div>
       </div>
 
-      <div class="room-list">
+      <div class="room-list" id="room-list">
         {% if waiting_games %}
           {% for game in waiting_games %}
             <div class="room-card" data-game-id="{{ game.pk }}" data-has-password="{% if game.password %}true{% else %}false{% endif %}" data-game-url="{% url 'games:join' pk=game.pk %}">
@@ -2793,6 +2904,35 @@
           <button type="submit" class="btn">만들기</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- AI 대전 모달 -->
+  <div class="modal-overlay" id="ai-modal">
+    <div class="modal-content">
+      <h2>AI 대전</h2>
+      <div class="ai-options">
+        <div class="option-group">
+          <label>난이도</label>
+          <div class="option-buttons">
+            <button class="option-btn" data-difficulty="easy">EASY</button>
+            <button class="option-btn active" data-difficulty="normal">NORMAL
+            </button>
+            <button class="option-btn" data-difficulty="hard">HARD</button>
+          </div>
+        </div>
+        <div class="option-group">
+          <label>돌 색상</label>
+          <div class="option-buttons">
+            <button class="option-btn active" data-color="B">흑 (선공)</button>
+            <button class="option-btn" data-color="W">백 (후공)</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-buttons">
+        <button type="button" class="btn btn-cancel" id="ai-cancel-btn">취소</button>
+        <button type="button" class="btn btn-ai" id="ai-start-btn">게임 시작</button>
+      </div>
     </div>
   </div>
 
@@ -3084,7 +3224,7 @@
       </div>
 
       <div class="opponent-info">
-        <img id="opponent-profile-img" src="/static/images/default_profile.svg" alt="상대방" class="opponent-profile-img">
+        <img id="opponent-profile-img" src="/static/images/default_profile_green.svg" alt="상대방" class="opponent-profile-img">
         <p style="font-size: 0.9rem; color: #666; margin: 0;">상대방</p>
         <p class="opponent-nickname">
           <span id="opponent-tier"></span>
@@ -3279,6 +3419,8 @@
           const data = JSON.parse(e.data);
           if (data.type === "users") {
             renderUsers(data.users);
+          } else if (data.type === "room_list") {
+            renderRoomList(data.games);
           } else if (data.type === "chat_history") {
             // 최근 24시간 채팅 기록 로드
             data.messages.forEach(msg => {
@@ -3298,6 +3440,87 @@
         }
       });
     }
+
+    function renderRoomList(games) {
+      const roomList = document.getElementById("room-list");
+      if (!roomList) return;
+
+      roomList.innerHTML = "";
+
+      if (!games || games.length === 0) {
+        const emptyState = document.createElement("div");
+        emptyState.className = "empty-state";
+        emptyState.innerHTML = "대기 중인 방이 없습니다.<br>새 방을 만들어보세요!";
+        roomList.appendChild(emptyState);
+        return;
+      }
+
+      games.forEach(game => {
+        const card = document.createElement("div");
+        card.className = "room-card";
+        card.dataset.gameId = game.id;
+        card.dataset.hasPassword = game.has_password ? "true" : "false";
+        card.dataset.gameUrl = `/games/${game.id}/join/`;
+
+        const titleDiv = document.createElement("div");
+        titleDiv.className = "room-title";
+        titleDiv.textContent = (game.has_password ? "🔒 " : "") + game.title;
+        card.appendChild(titleDiv);
+
+        const infoDiv = document.createElement("div");
+        infoDiv.className = "room-info";
+
+        // 생성자 링크
+        const creatorSpan = document.createElement("span");
+        creatorSpan.innerHTML = `생성자: <a href="/accounts/profile/${game.black_username}/" class="nickname-link" data-tooltip="프로필 보기" onclick="event.stopPropagation();">${game.black_nickname}</a>`;
+        infoDiv.appendChild(creatorSpan);
+
+        // 구분자
+        const separator = document.createElement("span");
+        separator.textContent = "|";
+        infoDiv.appendChild(separator);
+
+        // RP 정보
+        const rpSpan = document.createElement("span");
+        rpSpan.innerHTML = getTierBadgeHTML(game.black_rating, game.black_total_games);
+        infoDiv.appendChild(rpSpan);
+
+        card.appendChild(infoDiv);
+        roomList.appendChild(card);
+
+        // 클릭 이벤트 바인딩
+        card.addEventListener("click", (e) => {
+          window.handleRoomCardClick(card, e);
+        });
+      });
+    }
+
+    // 방 카드 클릭 핸들러 (전역 함수로 정의)
+    window.handleRoomCardClick = function(card, e) {
+      // 닉네임 링크 클릭 시 이벤트 전파 방지 확인
+      if (e && e.target && e.target.classList.contains('nickname-link')) {
+        return;
+      }
+
+      const hasPassword = card.dataset.hasPassword === "true";
+      const gameUrl = card.dataset.gameUrl;
+
+      if (hasPassword) {
+        // 비밀번호 입력 모달 표시
+        const passwordModal = document.getElementById("password-modal");
+        const gamePasswordInput = document.getElementById("game-password");
+        const passwordForm = document.getElementById("password-form");
+        if (passwordModal && gamePasswordInput && passwordForm) {
+          // 선택된 게임 URL 저장 (submit 시 사용)
+          passwordForm.dataset.gameUrl = gameUrl;
+          gamePasswordInput.value = "";
+          passwordModal.classList.add("active");
+          setTimeout(() => gamePasswordInput.focus(), 100);
+        }
+      } else {
+        window.location.href = gameUrl;
+      }
+    };
 
     function renderUsers(users) {
       // 접속자 수 업데이트
@@ -3321,7 +3544,7 @@
         // 프로필 이미지
         const profileImg = document.createElement("img");
         profileImg.className = "user-profile-img";
-        profileImg.src = user.profile_image || "/static/images/default_profile.svg";
+        profileImg.src = user.profile_image || "/static/images/default_profile_green.svg";
         profileImg.alt = user.nickname;
         badge.appendChild(profileImg);
 
@@ -3345,6 +3568,10 @@
         } else if (user.status === "waiting") {
           badge.classList.add("waiting");
           link.textContent = `${user.nickname} - 게임룸 대기중`;
+          badge.appendChild(link);
+        } else if (user.status === "matchmaking") {
+          badge.classList.add("matchmaking");
+          link.textContent = `${user.nickname} - RP매칭중`;
           badge.appendChild(link);
         } else {
           badge.appendChild(link);
@@ -3384,6 +3611,59 @@
       if (e.target === titleModal) {
         titleModal.classList.remove("active");
         roomTitleInput.value = "";
+      }
+    });
+  })();
+
+  // AI 대전 모달 관리
+  (function(){
+    const aiGameBtn = document.getElementById("ai-game-btn");
+    const aiModal = document.getElementById("ai-modal");
+    const aiCancelBtn = document.getElementById("ai-cancel-btn");
+    const aiStartBtn = document.getElementById("ai-start-btn");
+
+    let selectedDifficulty = "normal";
+    let selectedColor = "B";
+
+    // 난이도/색상 버튼 클릭 처리
+    aiModal.querySelectorAll(".option-btn[data-difficulty]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        aiModal.querySelectorAll(".option-btn[data-difficulty]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        selectedDifficulty = btn.dataset.difficulty;
+      });
+    });
+
+    aiModal.querySelectorAll(".option-btn[data-color]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        aiModal.querySelectorAll(".option-btn[data-color]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        selectedColor = btn.dataset.color;
+      });
+    });
+
+    if (aiGameBtn) {
+      aiGameBtn.addEventListener("click", () => {
+        aiModal.classList.add("active");
+      });
+    }
+
+    if (aiCancelBtn) {
+      aiCancelBtn.addEventListener("click", () => {
+        aiModal.classList.remove("active");
+      });
+    }
+
+    if (aiStartBtn) {
+      aiStartBtn.addEventListener("click", () => {
+        window.location.href = `{% url 'games:ai_game' %}?difficulty=${selectedDifficulty}&color=${selectedColor}`;
+      });
+    }
+
+    // 모달 외부 클릭 시 닫기
+    aiModal.addEventListener("click", (e) => {
+      if (e.target === aiModal) {
+        aiModal.classList.remove("active");
       }
     });
   })();
@@ -3468,7 +3748,7 @@
       // 프로필 이미지
       const profileImg = document.createElement("img");
       profileImg.className = "chat-profile-img";
-      profileImg.src = profileImage || "/static/images/default_profile.svg";
+      profileImg.src = profileImage || "/static/images/default_profile_green.svg";
       profileImg.alt = sender;
 
       const contentDiv = document.createElement("div");
@@ -3785,7 +4065,7 @@
       // 상대방 프로필 이미지
       const opponentProfileImg = document.getElementById("opponent-profile-img");
       if (opponentProfileImg) {
-        opponentProfileImg.src = opponent.profile_image || "/static/images/default_profile.svg";
+        opponentProfileImg.src = opponent.profile_image || "/static/images/default_profile_green.svg";
       }
 
       // 수락 카운트다운 시작
@@ -4011,13 +4291,20 @@
         return;
       }
 
+      // 게임 URL 가져오기 (동적 방 카드에서 설정된 경우 dataset 사용)
+      const gameUrl = selectedGameUrl || passwordForm.dataset.gameUrl;
+      if (!gameUrl) {
+        alert("게임을 선택해주세요.");
+        return;
+      }
+
       // 비밀번호와 함께 POST 요청
       const formData = new FormData();
       formData.append("password", password);
       formData.append("csrfmiddlewaretoken", document.querySelector('[name=csrfmiddlewaretoken]').value);
 
       try {
-        const response = await fetch(selectedGameUrl, {
+        const response = await fetch(gameUrl, {
           method: "POST",
           body: formData,
         });
@@ -4080,7 +4367,31 @@
     checkUnreadMessages();
     setInterval(checkUnreadMessages, 30000);
   })();
+  </script>
 
+  <!-- 신고 모달 -->
+  <div class="report-modal" id="report-modal">
+    <div class="report-content">
+      <h3>유저 신고</h3>
+      <div class="report-target" id="report-target-info"></div>
+      <label for="report-reason">신고 사유</label>
+      <select id="report-reason">
+        <option value="">선택하세요</option>
+        <option value="abuse">욕설/비하</option>
+        <option value="spam">도배/스팸</option>
+        <option value="inappropriate">부적절한 행동</option>
+        <option value="other">기타</option>
+      </select>
+      <label for="report-description">상세 설명 (선택)</label>
+      <textarea id="report-description" placeholder="추가 설명이 있다면 입력해주세요..."></textarea>
+      <div class="report-actions">
+        <button class="btn-report-cancel" id="report-cancel-btn">취소</button>
+        <button class="btn-report-submit" id="report-submit-btn">신고</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
   // 신고 모달 로직
   (function(){
     const reportModal = document.getElementById("report-modal");
@@ -4094,27 +4405,36 @@
     let reportEvidence = "";
 
     window.openReportModal = function(userId, nickname, chatMessage) {
+      if (!reportModal) {
+        console.error("신고 모달을 찾을 수 없습니다.");
+        if (window.showToast) window.showToast("신고 기능을 사용할 수 없습니다.", "error");
+        return;
+      }
       reportUserId = userId;
       reportEvidence = chatMessage || "";
-      reportTargetInfo.textContent = `대상: ${nickname}`;
-      reportReason.value = "";
-      reportDescription.value = "";
+      if (reportTargetInfo) reportTargetInfo.textContent = `대상: ${nickname}`;
+      if (reportReason) reportReason.value = "";
+      if (reportDescription) reportDescription.value = "";
       reportModal.classList.add("active");
     };
 
-    reportCancelBtn.addEventListener("click", () => {
-      reportModal.classList.remove("active");
-      reportUserId = null;
-    });
-
-    reportModal.addEventListener("click", (e) => {
-      if (e.target === reportModal) {
+    if (reportCancelBtn) {
+      reportCancelBtn.addEventListener("click", () => {
         reportModal.classList.remove("active");
         reportUserId = null;
-      }
-    });
+      });
+    }
 
-    reportSubmitBtn.addEventListener("click", async () => {
+    if (reportModal) {
+      reportModal.addEventListener("click", (e) => {
+        if (e.target === reportModal) {
+          reportModal.classList.remove("active");
+          reportUserId = null;
+        }
+      });
+    }
+
+    if (reportSubmitBtn) reportSubmitBtn.addEventListener("click", async () => {
       if (!reportReason.value) {
         if (window.showToast) {
           window.showToast("신고 사유를 선택해주세요.", "error");

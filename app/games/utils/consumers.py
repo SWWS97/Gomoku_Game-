@@ -12,6 +12,7 @@ from app.games.models import LobbyMessage
 from ..models import BOARD_SIZE, Game, GameHistory, Move
 from app.accounts.models import UserProfile, calculate_elo, INITIAL_RATING
 from app.accounts.views import ONLINE_USERS_KEY, ONLINE_TIMEOUT
+from ..matchmaking import matchmaking_service
 from .omok import (
     BLACK,
     WHITE,
@@ -406,8 +407,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         white_rating = INITIAL_RATING
         black_total_games = 0
         white_total_games = 0
-        black_profile_image = "/static/images/default_profile.svg"
-        white_profile_image = "/static/images/default_profile.svg"
+        black_profile_image = "/static/images/default_profile_green.svg"
+        white_profile_image = "/static/images/default_profile_green.svg"
         if game.black:
             black_profile = UserProfile.objects.filter(user=game.black).first()
             if black_profile:
@@ -1027,6 +1028,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             await self.channel_layer.group_send(
                 "lobby", {"type": "user_status_changed"}
             )
+            # 게임 방 목록도 업데이트
+            await self.channel_layer.group_send("lobby", {"type": "room_list_changed"})
         except Exception as e:
             print("[WS][notify_lobby_status_change] ERROR:", repr(e))
 
@@ -1340,7 +1343,8 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                             "rating": profile_data["rating"],
                             "total_games": profile_data["total_games"],
                             "profile_image": profile_data.get(
-                                "profile_image", "/static/images/default_profile.svg"
+                                "profile_image",
+                                "/static/images/default_profile_green.svg",
                             ),
                         },
                     )
@@ -1360,7 +1364,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                     "rating": event.get("rating", INITIAL_RATING),
                     "total_games": event.get("total_games", 0),
                     "profile_image": event.get(
-                        "profile_image", "/static/images/default_profile.svg"
+                        "profile_image", "/static/images/default_profile_green.svg"
                     ),
                 }
             )
@@ -1414,7 +1418,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                     "rating": profile_data.get("rating", INITIAL_RATING),
                     "total_games": profile_data.get("total_games", 0),
                     "profile_image": profile_data.get(
-                        "profile_image", "/static/images/default_profile.svg"
+                        "profile_image", "/static/images/default_profile_green.svg"
                     ),
                 }
             )
@@ -1470,9 +1474,18 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
 
         return users
 
+    async def get_user_game_status(self, user_id):
+        """사용자의 게임 상태 반환: online, waiting, playing, matchmaking"""
+        # 먼저 매칭 큐에 있는지 확인 (in-memory)
+        if matchmaking_service.get_queue_entry(user_id):
+            return "matchmaking"
+
+        # DB에서 게임 상태 확인
+        return await self._get_user_game_status_from_db(user_id)
+
     @database_sync_to_async
-    def get_user_game_status(self, user_id):
-        """사용자의 게임 상태 반환: online, waiting, playing"""
+    def _get_user_game_status_from_db(self, user_id):
+        """DB에서 사용자의 게임 상태 확인"""
         # 진행 중인 게임 찾기 (승자가 없는 게임)
         game = Game.objects.filter(
             Q(black_id=user_id) | Q(white_id=user_id), winner__isnull=True
@@ -1519,7 +1532,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                 ),
                 "total_games": profiles_data.get(msg.user_id, {}).get("total_games", 0),
                 "profile_image": profiles_data.get(msg.user_id, {}).get(
-                    "profile_image", "/static/images/default_profile.svg"
+                    "profile_image", "/static/images/default_profile_green.svg"
                 ),
             }
             for msg in messages
@@ -1561,5 +1574,63 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             return {
                 "rating": INITIAL_RATING,
                 "total_games": 0,
-                "profile_image": "/static/images/default_profile.svg",
+                "profile_image": "/static/images/default_profile_green.svg",
             }
+
+    async def room_list_changed(self, event):
+        """게임 방 목록 변경 알림"""
+        try:
+            waiting_games = await self.get_waiting_games()
+            await self.send_json({"type": "room_list", "games": waiting_games})
+        except Exception as e:
+            print("[LobbyWS][room_list_changed] ERROR:", repr(e))
+
+    @database_sync_to_async
+    def get_waiting_games(self):
+        """대기 중인 게임 방 목록 조회"""
+        from app.accounts.views import ONLINE_USERS_KEY, ONLINE_TIMEOUT
+
+        current_time = time.time()
+        online_users = cache.get(ONLINE_USERS_KEY, {})
+        online_user_ids = set()
+        for user_id, info in online_users.items():
+            if current_time - info.get("last_seen", 0) < ONLINE_TIMEOUT:
+                online_user_ids.add(int(user_id))
+
+        # 로비에 연결된 사용자도 온라인으로 간주
+        for user_info in LobbyConsumer.connected_users.values():
+            online_user_ids.add(user_info["user_id"])
+
+        # 대기 중인 게임 (white가 null)
+        waiting_games = (
+            Game.objects.filter(white__isnull=True)
+            .select_related("black")
+            .order_by("-created_at")
+        )
+
+        games_list = []
+        for game in waiting_games:
+            # 방장이 온라인인 방만 포함
+            if game.black_id in online_user_ids:
+                # 방장의 RP 조회
+                try:
+                    profile = UserProfile.objects.get(user=game.black)
+                    rating = profile.rating
+                    total_games = profile.total_games
+                except UserProfile.DoesNotExist:
+                    rating = INITIAL_RATING
+                    total_games = 0
+
+                games_list.append(
+                    {
+                        "id": game.id,
+                        "title": game.title,
+                        "has_password": bool(game.password),
+                        "black_nickname": game.black.first_name or game.black.username,
+                        "black_username": game.black.username,
+                        "black_rating": rating,
+                        "black_total_games": total_games,
+                    }
+                )
+
+        return games_list

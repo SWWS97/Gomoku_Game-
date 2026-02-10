@@ -15,7 +15,7 @@ from django.core.files.base import ContentFile
 from django.core.validators import EmailValidator
 from django.utils import timezone
 
-from .models import NicknameChangeLog, UserProfile
+from .models import DEFAULT_AVATAR_CHOICES, NicknameChangeLog, UserProfile
 
 
 def upload_to_oci(file_content: bytes, filename: str, content_type: str) -> str:
@@ -184,6 +184,13 @@ class ProfileEditForm(forms.Form):
         label="프로필 이미지 삭제",
     )
 
+    default_avatar = forms.ChoiceField(
+        choices=DEFAULT_AVATAR_CHOICES,
+        required=False,
+        label="기본 아바타 색상",
+        widget=forms.RadioSelect(),
+    )
+
     nickname = forms.CharField(
         max_length=30,
         required=False,
@@ -225,6 +232,12 @@ class ProfileEditForm(forms.Form):
         if self.user:
             self.fields["nickname"].initial = self.user.first_name
             self.fields["email"].initial = self.user.email
+            # 기본 아바타 색상 초기값
+            try:
+                profile = UserProfile.objects.get(user=self.user)
+                self.fields["default_avatar"].initial = profile.default_avatar
+            except UserProfile.DoesNotExist:
+                self.fields["default_avatar"].initial = "green"
 
     def clean_email(self):
         """이메일 형식 검증 및 중복 체크"""
@@ -330,9 +343,15 @@ class ProfileEditForm(forms.Form):
         new_password1 = self.cleaned_data.get("new_password1")
         profile_image = self.cleaned_data.get("profile_image")
         remove_profile_image = self.cleaned_data.get("remove_profile_image")
+        default_avatar = self.cleaned_data.get("default_avatar")
 
         # UserProfile 가져오기 또는 생성
         profile, _ = UserProfile.objects.get_or_create(user=self.user)
+
+        # 기본 아바타 색상 저장
+        if default_avatar and default_avatar != profile.default_avatar:
+            profile.default_avatar = default_avatar
+            profile.save(update_fields=["default_avatar"])
 
         # 프로필 이미지 처리
         if remove_profile_image:

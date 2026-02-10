@@ -57,6 +57,8 @@
 
     /* ===== Top bar ===== */
     .topbar{
+      position: relative;
+      z-index: 50;
       display:flex; align-items:center; gap:14px;
       padding:12px 16px 6px; font-weight:700;
       color: var(--text);
@@ -305,46 +307,54 @@
 
     /* 미리보기 돌 (조준점) */
     .stone.preview{
-      opacity: 0.5;
+      opacity: 0.4;
       filter: drop-shadow(0 2px 2px rgba(0,0,0,.2));
     }
     .stone.preview.aimed{
-      opacity: 0.7;
-      filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8)) drop-shadow(0 2px 4px rgba(0,0,0,.3));
-      animation: aimPulse 1.2s ease-in-out infinite;
+      opacity: 0.65;
+      filter: drop-shadow(0 3px 4px rgba(0,0,0,.4));
+    }
+    .stone.preview.aimed::after{
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 35%; height: 35%;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(255, 107, 107, 0.9) 0%, rgba(255, 107, 107, 0) 70%);
+      box-shadow: 0 0 8px rgba(255, 107, 107, 0.6);
+      animation: aimPulse 1s ease-in-out infinite;
     }
     @keyframes aimPulse {
-      0%, 100% { opacity: 0.7; }
-      50% { opacity: 0.55; }
+      0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 0.6; transform: translate(-50%, -50%) scale(0.85); }
     }
 
     /* 착수 확인 버튼 */
     .confirm-move-btn{
       display: none;
       position: absolute;
-      left: 50%;
-      bottom: -5px;
-      transform: translateX(-50%);
       z-index: 200;
-      padding: 8px 32px;
-      font-size: 1rem;
+      padding: 8px 24px;
+      font-size: 0.9rem;
       font-weight: 800;
-      letter-spacing: 2px;
+      letter-spacing: 1px;
       color: #fff;
       background: linear-gradient(135deg, #43a047, #2e7d32);
       border: none;
-      border-radius: 20px;
+      border-radius: 16px;
       cursor: pointer;
       box-shadow: 0 3px 10px rgba(46, 125, 50, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+      transform: translate(-50%, 8px);
       transition: all 0.15s ease;
     }
     .confirm-move-btn:hover{
-      transform: translateX(-50%) translateY(-2px);
+      transform: translate(-50%, 6px);
       box-shadow: 0 5px 16px rgba(46, 125, 50, 0.5), inset 0 1px 0 rgba(255,255,255,0.2);
       background: linear-gradient(135deg, #4caf50, #388e3c);
     }
     .confirm-move-btn:active{
-      transform: translateX(-50%) translateY(0) scale(0.97);
+      transform: translate(-50%, 8px) scale(0.97);
       box-shadow: 0 1px 4px rgba(46, 125, 50, 0.3);
     }
     .confirm-move-btn.visible{
@@ -352,8 +362,8 @@
       animation: confirmAppear 0.2s ease-out;
     }
     @keyframes confirmAppear {
-      from { opacity: 0; transform: translateX(-50%) translateY(6px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+      from { opacity: 0; transform: translate(-50%, 14px); }
+      to { opacity: 1; transform: translate(-50%, 8px); }
     }
     [data-theme="dark"] .confirm-move-btn{
       background: linear-gradient(135deg, #4ade80, #22c55e);
@@ -377,7 +387,7 @@
 
     /* 마지막 착수 강조 애니메이션 */
     .stone.last-move {
-      animation: stonePulse 1.5s ease-in-out 3;
+      animation: stonePulse 1.2s ease-in-out 3;
     }
     @keyframes stonePulse {
       0%, 100% {
@@ -386,7 +396,7 @@
       }
       50% {
         transform: translate(-50%, -50%) scale(1.15);
-        filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.8)) drop-shadow(0 3px 4px rgba(0,0,0,.4));
+        filter: drop-shadow(0 0 14px rgba(255, 107, 107, 0.9)) drop-shadow(0 3px 4px rgba(0,0,0,.4));
       }
     }
 
@@ -1294,13 +1304,13 @@
     <!-- 플레이어 정보 -->
     <div class="players">
       <div class="player-info">
-        <img id="black-profile-img" src="/static/images/default_profile.svg" alt="흑" class="player-profile-img">
+        <img id="black-profile-img" src="/static/images/default_profile_green.svg" alt="흑" class="player-profile-img">
         <span class="label">흑(●):</span>
         <span id="black-tier"></span>
         <span id="black-player">대기중...</span>
       </div>
       <div class="player-info">
-        <img id="white-profile-img" src="/static/images/default_profile.svg" alt="백" class="player-profile-img">
+        <img id="white-profile-img" src="/static/images/default_profile_green.svg" alt="백" class="player-profile-img">
         <span class="label">백(○):</span>
         <span id="white-tier"></span>
         <span id="white-player">대기중...</span>
@@ -1662,7 +1672,7 @@
   // 리매치 요청 승인 함수
   window.acceptRematch = function() {
     if (ws.readyState !== WebSocket.OPEN) {
-      alert("게임과 연결되지 않았습니다.");
+      showToast("게임과 연결되지 않았습니다.", "error");
       return;
     }
 
@@ -1676,7 +1686,7 @@
   // 리매치 요청 거절 함수
   window.declineRematch = function() {
     if (ws.readyState !== WebSocket.OPEN) {
-      alert("게임과 연결되지 않았습니다.");
+      showToast("게임과 연결되지 않았습니다.", "error");
       return;
     }
 
@@ -1687,13 +1697,13 @@
     rematchRequestModal.style.display = "none";
 
     // 사용자에게 알림
-    alert("리매치를 거절했습니다.");
+    showToast("리매치를 거절했습니다.", "info");
   };
 
   // 리매치 요청 취소 함수
   window.cancelRematchRequest = function() {
     if (ws.readyState !== WebSocket.OPEN) {
-      alert("게임과 연결되지 않았습니다.");
+      showToast("게임과 연결되지 않았습니다.", "error");
       return;
     }
 
@@ -1763,7 +1773,7 @@
 
   window.clickReady = function() {
     if (ws.readyState !== WebSocket.OPEN) {
-      alert("게임과 연결되지 않았습니다.");
+      showToast("게임과 연결되지 않았습니다.", "error");
       return;
     }
     // 준비 완료 메시지 전송
@@ -1776,7 +1786,7 @@
 
   window.clickStartGame = function() {
     if (ws.readyState !== WebSocket.OPEN) {
-      alert("게임과 연결되지 않았습니다.");
+      showToast("게임과 연결되지 않았습니다.", "error");
       return;
     }
     // 게임 시작 메시지 전송
@@ -2369,6 +2379,9 @@
 
   // 조준 설정 (미리보기 표시 + 착수 확인 버튼 표시)
   function setAim(x, y) {
+    // 내 차례가 아니면 조준 안 함
+    if (currentTurnState !== myColor) return;
+
     // 같은 위치를 다시 클릭하면 조준 해제
     if (aimedCoords && aimedCoords.x === x && aimedCoords.y === y) {
       clearAim();
@@ -2376,6 +2389,12 @@
     }
     aimedCoords = {x, y};
     showPreview(x, y, currentTurnState, true);
+
+    // 버튼 위치를 클릭한 돌 아래로 설정
+    const px = innerMin + x * step;
+    const py = innerMin + y * step + 4; // 돌 아래 4% 위치
+    confirmBtn.style.left = px + "%";
+    confirmBtn.style.top = py + "%";
     confirmBtn.classList.add("visible");
   }
 
@@ -2393,8 +2412,9 @@
       btn.dataset.y = y;
       btn.addEventListener("click", onPlay);
 
-      // 미리보기 이벤트 (PC)
+      // 미리보기 이벤트 (PC) - 내 차례일 때만 표시
       btn.addEventListener("mouseenter", (e) => {
+        if (currentTurnState !== myColor) return; // 내 차례 아니면 미리보기 안 함
         const bx = +e.currentTarget.dataset.x;
         const by = +e.currentTarget.dataset.y;
         // 조준 중인 위치가 아닌 곳에 마우스 올리면 일반 미리보기
@@ -2404,7 +2424,7 @@
       });
       btn.addEventListener("mouseleave", () => {
         // 조준 중이면 조준 미리보기 복원, 아니면 숨김
-        if (aimedCoords) {
+        if (aimedCoords && currentTurnState === myColor) {
           showPreview(aimedCoords.x, aimedCoords.y, currentTurnState, true);
         } else {
           hidePreview();
@@ -2489,7 +2509,7 @@
       // 착수 에러 발생 시 플래그 해제 (다음 착수 가능하도록)
       isPlaying = false;
       clearAim();
-      alert(m.message);
+      showToast(m.message, "error");
     } else if (m.type === "game_deleted") {
       // 게임이 삭제되었으므로 로비로 이동
       if (window.showToast) {
@@ -2514,11 +2534,16 @@
       rematchWaitingModal.style.display = "none";
       startCountdown();
     } else if (m.type === "rematch_declined") {
-      // 상대방이 리매치를 거절했을 때
+      // 상대방이 리매치를 거절했을 때 또는 요청자가 취소했을 때
       // 대기 모달이 표시되어 있었으면 요청자이므로 알림 표시
       if (rematchWaitingModal.style.display === "flex") {
         rematchWaitingModal.style.display = "none";
-        alert("상대방이 리매치를 거절했습니다.");
+        showToast("상대방이 리매치를 거절했습니다.", "info");
+      }
+      // 요청 모달이 표시되어 있었으면 상대가 요청을 취소한 것
+      if (rematchRequestModal.style.display === "flex") {
+        rematchRequestModal.style.display = "none";
+        showToast("상대방이 리매치 요청을 취소했습니다.", "info");
       }
       // 리매치 버튼 리셋
       rematchBtn.textContent = "리매치 요청";
@@ -2544,7 +2569,7 @@
 
   function onPlay(e){
     if (ws.readyState !== WebSocket.OPEN){
-      alert("게임과 연결되지 않았습니다."); return;
+      showToast("게임과 연결되지 않았습니다.", "error"); return;
     }
     // 착수 중이면 무시 (중복 클릭 방지)
     if (isPlaying) return;
@@ -2561,7 +2586,7 @@
   confirmBtn.addEventListener("click", () => {
     if (!aimedCoords) return;
     if (ws.readyState !== WebSocket.OPEN) {
-      alert("게임과 연결되지 않았습니다."); return;
+      showToast("게임과 연결되지 않았습니다.", "error"); return;
     }
     if (isPlaying) return;
 
@@ -2587,7 +2612,7 @@
   /* ===== 항복 버튼 ===== */
   surrenderBtn.addEventListener("click", ()=>{
     if (ws.readyState !== WebSocket.OPEN){
-      alert("게임과 연결되지 않았습니다."); return;
+      showToast("게임과 연결되지 않았습니다.", "error"); return;
     }
     if (confirm("정말 항복하시겠습니까?")) {
       ws.send(JSON.stringify({type:"surrender"}));
@@ -2597,7 +2622,7 @@
   /* ===== 리매치 버튼 ===== */
   rematchBtn.addEventListener("click", ()=>{
     if (ws.readyState !== WebSocket.OPEN){
-      alert("게임과 연결되지 않았습니다."); return;
+      showToast("게임과 연결되지 않았습니다.", "error"); return;
     }
     ws.send(JSON.stringify({type:"request_rematch"}));
     // 버튼 텍스트 변경 및 비활성화
@@ -2711,21 +2736,21 @@
       const ratingText = black_rating ? ` (${black_rating})` : '';
       blackPlayer.textContent = black_player + ratingText;
       blackTier.innerHTML = black_rating ? getTierBadgeHTML(black_rating, black_total_games || 0) : '';
-      if (blackProfileImg) blackProfileImg.src = black_profile_image || "/static/images/default_profile.svg";
+      if (blackProfileImg) blackProfileImg.src = black_profile_image || "/static/images/default_profile_green.svg";
     } else {
       blackPlayer.textContent = "대기중...";
       blackTier.innerHTML = '';
-      if (blackProfileImg) blackProfileImg.src = "/static/images/default_profile.svg";
+      if (blackProfileImg) blackProfileImg.src = "/static/images/default_profile_green.svg";
     }
     if (white_player) {
       const ratingText = white_rating ? ` (${white_rating})` : '';
       whitePlayer.textContent = white_player + ratingText;
       whiteTier.innerHTML = white_rating ? getTierBadgeHTML(white_rating, white_total_games || 0) : '';
-      if (whiteProfileImg) whiteProfileImg.src = white_profile_image || "/static/images/default_profile.svg";
+      if (whiteProfileImg) whiteProfileImg.src = white_profile_image || "/static/images/default_profile_green.svg";
     } else {
       whitePlayer.textContent = "대기중...";
       whiteTier.innerHTML = '';
-      if (whiteProfileImg) whiteProfileImg.src = "/static/images/default_profile.svg";
+      if (whiteProfileImg) whiteProfileImg.src = "/static/images/default_profile_green.svg";
     }
 
     // 현재 사용자의 색상 결정 (빠른 채팅 말풍선 색상용)
@@ -2908,6 +2933,10 @@
 
     // 미리보기를 위한 상태 업데이트
     currentBoardState = board;
+    // 턴이 바뀌어서 내 차례가 아니면 조준 해제
+    if (turn !== myColor && aimedCoords) {
+      clearAim();
+    }
     currentTurnState = turn;
   }
 })();
@@ -3116,7 +3145,17 @@
   };
 
   reportBtn.addEventListener("click", () => {
-    if (!opponentUserId) return;
+    if (!opponentUserId) {
+      if (window.showToast) window.showToast("신고할 상대가 없습니다.", "error");
+      return;
+    }
+
+    // 열려있을 수 있는 모든 game-over-modal 닫기
+    const allModals = document.querySelectorAll('.game-over-modal');
+    allModals.forEach(modal => {
+      modal.style.display = 'none';
+    });
+
     reportTargetInfo.textContent = "대상: " + opponentName;
     reportReason.value = "";
     reportDescription.value = "";
