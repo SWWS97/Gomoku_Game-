@@ -12,17 +12,19 @@ from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.db.models import Q
 from django.http import JsonResponse
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .forms import ProfileEditForm, SignUpForm
 from .models import UserProfile
-from app.games.models import GameHistory
+from app.games.models import Friend, FriendRequest, GameHistory
 
 
 # 온라인 상태 관련 상수
 ONLINE_TIMEOUT = 60  # 60초 내 활동이 있으면 온라인
 ONLINE_USERS_KEY = "online_users"  # 캐시 키
+AI_GAME_USERS_KEY = "ai_game_users"  # AI 게임 중인 유저 캐시 키
 
 User = get_user_model()
 
@@ -85,10 +87,13 @@ def user_profile(request, username):
     # 프로필 가져오기 (없으면 생성)
     profile, _ = UserProfile.objects.get_or_create(user=user)
 
-    # GameHistory 가져오기 (최근 20개)
-    histories = GameHistory.objects.filter(Q(black=user) | Q(white=user)).order_by(
-        "-finished_at"
-    )[:20]
+    # GameHistory 페이지네이션 (페이지당 10개)
+    history_list = GameHistory.objects.filter(
+        Q(black=user) | Q(white=user)
+    ).order_by("-finished_at")
+    paginator = Paginator(history_list, 10)
+    page_number = request.GET.get("page", 1)
+    histories = paginator.get_page(page_number)
 
     # 전적 통계
     stats = {
@@ -98,11 +103,40 @@ def user_profile(request, username):
         "win_rate": profile.win_rate,
     }
 
+    # 친구 관계 상태 확인
+    friend_status = None  # 비로그인 또는 본인
+    pending_request = None
+    if request.user.is_authenticated and request.user != user:
+        if Friend.objects.filter(
+            user=request.user, friend=user
+        ).exists():
+            friend_status = "friend"
+        elif FriendRequest.objects.filter(
+            from_user=request.user, to_user=user
+        ).exists():
+            friend_status = "sent"
+        elif FriendRequest.objects.filter(
+            from_user=user, to_user=request.user
+        ).exists():
+            friend_status = "received"
+            pending_request = FriendRequest.objects.filter(
+                from_user=user, to_user=request.user
+            ).first()
+        else:
+            friend_status = "none"
+
     context = {
         "profile_user": user,
         "profile": profile,
         "stats": stats,
         "histories": histories,
+        "friend_status": friend_status,
+        "friend_request_id": (
+            pending_request.id if friend_status == "received" else None
+        ),
+        "is_own_profile": (
+            request.user == user if request.user.is_authenticated else False
+        ),
     }
 
     return render(request, "account/profile.html", context)
