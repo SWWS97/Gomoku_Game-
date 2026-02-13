@@ -1,4 +1,5 @@
 import time
+import uuid
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth import get_user_model
@@ -11,7 +12,7 @@ from datetime import timedelta
 from app.games.models import LobbyMessage
 from ..models import BOARD_SIZE, Game, GameHistory, Move
 from app.accounts.models import UserProfile, calculate_elo, INITIAL_RATING
-from app.accounts.views import ONLINE_USERS_KEY, ONLINE_TIMEOUT
+from app.accounts.views import ONLINE_USERS_KEY, ONLINE_TIMEOUT, AI_GAME_USERS_KEY
 from ..matchmaking import matchmaking_service
 from .omok import (
     BLACK,
@@ -1348,8 +1349,227 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                             ),
                         },
                     )
+
+            elif message_type == "game_invite":
+                # 게임 초대
+                target_user_id = content.get("target_user_id")
+                await self.handle_game_invite(target_user_id)
+
+            elif message_type == "invite_response":
+                # 초대 응답 (수락/거절)
+                invite_id = content.get("invite_id")
+                accepted = content.get("accepted", False)
+                await self.handle_invite_response(invite_id, accepted)
+
         except Exception as e:
             print("[LobbyWS][receive_json] ERROR:", repr(e))
+
+    async def handle_game_invite(self, target_user_id):
+        """게임 초대 처리"""
+        try:
+            if not target_user_id:
+                return
+
+            # 자기 자신 초대 불가
+            if target_user_id == self.user_id:
+                await self.send_json(
+                    {
+                        "type": "invite_error",
+                        "message": "자기 자신을 초대할 수 없습니다.",
+                    }
+                )
+                return
+
+            # 대상 유저가 로비에 있는지 확인
+            target_channel = None
+            for channel_name, user_info in LobbyConsumer.connected_users.items():
+                if user_info["user_id"] == target_user_id:
+                    target_channel = channel_name
+                    break
+
+            if not target_channel:
+                await self.send_json(
+                    {"type": "invite_error", "message": "상대방이 로비에 없습니다."}
+                )
+                return
+
+            # 대상 유저의 게임 상태 확인
+            target_status = await self.get_user_game_status(target_user_id)
+            if target_status in ["playing", "waiting", "matchmaking", "ai_playing"]:
+                status_msg = {
+                    "playing": "게임 중",
+                    "waiting": "게임룸 대기 중",
+                    "matchmaking": "RP매칭 중",
+                    "ai_playing": "AI대전 중",
+                }.get(target_status, "다른 활동 중")
+                await self.send_json(
+                    {"type": "invite_error", "message": f"상대방이 {status_msg}입니다."}
+                )
+                return
+
+            # 초대 ID 생성
+            invite_id = str(uuid.uuid4())[:8]
+
+            # 초대 정보 캐시에 저장 (60초 유효)
+            invite_key = f"game_invite_{invite_id}"
+            cache.set(
+                invite_key,
+                {
+                    "from_user_id": self.user_id,
+                    "from_nickname": self.user_nickname,
+                    "to_user_id": target_user_id,
+                    "from_channel": self.channel_name,
+                },
+                timeout=60,
+            )
+
+            # 대상에게 초대 전송
+            await self.channel_layer.send(
+                target_channel,
+                {
+                    "type": "send_game_invite",
+                    "invite_id": invite_id,
+                    "from_user_id": self.user_id,
+                    "from_nickname": self.user_nickname,
+                },
+            )
+
+            # 초대자에게 확인 메시지
+            target_info = LobbyConsumer.connected_users.get(target_channel, {})
+            await self.send_json(
+                {
+                    "type": "invite_sent",
+                    "invite_id": invite_id,
+                    "target_nickname": target_info.get("nickname", "상대방"),
+                }
+            )
+
+        except Exception as e:
+            print(f"[LobbyWS][handle_game_invite] ERROR: {repr(e)}")
+
+    async def send_game_invite(self, event):
+        """게임 초대 수신"""
+        try:
+            await self.send_json(
+                {
+                    "type": "game_invite",
+                    "invite_id": event["invite_id"],
+                    "from_user_id": event["from_user_id"],
+                    "from_nickname": event["from_nickname"],
+                }
+            )
+        except Exception as e:
+            print(f"[LobbyWS][send_game_invite] ERROR: {repr(e)}")
+
+    async def handle_invite_response(self, invite_id, accepted):
+        """초대 응답 처리"""
+        try:
+            invite_key = f"game_invite_{invite_id}"
+            invite_data = cache.get(invite_key)
+
+            if not invite_data:
+                await self.send_json(
+                    {"type": "invite_error", "message": "초대가 만료되었습니다."}
+                )
+                return
+
+            # 캐시에서 삭제
+            cache.delete(invite_key)
+
+            from_channel = invite_data.get("from_channel")
+            from_user_id = invite_data["from_user_id"]
+            from_nickname = invite_data["from_nickname"]
+
+            if accepted:
+                # 게임방 생성
+                game = await self.create_invite_game(from_user_id, self.user_id)
+
+                if game:
+                    game_url = f"/games/{game.pk}/"
+
+                    # 초대자에게 게임 시작 알림
+                    if from_channel:
+                        await self.channel_layer.send(
+                            from_channel,
+                            {
+                                "type": "send_invite_accepted",
+                                "game_id": game.pk,
+                                "game_url": game_url,
+                                "opponent_nickname": self.user_nickname,
+                            },
+                        )
+
+                    # 수락자에게 게임 시작 알림
+                    await self.send_json(
+                        {
+                            "type": "invite_accepted",
+                            "game_id": game.pk,
+                            "game_url": game_url,
+                            "opponent_nickname": from_nickname,
+                        }
+                    )
+            else:
+                # 초대자에게 거절 알림
+                if from_channel:
+                    await self.channel_layer.send(
+                        from_channel,
+                        {
+                            "type": "send_invite_declined",
+                            "declined_by": self.user_nickname,
+                        },
+                    )
+
+                await self.send_json(
+                    {
+                        "type": "invite_declined_confirm",
+                    }
+                )
+
+        except Exception as e:
+            print(f"[LobbyWS][handle_invite_response] ERROR: {repr(e)}")
+
+    async def send_invite_accepted(self, event):
+        """초대 수락 알림"""
+        try:
+            await self.send_json(
+                {
+                    "type": "invite_accepted",
+                    "game_id": event["game_id"],
+                    "game_url": event["game_url"],
+                    "opponent_nickname": event["opponent_nickname"],
+                }
+            )
+        except Exception as e:
+            print(f"[LobbyWS][send_invite_accepted] ERROR: {repr(e)}")
+
+    async def send_invite_declined(self, event):
+        """초대 거절 알림"""
+        try:
+            await self.send_json(
+                {
+                    "type": "invite_declined",
+                    "declined_by": event["declined_by"],
+                }
+            )
+        except Exception as e:
+            print(f"[LobbyWS][send_invite_declined] ERROR: {repr(e)}")
+
+    @database_sync_to_async
+    def create_invite_game(self, black_user_id, white_user_id):
+        """초대 게임 생성"""
+        try:
+            black_user = User.objects.get(id=black_user_id)
+            white_user = User.objects.get(id=white_user_id)
+
+            game = Game.objects.create(
+                title=f"{black_user.first_name or black_user.username}님의 초대 게임",
+                black=black_user,
+                white=white_user,
+            )
+            return game
+        except Exception as e:
+            print(f"[create_invite_game] ERROR: {repr(e)}")
+            return None
 
     async def broadcast_chat_message(self, event):
         """채팅 메시지 브로드캐스트"""
@@ -1475,10 +1695,17 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         return users
 
     async def get_user_game_status(self, user_id):
-        """사용자의 게임 상태 반환: online, waiting, playing, matchmaking"""
+        """사용자의 게임 상태 반환: online, waiting, playing, matchmaking, ai_playing"""
         # 먼저 매칭 큐에 있는지 확인 (in-memory)
         if matchmaking_service.get_queue_entry(user_id):
             return "matchmaking"
+
+        # AI 게임 중인지 확인 (캐시)
+        ai_users = cache.get(AI_GAME_USERS_KEY, {})
+        if str(user_id) in ai_users:
+            user_info = ai_users[str(user_id)]
+            if time.time() - user_info.get("last_seen", 0) < ONLINE_TIMEOUT:
+                return "ai_playing"
 
         # DB에서 게임 상태 확인
         return await self._get_user_game_status_from_db(user_id)

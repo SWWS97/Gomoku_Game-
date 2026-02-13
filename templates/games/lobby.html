@@ -972,6 +972,88 @@
       background-clip: text;
     }
 
+    /* AI 대전 중인 사용자 스타일 (청록색) */
+    .user-badge.ai_playing::before {
+      background: #06b6d4;
+      animation: pulse-cyan 2s infinite;
+    }
+
+    .user-badge.ai_playing {
+      border-color: #06b6d4;
+      background: linear-gradient(135deg, #ecfeff, #fff);
+    }
+
+    .user-badge.ai_playing .nickname-link {
+      background: linear-gradient(135deg, #0891b2, #0e7490);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    [data-theme="dark"] .user-badge.ai_playing {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), #0f172a);
+    }
+
+    @keyframes pulse-cyan {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7); }
+      70% { box-shadow: 0 0 0 6px rgba(6, 182, 212, 0); }
+    }
+
+    /* 유저 드롭다운 메뉴 */
+    .user-dropdown {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 4px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px var(--shadow);
+      z-index: 1000;
+      min-width: 120px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .user-dropdown.active {
+      display: block;
+    }
+
+    .user-dropdown-item {
+      display: block;
+      width: 100%;
+      padding: 10px 14px;
+      border: none;
+      background: none;
+      text-align: left;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .user-dropdown-item:hover {
+      background: rgba(74, 124, 89, 0.1);
+    }
+
+    .user-dropdown-item:not(:last-child) {
+      border-bottom: 1px solid var(--line);
+    }
+
+    [data-theme="dark"] .user-dropdown {
+      background: #1e293b;
+      border-color: #374151;
+    }
+
+    [data-theme="dark"] .user-dropdown-item:hover {
+      background: rgba(74, 222, 128, 0.1);
+    }
+
+    .user-badge {
+      position: relative;
+    }
+
     @keyframes pulse-purple {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.6; transform: scale(1.1); }
@@ -1077,6 +1159,56 @@
     .toast.info {
       border-left-color: #4a7c89;
       background: linear-gradient(135deg, #f0f7f9 0%, #ffffff 100%);
+    }
+
+    .toast.invite {
+      border-left-color: #b8860b;
+      background: linear-gradient(135deg, #fdf8ef 0%, #ffffff 100%);
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .toast.invite .toast-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .toast.invite .invite-buttons {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .toast.invite .invite-buttons button {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .toast.invite .btn-invite-accept {
+      background: #4a7c59;
+      color: white;
+    }
+
+    .toast.invite .btn-invite-accept:hover {
+      background: #3d6b4a;
+    }
+
+    .toast.invite .btn-invite-decline {
+      background: #e2e8f0;
+      color: #4a5568;
+    }
+
+    .toast.invite .btn-invite-decline:hover {
+      background: #cbd5e0;
     }
 
     .toast-icon {
@@ -2804,7 +2936,7 @@
     {% if active_game_id %}
     <div class="active-game-banner">
       <div class="banner-content">
-        <span class="banner-icon">🎮</span>
+        <span class="banner-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.2)"/><circle cx="12" cy="12" r="6" fill="white"/><circle cx="12" cy="12" r="3" fill="rgba(74,124,89,0.8)"/></svg></span>
         <div class="banner-text">
           <strong>진행 중인 게임이 있습니다</strong>
           <p>게임을 계속하시려면 재입장하세요</p>
@@ -3434,6 +3566,27 @@
             } else {
               alert(data.message);
             }
+          } else if (data.type === "game_invite") {
+            // 게임 초대 수신
+            showInviteToast(data.invite_id, data.from_nickname);
+          } else if (data.type === "invite_accepted") {
+            // 초대 수락됨 - 게임방으로 이동
+            if (window.showToast) {
+              window.showToast(`${data.opponent_nickname}님이 초대를 수락했습니다!`, "success");
+            }
+            setTimeout(() => {
+              window.location.href = data.game_url;
+            }, 500);
+          } else if (data.type === "invite_declined") {
+            // 초대 거절됨
+            if (window.showToast) {
+              window.showToast(`${data.declined_by}님이 초대를 거절했습니다.`, "info");
+            }
+          } else if (data.type === "invite_error") {
+            // 초대 오류
+            if (window.showToast) {
+              window.showToast(data.message, "error");
+            }
           }
         } catch (err) {
           console.error("[Lobby] Message parse error:", err);
@@ -3553,32 +3706,185 @@
         tierBadge.innerHTML = getTierBadgeHTML(user.rating || 1000, user.total_games || 0);
         badge.appendChild(tierBadge.firstChild);
 
-        // 닉네임 링크 생성
-        const link = document.createElement("a");
-        link.href = `/accounts/profile/${user.username}/`;
-        link.className = "nickname-link";
-        link.dataset.tooltip = "프로필 보기";
-        link.textContent = user.nickname;
+        // 닉네임 버튼 생성 (클릭 시 드롭다운)
+        const nicknameBtn = document.createElement("span");
+        nicknameBtn.className = "nickname-link";
+        nicknameBtn.style.cursor = "pointer";
+        nicknameBtn.textContent = user.nickname;
+        nicknameBtn.dataset.userId = user.user_id;
+        nicknameBtn.dataset.username = user.username;
+        nicknameBtn.dataset.nickname = user.nickname;
 
         // 사용자 상태에 따라 스타일 및 텍스트 적용
         if (user.status === "playing") {
           badge.classList.add("playing");
-          link.textContent = `${user.nickname} - 게임중`;
-          badge.appendChild(link);
+          nicknameBtn.textContent = `${user.nickname} - 게임중`;
         } else if (user.status === "waiting") {
           badge.classList.add("waiting");
-          link.textContent = `${user.nickname} - 게임룸 대기중`;
-          badge.appendChild(link);
+          nicknameBtn.textContent = `${user.nickname} - 게임룸 대기중`;
         } else if (user.status === "matchmaking") {
           badge.classList.add("matchmaking");
-          link.textContent = `${user.nickname} - RP매칭중`;
-          badge.appendChild(link);
-        } else {
-          badge.appendChild(link);
+          nicknameBtn.textContent = `${user.nickname} - RP매칭중`;
+        } else if (user.status === "ai_playing") {
+          badge.classList.add("ai_playing");
+          nicknameBtn.textContent = `${user.nickname} - AI대전중`;
         }
+
+        badge.appendChild(nicknameBtn);
+
+        // 드롭다운 메뉴 생성 (본인이면 프로필만)
+        const dropdown = document.createElement("div");
+        dropdown.className = "user-dropdown";
+        const currentUsername = "{{ user.username }}";
+        if (user.username === currentUsername) {
+          dropdown.innerHTML = `
+            <button class="user-dropdown-item" data-action="profile">내 프로필</button>
+          `;
+        } else {
+          dropdown.innerHTML = `
+            <button class="user-dropdown-item" data-action="profile">프로필 보기</button>
+            <button class="user-dropdown-item" data-action="invite">게임 초대</button>
+            <button class="user-dropdown-item" data-action="friend">친구 추가</button>
+          `;
+        }
+        badge.appendChild(dropdown);
+
+        // 닉네임 클릭 시 드롭다운 토글
+        nicknameBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          // 다른 드롭다운 닫기
+          document.querySelectorAll(".user-dropdown.active").forEach(d => {
+            if (d !== dropdown) d.classList.remove("active");
+          });
+          dropdown.classList.toggle("active");
+        });
+
+        // 드롭다운 아이템 클릭 처리
+        dropdown.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const item = e.target.closest(".user-dropdown-item");
+          if (!item) return;
+
+          const action = item.dataset.action;
+          const userId = nicknameBtn.dataset.userId;
+          const username = nicknameBtn.dataset.username;
+          const nickname = nicknameBtn.dataset.nickname;
+
+          dropdown.classList.remove("active");
+
+          if (action === "profile") {
+            window.location.href = `/accounts/profile/${username}/`;
+          } else if (action === "invite") {
+            handleGameInvite(userId, nickname);
+          } else if (action === "friend") {
+            handleFriendRequest(userId, nickname);
+          }
+        });
 
         usersList.appendChild(badge);
       });
+
+      // 외부 클릭 시 드롭다운 닫기
+      document.addEventListener("click", () => {
+        document.querySelectorAll(".user-dropdown.active").forEach(d => d.classList.remove("active"));
+      });
+    }
+
+    // 게임 초대 처리
+    function handleGameInvite(userId, nickname) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        if (window.showToast) {
+          window.showToast("연결이 끊어졌습니다. 페이지를 새로고침 해주세요.", "error");
+        }
+        return;
+      }
+      ws.send(JSON.stringify({
+        type: "game_invite",
+        target_user_id: parseInt(userId),
+      }));
+      if (window.showToast) {
+        window.showToast(`${nickname}님에게 게임 초대를 보냈습니다.`, "info");
+      }
+    }
+
+    // 게임 초대 토스트 표시
+    function showInviteToast(inviteId, fromNickname) {
+      const toastContainer = document.getElementById("toast-container");
+      if (!toastContainer) return;
+
+      const toast = document.createElement("div");
+      toast.className = "toast invite";
+      toast.dataset.inviteId = inviteId;
+
+      const inviteIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="10" fill="#b8860b"/>
+        <path d="M12 6v6l4 2" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+
+      toast.innerHTML = `
+        <div class="toast-top">
+          <span class="toast-icon">${inviteIcon}</span>
+          <div class="toast-content">
+            <div class="toast-message"><b>${fromNickname}</b>님이 게임에 초대했습니다.</div>
+          </div>
+          <button class="toast-close" onclick="respondToInvite('${inviteId}', false); this.closest('.toast').remove();">&times;</button>
+        </div>
+        <div class="invite-buttons">
+          <button class="btn-invite-decline" onclick="respondToInvite('${inviteId}', false); this.closest('.toast').remove();">거절</button>
+          <button class="btn-invite-accept" onclick="respondToInvite('${inviteId}', true); this.closest('.toast').remove();">수락</button>
+        </div>
+      `;
+
+      toastContainer.appendChild(toast);
+
+      // 60초 후 자동 거절
+      setTimeout(() => {
+        if (toast.parentElement) {
+          respondToInvite(inviteId, false);
+          toast.classList.add("slide-out");
+          setTimeout(() => toast.remove(), 300);
+        }
+      }, 60000);
+    }
+
+    // 초대 응답 처리
+    function respondToInvite(inviteId, accepted) {
+      if (!inviteId) return;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: "invite_response",
+          invite_id: inviteId,
+          accepted: accepted,
+        }));
+      }
+    }
+    window.respondToInvite = respondToInvite;
+
+    // 친구 추가 처리
+    async function handleFriendRequest(userId, nickname) {
+      try {
+        const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]");
+        if (!csrfToken) {
+          if (window.showToast) window.showToast("인증 오류가 발생했습니다. 페이지를 새로고침 해주세요.", "error");
+          return;
+        }
+        const response = await fetch(`/games/friends/request/${userId}/`, {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": csrfToken.value,
+            "X-Requested-With": "XMLHttpRequest",
+          },
+        });
+        const result = await response.json();
+        if (response.ok) {
+          if (window.showToast) window.showToast(result.message || `${nickname}님에게 친구 요청을 보냈습니다.`, "success");
+        } else {
+          if (window.showToast) window.showToast(result.error || "친구 요청에 실패했습니다.", "error");
+        }
+      } catch (err) {
+        console.error("Friend request error:", err);
+        if (window.showToast) window.showToast("친구 요청 중 오류가 발생했습니다.", "error");
+      }
     }
 
     // 초기 연결

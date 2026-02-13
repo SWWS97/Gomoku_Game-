@@ -337,6 +337,8 @@
       z-index: 200;
       padding: 8px 24px;
       font-size: 0.9rem;
+      white-space: nowrap;
+      width: max-content;
       font-weight: 800;
       letter-spacing: 1px;
       color: #fff;
@@ -499,12 +501,14 @@
       .topbar .right{
         width: 100%;
         justify-content: flex-start;
-        gap: 8px;
+        flex-wrap: wrap;
+        gap: 6px;
         margin-top: 8px;
       }
       .pill{
-        padding: 0.35rem 0.7rem;
-        font-size: 0.78rem;
+        padding: 0.35rem 0.6rem;
+        font-size: 0.72rem;
+        white-space: nowrap;
       }
       .players{
         gap: 8px;
@@ -2393,9 +2397,21 @@
     // 버튼 위치를 클릭한 돌 아래로 설정
     const px = innerMin + x * step;
     const py = innerMin + y * step + 4; // 돌 아래 4% 위치
+
+    // 먼저 보이게 해서 offsetWidth를 정확히 측정
     confirmBtn.style.left = px + "%";
     confirmBtn.style.top = py + "%";
     confirmBtn.classList.add("visible");
+
+    // 좌우 가장자리 보정: 버튼이 보드 밖으로 나가지 않도록
+    const wrap = document.getElementById("boardWrap");
+    const btnW = confirmBtn.offsetWidth;
+    const wrapW = wrap.offsetWidth;
+    if (btnW && wrapW) {
+      const halfBtnPct = (btnW / wrapW) * 50;
+      const clampedPx = Math.max(halfBtnPct, Math.min(100 - halfBtnPct, px));
+      confirmBtn.style.left = clampedPx + "%";
+    }
   }
 
   /* ===== 클릭 포인트 ===== */
@@ -2513,7 +2529,7 @@
     } else if (m.type === "game_deleted") {
       // 게임이 삭제되었으므로 로비로 이동
       if (window.showToast) {
-        showToast("방 생성자가 나가서 게임이 종료되었습니다.", "info");
+        showToast("상대방이 나가서 게임이 종료되었습니다.", "info");
         // 토스트를 보여주고 2초 후 리다이렉트
         setTimeout(() => {
           window.location.href = "{% url 'games:lobby' %}";
