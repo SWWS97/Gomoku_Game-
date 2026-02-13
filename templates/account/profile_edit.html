@@ -42,16 +42,19 @@ window.__playLobbyBgm = true;
 
   <!-- 프로필 이미지 -->
   <div class="row profile-image-section">
-    <label>프로필 이미지</label>
+    <label class="label-emphasis">프로필 이미지</label>
     <div class="profile-image-container">
       <div class="profile-image-preview" id="imagePreview">
         <img src="{{ profile.profile_image_url }}" alt="프로필 이미지" id="previewImg">
       </div>
       <div class="profile-image-actions">
-        <label for="id_profile_image" class="btn-upload">
-          이미지 선택
-          {{ form.profile_image }}
-        </label>
+        <div class="upload-row">
+          <label for="id_profile_image" class="btn-upload">
+            이미지 선택
+            {{ form.profile_image }}
+          </label>
+          <span class="muted image-format-hint">JPG, PNG, GIF, WEBP</span>
+        </div>
         {% if profile.profile_image %}
         <label class="btn-remove">
           {{ form.remove_profile_image }}
@@ -67,13 +70,11 @@ window.__playLobbyBgm = true;
         {% endfor %}
       </div>
     {% endif %}
-    <p class="muted">JPG, PNG, GIF, WEBP (최대 5MB)</p>
   </div>
 
   <!-- 기본 아바타 색상 선택 -->
   <div class="row avatar-color-section">
-    <label>기본 아바타 색상</label>
-    <p class="muted" style="margin-bottom: 10px;">프로필 이미지가 없을 때 사용됩니다</p>
+    <label class="label-emphasis">기본 아바타 색상 <span class="muted label-sub">(프로필 이미지가 없을 때 사용됩니다)</span></label>
     <div class="avatar-color-options">
       {% for value, label in form.default_avatar.field.choices %}
       <label class="avatar-color-option" data-color="{{ value }}">
@@ -87,7 +88,7 @@ window.__playLobbyBgm = true;
   </div>
 
   <div class="row">
-    <label for="id_nickname">닉네임</label>
+    <label for="id_nickname" class="label-emphasis">닉네임</label>
     {{ form.nickname }}
     {% if form.nickname.errors %}
       <div class="error-message">
@@ -100,7 +101,7 @@ window.__playLobbyBgm = true;
   </div>
 
   <div class="row">
-    <label for="id_email">이메일 {% if not user.email %}<span style="color: #d97706;">(필수)</span>{% endif %}</label>
+    <label for="id_email" class="label-emphasis">이메일 {% if not user.email %}<span style="color: #d97706;">(필수)</span>{% endif %}</label>
     {{ form.email }}
     {% if form.email.errors %}
       <div class="error-message">
@@ -298,6 +299,7 @@ window.__playLobbyBgm = true;
   .btn-remove {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     padding: 8px 16px;
     background: #f3f4f6;
@@ -305,7 +307,7 @@ window.__playLobbyBgm = true;
     border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
   }
   [data-theme="dark"] .btn-remove {
     background: #374151;
@@ -366,6 +368,33 @@ window.__playLobbyBgm = true;
   }
   [data-theme="dark"] .avatar-color-option:hover {
     background: rgba(90, 140, 105, 0.2);
+  }
+  .upload-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .image-format-hint {
+    font-size: 9px !important;
+    margin: 0 !important;
+    white-space: nowrap;
+    color: #9ca3af;
+  }
+  .profile-image-actions .btn-upload,
+  .profile-image-actions .btn-remove {
+    white-space: nowrap;
+    width: 100px;
+    text-align: center;
+    box-sizing: border-box;
+  }
+  .label-sub {
+    font-size: 13px;
+    font-weight: 400;
+  }
+  .label-emphasis {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ink);
   }
 </style>
 
