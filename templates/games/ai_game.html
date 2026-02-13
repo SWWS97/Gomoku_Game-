@@ -32,9 +32,9 @@
     }
 
     [data-theme="dark"] {
-      --wood: #2a2520;
-      --line: #4a4035;
-      --border: #4ade80;
+      --wood: #2a2218;
+      --line: #8b6f4b;
+      --border: #8b6f4b;
       --bg: #0f0f1a;
       --topbar-bg: #16213e;
       --topbar-border: #4ade80;
@@ -130,21 +130,21 @@
           90deg,
           transparent,
           transparent 35px,
-          rgba(255,255,255,.02) 35px,
-          rgba(255,255,255,.02) 36px
+          rgba(255,255,255,.03) 35px,
+          rgba(255,255,255,.03) 36px
         ),
         repeating-linear-gradient(
           0deg,
           transparent,
           transparent 80px,
-          rgba(255,255,255,.015) 80px,
-          rgba(255,255,255,.015) 81px
+          rgba(255,255,255,.02) 80px,
+          rgba(255,255,255,.02) 81px
         ),
-        linear-gradient(160deg, #342e28 0%, #2a2520 30%, #221e19 60%, #2a2520 100%);
+        linear-gradient(160deg, #342a20 0%, #2a2218 30%, #201a12 60%, #2a2218 100%);
       box-shadow:
         0 18px 26px rgba(0,0,0,.5),
-        inset 0 1px 0 rgba(255,255,255,.05),
-        inset 0 0 20px rgba(0,0,0,.15);
+        inset 0 1px 0 rgba(200,169,110,.1),
+        inset 0 0 20px rgba(0,0,0,.2);
     }
 
     .grid{ position:absolute; inset:0; display:block; }
@@ -501,6 +501,17 @@
   </div>
 
   <!-- 로비 이동 확인 모달 -->
+  <div class="game-over-modal" id="restartConfirmModal" style="display:none;">
+    <div class="modal-content">
+      <h2>다시하기</h2>
+      <p style="margin: 16px 0; color: var(--text-secondary);">게임이 진행 중입니다.<br>정말 다시 시작하시겠습니까?</p>
+      <div class="btn-group">
+        <button class="modal-btn" id="restartConfirmCancel" style="background: #6b7280;">취소</button>
+        <button class="modal-btn" id="restartConfirmOk">다시하기</button>
+      </div>
+    </div>
+  </div>
+
   <div class="game-over-modal" id="lobbyConfirmModal" style="display:none;">
     <div class="modal-content">
       <h2>게임 진행 중</h2>
@@ -659,7 +670,7 @@
       for (const [gx, gy] of starPoints) {
         const cx = innerMin + (gx - 1) * step;
         const cy = innerMin + (gy - 1) * step;
-        html += `<circle cx="${cx}" cy="${cy}" r="1.3" fill="#6e5239" opacity="0.9"/>`;
+        html += `<circle cx="${cx}" cy="${cy}" r="1.3" fill="var(--line)" opacity="0.9"/>`;
       }
 
       grid.innerHTML = html;
@@ -924,7 +935,25 @@
       }
     }
 
-    document.getElementById("restartBtn").addEventListener("click", restart);
+    const restartConfirmModal = document.getElementById("restartConfirmModal");
+
+    document.getElementById("restartBtn").addEventListener("click", () => {
+      if (gameController && !gameController.gameOver && gameController.moveHistory.length > 0) {
+        restartConfirmModal.style.display = "flex";
+      } else {
+        restart();
+      }
+    });
+
+    document.getElementById("restartConfirmOk").addEventListener("click", () => {
+      restartConfirmModal.style.display = "none";
+      restart();
+    });
+
+    document.getElementById("restartConfirmCancel").addEventListener("click", () => {
+      restartConfirmModal.style.display = "none";
+    });
+
     document.getElementById("confirmResultBtn").addEventListener("click", () => {
       gameOverModal.style.display = "none";
     });
