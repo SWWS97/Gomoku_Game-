@@ -456,13 +456,18 @@ def send_friend_request(request, user_id):
         return redirect("games:friends")
 
     target_user = get_object_or_404(User, id=user_id)
-    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.content_type == "application/json"
+    is_ajax = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.content_type == "application/json"
+    )
     target_name = target_user.first_name or target_user.username
 
     # 자기 자신에게 요청 불가
     if target_user == request.user:
         if is_ajax:
-            return JsonResponse({"error": "자기 자신에게 친구 요청을 보낼 수 없습니다."}, status=400)
+            return JsonResponse(
+                {"error": "자기 자신에게 친구 요청을 보낼 수 없습니다."}, status=400
+            )
         messages.error(request, "자기 자신에게 친구 요청을 보낼 수 없습니다.")
         return redirect("games:friends")
 
@@ -514,10 +519,7 @@ def accept_friend_request(request, request_id):
         FriendRequest, id=request_id, to_user=request.user
     )
 
-    from_name = (
-        friend_request.from_user.first_name
-        or friend_request.from_user.username
-    )
+    from_name = friend_request.from_user.first_name or friend_request.from_user.username
 
     # 양방향 친구 관계 생성
     Friend.objects.create(user=request.user, friend=friend_request.from_user)
@@ -527,9 +529,7 @@ def accept_friend_request(request, request_id):
     friend_request.delete()
 
     if is_ajax:
-        return JsonResponse(
-            {"message": f"{from_name}님과 친구가 되었습니다."}
-        )
+        return JsonResponse({"message": f"{from_name}님과 친구가 되었습니다."})
 
     messages.success(request, f"{from_name}님과 친구가 되었습니다.")
     return redirect("games:friends")
@@ -566,8 +566,7 @@ def remove_friend(request, user_id):
 
     # 양방향 친구 관계 삭제
     Friend.objects.filter(
-        Q(user=request.user, friend=friend)
-        | Q(user=friend, friend=request.user)
+        Q(user=request.user, friend=friend) | Q(user=friend, friend=request.user)
     ).delete()
 
     if is_ajax:

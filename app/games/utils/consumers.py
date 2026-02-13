@@ -1372,10 +1372,12 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
 
             # 자기 자신 초대 불가
             if target_user_id == self.user_id:
-                await self.send_json({
-                    "type": "invite_error",
-                    "message": "자기 자신을 초대할 수 없습니다."
-                })
+                await self.send_json(
+                    {
+                        "type": "invite_error",
+                        "message": "자기 자신을 초대할 수 없습니다.",
+                    }
+                )
                 return
 
             # 대상 유저가 로비에 있는지 확인
@@ -1386,10 +1388,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                     break
 
             if not target_channel:
-                await self.send_json({
-                    "type": "invite_error",
-                    "message": "상대방이 로비에 없습니다."
-                })
+                await self.send_json(
+                    {"type": "invite_error", "message": "상대방이 로비에 없습니다."}
+                )
                 return
 
             # 대상 유저의 게임 상태 확인
@@ -1399,12 +1400,11 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
                     "playing": "게임 중",
                     "waiting": "게임룸 대기 중",
                     "matchmaking": "RP매칭 중",
-                    "ai_playing": "AI대전 중"
+                    "ai_playing": "AI대전 중",
                 }.get(target_status, "다른 활동 중")
-                await self.send_json({
-                    "type": "invite_error",
-                    "message": f"상대방이 {status_msg}입니다."
-                })
+                await self.send_json(
+                    {"type": "invite_error", "message": f"상대방이 {status_msg}입니다."}
+                )
                 return
 
             # 초대 ID 생성
@@ -1412,28 +1412,37 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
 
             # 초대 정보 캐시에 저장 (60초 유효)
             invite_key = f"game_invite_{invite_id}"
-            cache.set(invite_key, {
-                "from_user_id": self.user_id,
-                "from_nickname": self.user_nickname,
-                "to_user_id": target_user_id,
-                "from_channel": self.channel_name,
-            }, timeout=60)
+            cache.set(
+                invite_key,
+                {
+                    "from_user_id": self.user_id,
+                    "from_nickname": self.user_nickname,
+                    "to_user_id": target_user_id,
+                    "from_channel": self.channel_name,
+                },
+                timeout=60,
+            )
 
             # 대상에게 초대 전송
-            await self.channel_layer.send(target_channel, {
-                "type": "send_game_invite",
-                "invite_id": invite_id,
-                "from_user_id": self.user_id,
-                "from_nickname": self.user_nickname,
-            })
+            await self.channel_layer.send(
+                target_channel,
+                {
+                    "type": "send_game_invite",
+                    "invite_id": invite_id,
+                    "from_user_id": self.user_id,
+                    "from_nickname": self.user_nickname,
+                },
+            )
 
             # 초대자에게 확인 메시지
             target_info = LobbyConsumer.connected_users.get(target_channel, {})
-            await self.send_json({
-                "type": "invite_sent",
-                "invite_id": invite_id,
-                "target_nickname": target_info.get("nickname", "상대방"),
-            })
+            await self.send_json(
+                {
+                    "type": "invite_sent",
+                    "invite_id": invite_id,
+                    "target_nickname": target_info.get("nickname", "상대방"),
+                }
+            )
 
         except Exception as e:
             print(f"[LobbyWS][handle_game_invite] ERROR: {repr(e)}")
@@ -1441,12 +1450,14 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
     async def send_game_invite(self, event):
         """게임 초대 수신"""
         try:
-            await self.send_json({
-                "type": "game_invite",
-                "invite_id": event["invite_id"],
-                "from_user_id": event["from_user_id"],
-                "from_nickname": event["from_nickname"],
-            })
+            await self.send_json(
+                {
+                    "type": "game_invite",
+                    "invite_id": event["invite_id"],
+                    "from_user_id": event["from_user_id"],
+                    "from_nickname": event["from_nickname"],
+                }
+            )
         except Exception as e:
             print(f"[LobbyWS][send_game_invite] ERROR: {repr(e)}")
 
@@ -1457,10 +1468,9 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
             invite_data = cache.get(invite_key)
 
             if not invite_data:
-                await self.send_json({
-                    "type": "invite_error",
-                    "message": "초대가 만료되었습니다."
-                })
+                await self.send_json(
+                    {"type": "invite_error", "message": "초대가 만료되었습니다."}
+                )
                 return
 
             # 캐시에서 삭제
@@ -1479,31 +1489,41 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
 
                     # 초대자에게 게임 시작 알림
                     if from_channel:
-                        await self.channel_layer.send(from_channel, {
-                            "type": "send_invite_accepted",
-                            "game_id": game.pk,
-                            "game_url": game_url,
-                            "opponent_nickname": self.user_nickname,
-                        })
+                        await self.channel_layer.send(
+                            from_channel,
+                            {
+                                "type": "send_invite_accepted",
+                                "game_id": game.pk,
+                                "game_url": game_url,
+                                "opponent_nickname": self.user_nickname,
+                            },
+                        )
 
                     # 수락자에게 게임 시작 알림
-                    await self.send_json({
-                        "type": "invite_accepted",
-                        "game_id": game.pk,
-                        "game_url": game_url,
-                        "opponent_nickname": from_nickname,
-                    })
+                    await self.send_json(
+                        {
+                            "type": "invite_accepted",
+                            "game_id": game.pk,
+                            "game_url": game_url,
+                            "opponent_nickname": from_nickname,
+                        }
+                    )
             else:
                 # 초대자에게 거절 알림
                 if from_channel:
-                    await self.channel_layer.send(from_channel, {
-                        "type": "send_invite_declined",
-                        "declined_by": self.user_nickname,
-                    })
+                    await self.channel_layer.send(
+                        from_channel,
+                        {
+                            "type": "send_invite_declined",
+                            "declined_by": self.user_nickname,
+                        },
+                    )
 
-                await self.send_json({
-                    "type": "invite_declined_confirm",
-                })
+                await self.send_json(
+                    {
+                        "type": "invite_declined_confirm",
+                    }
+                )
 
         except Exception as e:
             print(f"[LobbyWS][handle_invite_response] ERROR: {repr(e)}")
@@ -1511,22 +1531,26 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
     async def send_invite_accepted(self, event):
         """초대 수락 알림"""
         try:
-            await self.send_json({
-                "type": "invite_accepted",
-                "game_id": event["game_id"],
-                "game_url": event["game_url"],
-                "opponent_nickname": event["opponent_nickname"],
-            })
+            await self.send_json(
+                {
+                    "type": "invite_accepted",
+                    "game_id": event["game_id"],
+                    "game_url": event["game_url"],
+                    "opponent_nickname": event["opponent_nickname"],
+                }
+            )
         except Exception as e:
             print(f"[LobbyWS][send_invite_accepted] ERROR: {repr(e)}")
 
     async def send_invite_declined(self, event):
         """초대 거절 알림"""
         try:
-            await self.send_json({
-                "type": "invite_declined",
-                "declined_by": event["declined_by"],
-            })
+            await self.send_json(
+                {
+                    "type": "invite_declined",
+                    "declined_by": event["declined_by"],
+                }
+            )
         except Exception as e:
             print(f"[LobbyWS][send_invite_declined] ERROR: {repr(e)}")
 

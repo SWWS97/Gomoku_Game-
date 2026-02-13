@@ -88,9 +88,9 @@ def user_profile(request, username):
     profile, _ = UserProfile.objects.get_or_create(user=user)
 
     # GameHistory 페이지네이션 (페이지당 10개)
-    history_list = GameHistory.objects.filter(
-        Q(black=user) | Q(white=user)
-    ).order_by("-finished_at")
+    history_list = GameHistory.objects.filter(Q(black=user) | Q(white=user)).order_by(
+        "-finished_at"
+    )
     paginator = Paginator(history_list, 10)
     page_number = request.GET.get("page", 1)
     histories = paginator.get_page(page_number)
@@ -107,9 +107,7 @@ def user_profile(request, username):
     friend_status = None  # 비로그인 또는 본인
     pending_request = None
     if request.user.is_authenticated and request.user != user:
-        if Friend.objects.filter(
-            user=request.user, friend=user
-        ).exists():
+        if Friend.objects.filter(user=request.user, friend=user).exists():
             friend_status = "friend"
         elif FriendRequest.objects.filter(
             from_user=request.user, to_user=user
