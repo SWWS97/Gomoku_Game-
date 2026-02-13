@@ -1,4 +1,5 @@
 import json
+import time
 from datetime import timedelta
 from functools import wraps
 
@@ -13,8 +14,11 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from django.core.cache import cache
+from django.views.decorators.http import require_POST
+
 from app.accounts.models import UserProfile
-from app.accounts.views import get_online_users
+from app.accounts.views import get_online_users, AI_GAME_USERS_KEY
 
 from .models import (
     BOARD_SIZE,
@@ -67,6 +71,13 @@ def lobby(request):
     # 오프라인 방장의 빈 방 삭제
     if games_to_delete:
         Game.objects.filter(id__in=games_to_delete).delete()
+
+    # 로비 진입 시 본인이 만든 빈 방 정리 (상대 없음, 게임 미시작)
+    Game.objects.filter(
+        black=request.user,
+        white__isnull=True,
+        game_started=False,
+    ).delete()
 
     # 현재 사용자가 참여 중인 진행 중인 게임이 있는지 확인
     active_game = Game.objects.filter(
@@ -266,6 +277,54 @@ def ai_game(request):
 
 
 @login_required
+@require_POST
+def ai_game_status(request):
+    """AI 게임 상태 업데이트 (하트비트)"""
+
+    user = request.user
+    ai_users = cache.get(AI_GAME_USERS_KEY, {})
+    ai_users[str(user.id)] = {
+        "user_id": user.id,
+        "username": user.username,
+        "nickname": user.first_name or user.username,
+        "last_seen": time.time(),
+    }
+    cache.set(AI_GAME_USERS_KEY, ai_users, timeout=300)
+
+    # 로비에 상태 변경 알림
+    notify_lobby_status_change()
+
+    return JsonResponse({"status": "ok"})
+
+
+@login_required
+@require_POST
+def ai_game_leave(request):
+    """AI 게임 종료 알림"""
+    user = request.user
+    ai_users = cache.get(AI_GAME_USERS_KEY, {})
+    if str(user.id) in ai_users:
+        del ai_users[str(user.id)]
+        cache.set(AI_GAME_USERS_KEY, ai_users, timeout=300)
+
+    # 로비에 상태 변경 알림
+    notify_lobby_status_change()
+
+    return JsonResponse({"status": "ok"})
+
+
+def notify_lobby_status_change():
+    """로비에 유저 상태 변경 알림"""
+    try:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "lobby", {"type": "user_status_changed"}
+        )
+    except Exception as e:
+        print(f"[notify_lobby_status_change] ERROR: {repr(e)}")
+
+
+@login_required
 def leave_game(request, pk):
     """게임 나가기"""
     # 게임이 이미 삭제된 경우 로비로 리다이렉트
@@ -392,12 +451,23 @@ def friends_list(request):
 def send_friend_request(request, user_id):
     """친구 요청 보내기"""
     if request.method != "POST":
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"error": "POST 요청만 허용됩니다."}, status=405)
         return redirect("games:friends")
 
     target_user = get_object_or_404(User, id=user_id)
+    is_ajax = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.content_type == "application/json"
+    )
+    target_name = target_user.first_name or target_user.username
 
     # 자기 자신에게 요청 불가
     if target_user == request.user:
+        if is_ajax:
+            return JsonResponse(
+                {"error": "자기 자신에게 친구 요청을 보낼 수 없습니다."}, status=400
+            )
         messages.error(request, "자기 자신에게 친구 요청을 보낼 수 없습니다.")
         return redirect("games:friends")
 
@@ -408,6 +478,8 @@ def send_friend_request(request, user_id):
     ).exists()
 
     if is_already_friend:
+        if is_ajax:
+            return JsonResponse({"error": "이미 친구입니다."}, status=400)
         messages.info(request, "이미 친구입니다.")
         return redirect("games:friends")
 
@@ -417,16 +489,18 @@ def send_friend_request(request, user_id):
     ).exists()
 
     if existing_request:
+        if is_ajax:
+            return JsonResponse({"error": "이미 친구 요청을 보냈습니다."}, status=400)
         messages.info(request, "이미 친구 요청을 보냈습니다.")
         return redirect("games:friends")
 
     # 친구 요청 생성
     FriendRequest.objects.create(from_user=request.user, to_user=target_user)
-    messages.success(
-        request,
-        f"{target_user.first_name or target_user.username}님에게 친구 요청을 보냈습니다.",
-    )
 
+    if is_ajax:
+        return JsonResponse({"message": f"{target_name}님에게 친구 요청을 보냈습니다."})
+
+    messages.success(request, f"{target_name}님에게 친구 요청을 보냈습니다.")
     return redirect("games:friends")
 
 
@@ -436,9 +510,16 @@ def accept_friend_request(request, request_id):
     if request.method != "POST":
         return redirect("games:friends")
 
+    is_ajax = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.content_type == "application/json"
+    )
+
     friend_request = get_object_or_404(
         FriendRequest, id=request_id, to_user=request.user
     )
+
+    from_name = friend_request.from_user.first_name or friend_request.from_user.username
 
     # 양방향 친구 관계 생성
     Friend.objects.create(user=request.user, friend=friend_request.from_user)
@@ -447,11 +528,10 @@ def accept_friend_request(request, request_id):
     # 요청 삭제
     friend_request.delete()
 
-    messages.success(
-        request,
-        f"{friend_request.from_user.first_name or friend_request.from_user.username}님과 친구가 되었습니다.",
-    )
+    if is_ajax:
+        return JsonResponse({"message": f"{from_name}님과 친구가 되었습니다."})
 
+    messages.success(request, f"{from_name}님과 친구가 되었습니다.")
     return redirect("games:friends")
 
 
@@ -476,17 +556,25 @@ def remove_friend(request, user_id):
     if request.method != "POST":
         return redirect("games:friends")
 
+    is_ajax = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.content_type == "application/json"
+    )
+
     friend = get_object_or_404(User, id=user_id)
+    friend_name = friend.first_name or friend.username
 
     # 양방향 친구 관계 삭제
     Friend.objects.filter(
         Q(user=request.user, friend=friend) | Q(user=friend, friend=request.user)
     ).delete()
 
-    messages.info(
-        request,
-        f"{friend.first_name or friend.username}님을 친구 목록에서 삭제했습니다.",
-    )
+    if is_ajax:
+        return JsonResponse(
+            {"message": f"{friend_name}님을 친구 목록에서 삭제했습니다."}
+        )
+
+    messages.info(request, f"{friend_name}님을 친구 목록에서 삭제했습니다.")
     return redirect("games:friends")
 
 

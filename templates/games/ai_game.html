@@ -253,6 +253,8 @@
       z-index: 200;
       padding: 8px 24px;
       font-size: 0.9rem;
+      white-space: nowrap;
+      width: max-content;
       font-weight: 800;
       letter-spacing: 1px;
       color: #fff;
@@ -467,7 +469,7 @@
     </div>
     <div class="right">
       <button class="pill" id="bgm-mute-btn" style="background:linear-gradient(135deg, #6b7280, #555); border-color:#444; color:#fff; font-size:13px;">BGM</button>
-      <a href="{% url 'games:lobby' %}" class="pill">로비로가기</a>
+      <button class="pill" id="lobbyBtn">로비로가기</button>
       <button class="pill" id="restartBtn">다시하기</button>
       <button class="pill theme-toggle" id="themeToggle">다크모드</button>
     </div>
@@ -494,6 +496,18 @@
       <div class="winner-name" id="winnerName"></div>
       <div class="btn-group">
         <button class="modal-btn" id="confirmResultBtn">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 로비 이동 확인 모달 -->
+  <div class="game-over-modal" id="lobbyConfirmModal" style="display:none;">
+    <div class="modal-content">
+      <h2>게임 진행 중</h2>
+      <p style="margin: 16px 0; color: var(--text-secondary);">게임이 진행 중입니다.<br>정말 로비로 이동하시겠습니까?</p>
+      <div class="btn-group">
+        <button class="modal-btn" id="lobbyConfirmCancel" style="background: #6b7280;">취소</button>
+        <button class="modal-btn" id="lobbyConfirmOk">이동</button>
       </div>
     </div>
   </div>
@@ -790,8 +804,13 @@
         return;
       }
 
-      // 유효한 수인지 확인 (금수 체크)
-      if (!OmokRules.isValidMove(gameController.board, x, y, playerColor)) {
+      // 유효한 수인지 확인
+      if (!gameController.board.isEmpty(x, y)) {
+        showToast("이미 착수된 위치입니다", "error");
+        clearAim();
+        return;
+      }
+      if (playerColor === BLACK && OmokRules.isForbiddenMove(gameController.board, x, y, BLACK)) {
         showToast("금수입니다", "error");
         clearAim();
         return;
@@ -803,9 +822,22 @@
       // 확인 버튼 위치 및 표시
       const innerMin = 8, innerMax = 92;
       const step = (innerMax - innerMin) / (SIZE - 1);
-      confirmBtn.style.left = `${innerMin + x * step}%`;
-      confirmBtn.style.top = `${innerMin + y * step + 4}%`;
+      const px = innerMin + x * step;
+      const py = innerMin + y * step + 4;
+
+      confirmBtn.style.left = px + "%";
+      confirmBtn.style.top = py + "%";
       confirmBtn.classList.add("visible");
+
+      // 좌우 가장자리 보정
+      const wrap = document.getElementById("boardWrap");
+      const btnW = confirmBtn.offsetWidth;
+      const wrapW = wrap.offsetWidth;
+      if (btnW && wrapW) {
+        const halfBtnPct = (btnW / wrapW) * 50;
+        const clampedPx = Math.max(halfBtnPct, Math.min(100 - halfBtnPct, px));
+        confirmBtn.style.left = clampedPx + "%";
+      }
     }
 
     // 포인트 클릭
@@ -897,6 +929,28 @@
       gameOverModal.style.display = "none";
     });
 
+    // 로비 이동 버튼
+    const lobbyBtn = document.getElementById("lobbyBtn");
+    const lobbyConfirmModal = document.getElementById("lobbyConfirmModal");
+    const lobbyUrl = "{% url 'games:lobby' %}";
+
+    lobbyBtn.addEventListener("click", () => {
+      // 게임이 진행 중이고 끝나지 않았으면 확인 모달 표시
+      if (gameController && !gameController.gameOver && gameController.moveHistory.length > 0) {
+        lobbyConfirmModal.style.display = "flex";
+      } else {
+        window.location.href = lobbyUrl;
+      }
+    });
+
+    document.getElementById("lobbyConfirmCancel").addEventListener("click", () => {
+      lobbyConfirmModal.style.display = "none";
+    });
+
+    document.getElementById("lobbyConfirmOk").addEventListener("click", () => {
+      window.location.href = lobbyUrl;
+    });
+
     // 테마 토글
     const themeToggle = document.getElementById("themeToggle");
     function updateThemeText() {
@@ -931,6 +985,42 @@
     if (playerColor === WHITE) {
       setTimeout(doAIMove, 500);
     }
+
+    // AI 게임 상태 하트비트 (로비에서 AI대전중 표시용)
+    {% if user.is_authenticated %}
+    const csrfToken = "{{ csrf_token }}";
+    let aiHeartbeatInterval = null;
+
+    function sendAiStatus() {
+      fetch("{% url 'games:ai_game_status' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": csrfToken }
+      }).catch(() => {});
+    }
+
+    function sendAiLeave() {
+      fetch("{% url 'games:ai_game_leave' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": csrfToken }
+      }).catch(() => {});
+    }
+
+    // 즉시 상태 전송 및 30초마다 하트비트
+    sendAiStatus();
+    aiHeartbeatInterval = setInterval(sendAiStatus, 30000);
+
+    // 페이지 나갈 때 상태 해제
+    window.addEventListener("beforeunload", () => {
+      sendAiLeave();
+      if (aiHeartbeatInterval) clearInterval(aiHeartbeatInterval);
+    });
+
+    // 로비로 이동 시 상태 해제 (모달 확인 후)
+    const originalLobbyConfirmOk = document.getElementById("lobbyConfirmOk");
+    if (originalLobbyConfirmOk) {
+      originalLobbyConfirmOk.addEventListener("click", sendAiLeave, { once: true });
+    }
+    {% endif %}
   })();
   </script>
 

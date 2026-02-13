@@ -297,6 +297,192 @@
       opacity: 0.3;
     }
 
+    /* 페이지네이션 */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--table-border);
+    }
+
+    .page-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
+      padding: 0 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--text);
+      background: var(--stat-bg);
+      border: 1.5px solid var(--line);
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+
+    .page-btn:hover {
+      background: var(--table-hover);
+      transform: translateY(-1px);
+    }
+
+    .page-btn.active {
+      background: var(--border);
+      color: white;
+      border-color: var(--border);
+      cursor: default;
+      transform: none;
+    }
+
+    [data-theme="dark"] .page-btn.active {
+      color: #1f2937;
+    }
+
+    /* 친구 버튼 */
+    .friend-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: 2px solid;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .friend-btn.add {
+      background: #4a7c59;
+      border-color: #4a7c59;
+      color: white;
+    }
+
+    .friend-btn.add:hover {
+      background: #3d6b4a;
+      transform: translateY(-2px);
+    }
+
+    .friend-btn.sent {
+      background: transparent;
+      border-color: #b8860b;
+      color: #b8860b;
+      cursor: default;
+    }
+
+    .friend-btn.received {
+      background: #b8860b;
+      border-color: #b8860b;
+      color: white;
+    }
+
+    .friend-btn.received:hover {
+      background: #9a7209;
+      transform: translateY(-2px);
+    }
+
+    .friend-btn.remove {
+      background: transparent;
+      border-color: #c44;
+      color: #c44;
+    }
+
+    .friend-btn.remove:hover {
+      background: #c44;
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .friend-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    [data-theme="dark"] .friend-btn.add {
+      background: #4ade80;
+      border-color: #4ade80;
+      color: #1f2937;
+    }
+
+    [data-theme="dark"] .friend-btn.sent {
+      border-color: #fbbf24;
+      color: #fbbf24;
+    }
+
+    [data-theme="dark"] .friend-btn.received {
+      background: #fbbf24;
+      border-color: #fbbf24;
+      color: #1f2937;
+    }
+
+    [data-theme="dark"] .friend-btn.remove {
+      border-color: #f87171;
+      color: #f87171;
+    }
+
+    [data-theme="dark"] .friend-btn.remove:hover {
+      background: #f87171;
+      color: #1f2937;
+    }
+
+    /* 토스트 알림 */
+    .toast-container {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 400px;
+    }
+
+    .toast {
+      background: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+      border-left: 4px solid;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideIn 0.3s ease-out;
+      min-width: 300px;
+    }
+
+    .toast.success { border-left-color: #4a7c59; }
+    .toast.error { border-left-color: #c53030; }
+    .toast.info { border-left-color: #4a7c89; }
+
+    .toast-close {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #999;
+      margin-left: auto;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .toast.slide-out {
+      animation: slideOut 0.3s ease-out forwards;
+    }
+
+    @keyframes slideOut {
+      to { transform: translateX(100%); opacity: 0; }
+    }
+
     /* 모바일 반응형 */
     @media (max-width: 768px) {
       .container {
@@ -305,10 +491,21 @@
 
       .header {
         padding: 16px;
+        flex-direction: column;
+        align-items: stretch;
       }
 
       .header h1 {
         font-size: 18px;
+      }
+
+      .profile-avatar {
+        width: 56px;
+        height: 56px;
+      }
+
+      .header-actions {
+        justify-content: flex-end;
       }
 
       .theme-toggle {
@@ -317,6 +514,11 @@
       }
 
       .btn {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      .friend-btn {
         padding: 6px 12px;
         font-size: 12px;
       }
@@ -353,6 +555,15 @@
         </div>
       </div>
       <div class="header-actions">
+        {% if friend_status == "none" %}
+          <button class="friend-btn add" id="friend-btn" data-user-id="{{ profile_user.id }}" data-status="none">친구 추가</button>
+        {% elif friend_status == "sent" %}
+          <button class="friend-btn sent" id="friend-btn" data-user-id="{{ profile_user.id }}" data-status="sent" disabled>친구요청 보냄</button>
+        {% elif friend_status == "received" %}
+          <button class="friend-btn received" id="friend-btn" data-user-id="{{ profile_user.id }}" data-status="received">친구 수락</button>
+        {% elif friend_status == "friend" %}
+          <button class="friend-btn remove" id="friend-btn" data-user-id="{{ profile_user.id }}" data-status="friend">친구 삭제</button>
+        {% endif %}
         <a href="{% url 'games:lobby' %}" class="btn">로비로가기</a>
         <button class="theme-toggle" id="theme-toggle">다크모드</button>
       </div>
@@ -434,6 +645,25 @@
             {% endfor %}
           </tbody>
         </table>
+
+        {% if histories.has_other_pages %}
+        <div class="pagination">
+          {% if histories.has_previous %}
+            <a href="?page={{ histories.previous_page_number }}" class="page-btn">&laquo;</a>
+          {% endif %}
+          {% for num in histories.paginator.page_range %}
+            {% if histories.number == num %}
+              <span class="page-btn active">{{ num }}</span>
+            {% elif num > histories.number|add:"-3" and num < histories.number|add:"3" %}
+              <a href="?page={{ num }}" class="page-btn">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+          {% if histories.has_next %}
+            <a href="?page={{ histories.next_page_number }}" class="page-btn">&raquo;</a>
+          {% endif %}
+        </div>
+        {% endif %}
+
       {% else %}
         <div class="empty-state">
           아직 게임 기록이 없습니다.<br>
@@ -498,5 +728,95 @@
 </script>
 
 {% include "includes/heartbeat.html" %}
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- 친구 버튼 스크립트 -->
+{% if friend_status %}
+<script>
+(function() {
+  const btn = document.getElementById("friend-btn");
+  if (!btn) return;
+
+  const userId = btn.dataset.userId;
+  const csrfToken = "{{ csrf_token }}";
+  const friendRequestId = "{{ friend_request_id|default:'' }}";
+
+  function showToast(message, type) {
+    const container = document.getElementById("toast-container");
+    if (!container) return;
+    const toast = document.createElement("div");
+    toast.className = "toast " + type;
+    toast.innerHTML = '<span>' + message + '</span><button class="toast-close" onclick="this.parentElement.remove()">&times;</button>';
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add("slide-out");
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+
+  async function friendAction(url, method) {
+    btn.disabled = true;
+    try {
+      const response = await fetch(url, {
+        method: method || "POST",
+        headers: {
+          "X-CSRFToken": csrfToken,
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+      const result = await response.json();
+      if (response.ok) {
+        showToast(result.message, "success");
+        return true;
+      } else {
+        showToast(result.error || "요청에 실패했습니다.", "error");
+        btn.disabled = false;
+        return false;
+      }
+    } catch (err) {
+      showToast("요청 중 오류가 발생했습니다.", "error");
+      btn.disabled = false;
+      return false;
+    }
+  }
+
+  btn.addEventListener("click", async () => {
+    const status = btn.dataset.status;
+
+    if (status === "none") {
+      const ok = await friendAction("/games/friends/request/" + userId + "/");
+      if (ok) {
+        btn.textContent = "요청 보냄";
+        btn.className = "friend-btn sent";
+        btn.dataset.status = "sent";
+        btn.disabled = true;
+      }
+    } else if (status === "received" && friendRequestId) {
+      const ok = await friendAction("/games/friends/accept/" + friendRequestId + "/");
+      if (ok) {
+        btn.textContent = "친구 삭제";
+        btn.className = "friend-btn remove";
+        btn.dataset.status = "friend";
+        btn.disabled = false;
+      }
+    } else if (status === "friend") {
+      if (!confirm("정말 친구를 삭제하시겠습니까?")) {
+        return;
+      }
+      const ok = await friendAction("/games/friends/remove/" + userId + "/");
+      if (ok) {
+        btn.textContent = "+ 친구 추가";
+        btn.className = "friend-btn add";
+        btn.dataset.status = "none";
+        btn.disabled = false;
+      }
+    }
+  });
+})();
+</script>
+{% endif %}
+
 </body>
 </html>
