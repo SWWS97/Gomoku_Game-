@@ -302,45 +302,48 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       margin-top: 20px;
       padding-top: 16px;
       border-top: 1px solid var(--table-border);
+      flex-wrap: wrap;
     }
 
     .page-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 36px;
-      height: 36px;
-      padding: 0 10px;
+      min-width: 40px;
+      height: 40px;
+      padding: 0 12px;
       border-radius: 8px;
       font-size: 14px;
       font-weight: 600;
       text-decoration: none;
-      color: var(--text);
+      color: var(--border);
       background: var(--stat-bg);
-      border: 1.5px solid var(--line);
-      transition: all 0.15s ease;
+      border: 2px solid var(--line);
+      transition: all 0.2s;
       cursor: pointer;
     }
 
     .page-btn:hover {
-      background: var(--table-hover);
-      transform: translateY(-1px);
-    }
-
-    .page-btn.active {
-      background: var(--border);
+      background: var(--line);
       color: white;
-      border-color: var(--border);
-      cursor: default;
-      transform: none;
     }
 
-    [data-theme="dark"] .page-btn.active {
-      color: #1f2937;
+    .page-btn.disabled {
+      background: var(--stat-bg);
+      border-color: var(--table-border);
+      color: var(--text-secondary);
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .page-info {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin: 0 8px;
     }
 
     /* 친구 버튼 */
@@ -649,17 +652,21 @@
         {% if histories.has_other_pages %}
         <div class="pagination">
           {% if histories.has_previous %}
-            <a href="?page={{ histories.previous_page_number }}" class="page-btn">&laquo;</a>
+            <a href="?page=1" class="page-btn">처음</a>
+            <a href="?page={{ histories.previous_page_number }}" class="page-btn">이전</a>
+          {% else %}
+            <span class="page-btn disabled">처음</span>
+            <span class="page-btn disabled">이전</span>
           {% endif %}
-          {% for num in histories.paginator.page_range %}
-            {% if histories.number == num %}
-              <span class="page-btn active">{{ num }}</span>
-            {% elif num > histories.number|add:"-3" and num < histories.number|add:"3" %}
-              <a href="?page={{ num }}" class="page-btn">{{ num }}</a>
-            {% endif %}
-          {% endfor %}
+
+          <span class="page-info">{{ histories.number }} / {{ histories.paginator.num_pages }}</span>
+
           {% if histories.has_next %}
-            <a href="?page={{ histories.next_page_number }}" class="page-btn">&raquo;</a>
+            <a href="?page={{ histories.next_page_number }}" class="page-btn">다음</a>
+            <a href="?page={{ histories.paginator.num_pages }}" class="page-btn">마지막</a>
+          {% else %}
+            <span class="page-btn disabled">다음</span>
+            <span class="page-btn disabled">마지막</span>
           {% endif %}
         </div>
         {% endif %}
