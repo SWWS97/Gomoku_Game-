@@ -536,20 +536,27 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
             # --- 렌주 정석 금수: 흑만 ---
             if stone == BLACK:
-                # 장목 금수
+                # 정확히 5목이면 승리 → 33/44 금수 무시 (장목은 여전히 금수)
+                board2d[x][y] = BLACK
+                exact_five = has_exact_five(board2d, x, y, BLACK)
+                board2d[x][y] = "."
+
+                # 장목 금수 (5목 완성이어도 6목 이상이면 금수)
                 if is_overline(board2d, x, y, BLACK):
                     return False, "장목 금수입니다. (6+)", None
-                # 44 금수
-                if is_forbidden_double_four(board2d, x, y, BLACK):
-                    return False, "44 금수입니다. (44)", None
-                # 33 금수
-                if is_forbidden_double_three(board2d, x, y, BLACK):
-                    # 로그용 디버그(결정은 본판정으로 이미 함)
-                    dbg = debug_double_three(board2d, x, y, BLACK)
-                    print(
-                        f"[33-DEBUG] try=({x},{y}) dirs={dbg['dirs']} spots={dbg['spots']} is33={dbg['is33']}"
-                    )
-                    return False, "33 금수입니다. (33)", None
+
+                # 정확히 5목이면 33/44 금수 면제
+                if not exact_five:
+                    # 44 금수
+                    if is_forbidden_double_four(board2d, x, y, BLACK):
+                        return False, "44 금수입니다. (44)", None
+                    # 33 금수
+                    if is_forbidden_double_three(board2d, x, y, BLACK):
+                        dbg = debug_double_three(board2d, x, y, BLACK)
+                        print(
+                            f"[33-DEBUG] try=({x},{y}) dirs={dbg['dirs']} spots={dbg['spots']} is33={dbg['is33']}"
+                        )
+                        return False, "33 금수입니다. (33)", None
 
             # 실제 착수
             game.set_cell(x, y, stone)

@@ -286,6 +286,18 @@
       background: radial-gradient(circle at 35% 35%, rgba(74, 124, 89, .5), rgba(74, 124, 89, 0) 60%);
     }
 
+    /* 금수 X 표시 */
+    .pt.forbidden{ cursor:not-allowed; }
+    .pt.forbidden::before,
+    .pt.forbidden::after{
+      content:""; position:absolute; top:50%; left:50%;
+      width:40%; height:2px;
+      background:rgba(255,60,60,0.7);
+      border-radius:1px; pointer-events:none;
+    }
+    .pt.forbidden::before{ transform:translate(-50%,-50%) rotate(45deg); }
+    .pt.forbidden::after{ transform:translate(-50%,-50%) rotate(-45deg); }
+
     .stone{
       position:absolute; width:5.6%; height:5.6%; transform:translate(-50%,-50%); border-radius:50%;
       pointer-events:none; filter: drop-shadow(0 3px 4px rgba(0,0,0,.4));
@@ -1490,6 +1502,7 @@
     </div>
   </div>
 
+<script src="/static/js/omok-ai.js"></script>
 <script>
 (function(){
   const SIZE   = {{ BOARD_SIZE }};
@@ -2954,6 +2967,27 @@
       clearAim();
     }
     currentTurnState = turn;
+
+    // 금수 표시 업데이트
+    updateForbiddenMarks();
+  }
+
+  // 금수 마크 업데이트 (흑 차례 + 내가 흑일 때만)
+  function updateForbiddenMarks() {
+    if (currentTurnState !== "black" || myColor !== "black") {
+      pts.forEach(pt => pt.classList.remove("forbidden"));
+      return;
+    }
+    const board = new OmokBoard(currentBoardState);
+    pts.forEach(pt => {
+      const x = +pt.dataset.x, y = +pt.dataset.y;
+      if (currentBoardState[y * SIZE + x] === "." &&
+          OmokRules.isForbiddenMove(board, x, y, "B")) {
+        pt.classList.add("forbidden");
+      } else {
+        pt.classList.remove("forbidden");
+      }
+    });
   }
 })();
 </script>
