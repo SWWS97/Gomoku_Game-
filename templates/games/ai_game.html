@@ -244,7 +244,15 @@
       box-shadow: 0 0 8px var(--aim-color, rgba(0,0,0,0.3));
     }
     .pt.forbidden{ cursor:not-allowed; }
-    .pt.forbidden:hover::after{ background: rgba(255,0,0,0.3); }
+    .pt.forbidden::before,
+    .pt.forbidden::after{
+      content:""; position:absolute; top:50%; left:50%;
+      width:40%; height:2px;
+      background:rgba(255,60,60,0.7);
+      border-radius:1px; pointer-events:none;
+    }
+    .pt.forbidden::before{ transform:translate(-50%,-50%) rotate(45deg); }
+    .pt.forbidden::after{ transform:translate(-50%,-50%) rotate(-45deg); }
 
     /* 착수 확인 버튼 */
     .confirm-move-btn{

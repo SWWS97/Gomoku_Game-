@@ -268,6 +268,12 @@ class OmokRules {
     if (stone !== BLACK) return false;
     if (!board.isEmpty(x, y)) return true;
 
+    // 정확히 5목이면 승리 → 금수 아님 (장목 제외)
+    board.set(x, y, stone);
+    const exactFive = this.hasExactFive(board, x, y, stone);
+    board.set(x, y, EMPTY);
+    if (exactFive) return false;
+
     // 장목 금수
     if (this.wouldBeOverline(board, x, y, stone)) return true;
     // 33 금수
